@@ -1,6 +1,7 @@
 import { LogIn, Menu } from "lucide-react";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Link as ReactRouterLink } from "react-router";
+import { useEffect, useState } from "react";
+// import { Dispatch, SetStateAction } from "react";
+// import { Link as ReactRouterLink } from "react-router";
 import { useAuth } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import {
@@ -13,11 +14,11 @@ import {
 import { throttleWithTrailingInvocation } from "../../../shared/utils";
 import { UserDropdown } from "../../../user/UserDropdown";
 import { UserMenuItems } from "../../../user/UserMenuItems";
-import { useIsLandingPage } from "../../hooks/useIsLandingPage";
+// import { useIsLandingPage } from "../../hooks/useIsLandingPage";
 import logo from "../../static/logo.webp";
 import { cn } from "../../utils";
 import DarkModeSwitcher from "../DarkModeSwitcher";
-import { Announcement } from "./Announcement";
+// import { Announcement } from "./Announcement";
 
 export interface NavigationItem {
   name: string;
@@ -30,7 +31,7 @@ export default function NavBar({
   navigationItems: NavigationItem[];
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
-  const isLandingPage = useIsLandingPage();
+  // const isLandingPage = useIsLandingPage();
 
   useEffect(() => {
     const throttledHandler = throttleWithTrailingInvocation(() => {
@@ -47,7 +48,7 @@ export default function NavBar({
 
   return (
     <>
-      {isLandingPage && <Announcement />}
+      {/* {isLandingPage && <Announcement />} */}
       <header
         className={cn(
           "sticky top-0 z-50 transition-all duration-300",
@@ -91,9 +92,11 @@ export default function NavBar({
                 </span>
               </WaspRouterLink>
 
+              {/*
               <ul className="ml-4 hidden items-center gap-6 lg:flex">
                 {renderNavigationItems(navigationItems)}
               </ul>
+              */}
             </div>
             <NavBarMobileMenu
               isScrolled={isScrolled}
@@ -187,9 +190,11 @@ function NavBarMobileMenu({
           </SheetHeader>
           <div className="mt-6 flow-root">
             <div className="divide-border -my-6 divide-y">
+              {/*
               <ul className="space-y-2 py-6">
                 {renderNavigationItems(navigationItems, setMobileMenuOpen)}
               </ul>
+              */}
               <div className="py-6">
                 {isUserLoading ? null : !user ? (
                   <WaspRouterLink to={routes.LoginRoute.to}>
@@ -217,32 +222,32 @@ function NavBarMobileMenu({
   );
 }
 
-function renderNavigationItems(
-  navigationItems: NavigationItem[],
-  setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>,
-) {
-  const menuStyles = cn({
-    "block rounded-lg px-3 py-2 text-sm font-medium leading-7 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors":
-      !!setMobileMenuOpen,
-    "text-sm font-normal leading-6 text-foreground duration-300 ease-in-out hover:text-primary transition-colors":
-      !setMobileMenuOpen,
-  });
-
-  return navigationItems.map((item) => {
-    return (
-      <li key={item.name}>
-        <ReactRouterLink
-          to={item.to}
-          className={menuStyles}
-          onClick={setMobileMenuOpen && (() => setMobileMenuOpen(false))}
-          target={item.to.startsWith("http") ? "_blank" : undefined}
-        >
-          {item.name}
-        </ReactRouterLink>
-      </li>
-    );
-  });
-}
+// function renderNavigationItems(
+//   navigationItems: NavigationItem[],
+//   setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>,
+// ) {
+//   const menuStyles = cn({
+//     "block rounded-lg px-3 py-2 text-sm font-medium leading-7 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors":
+//       !!setMobileMenuOpen,
+//     "text-sm font-normal leading-6 text-foreground duration-300 ease-in-out hover:text-primary transition-colors":
+//       !setMobileMenuOpen,
+//   });
+//
+//   return navigationItems.map((item) => {
+//     return (
+//       <li key={item.name}>
+//         <ReactRouterLink
+//           to={item.to}
+//           className={menuStyles}
+//           onClick={setMobileMenuOpen && (() => setMobileMenuOpen(false))}
+//           target={item.to.startsWith("http") ? "_blank" : undefined}
+//         >
+//           {item.name}
+//         </ReactRouterLink>
+//       </li>
+//     );
+//   });
+// }
 
 const NavLogo = ({ isScrolled }: { isScrolled: boolean }) => (
   <img
