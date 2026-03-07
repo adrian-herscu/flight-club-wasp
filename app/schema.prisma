@@ -7,6 +7,31 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Role {
+  id                        String          @id @default(uuid())
+  name                      String          @unique
+  createdAt                 DateTime        @default(now())
+  
+  users                     User[]
+}
+
+model School {
+  id                        String          @id @default(uuid())
+  name                      String
+  addressLine1              String
+  addressLine2              String?
+  city                      String
+  stateProvince             String?
+  postalCode                String
+  country                   String          // ISO 3166-1 alpha-2 country code (e.g., US, GB, FR)
+  createdAt                 DateTime        @default(now())
+  
+  admin                     User            @relation("SchoolAdmin", fields: [adminId], references: [id])
+  adminId                   String
+  
+  @@unique([name, country])
+}
+
 model User {
   id                        String          @id @default(uuid())
   createdAt                 DateTime        @default(now())
@@ -14,6 +39,9 @@ model User {
   email                     String?         @unique
   username                  String?         @unique
   isAdmin                   Boolean         @default(false)
+
+  role                      Role?           @relation(fields: [roleId], references: [id])
+  roleId                    String?
 
   paymentProcessorUserId    String?         @unique
   lemonSqueezyCustomerPortalUrl String?     // You can delete this if you're not using Lemon Squeezy as your payments processor.
@@ -26,6 +54,7 @@ model User {
   contactFormMessages       ContactFormMessage[]
   tasks                     Task[]
   files                     File[]
+  adminOfSchools            School[]        @relation("SchoolAdmin")
 }
 
 model GptResponse {

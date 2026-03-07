@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../client/components/ui/dropdown-menu";
+import { isAdmin } from "../shared/admin";
 import { userMenuItems } from "./constants";
 
 export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
@@ -28,7 +29,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
       <DropdownMenuContent>
         {userMenuItems.map((item) => {
           if (item.isAuthRequired && !user) return null;
-          if (item.isAdminOnly && (!user || !user.isAdmin)) return null;
+          if (item.isAdminOnly && !isAdmin(user)) return null;
 
           return (
             <DropdownMenuItem key={item.name}>

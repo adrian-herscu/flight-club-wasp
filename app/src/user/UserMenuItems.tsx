@@ -2,6 +2,7 @@ import { LogOut } from "lucide-react";
 import { logout } from "wasp/client/auth";
 import { Link as WaspRouterLink } from "wasp/client/router";
 import { type User } from "wasp/entities";
+import { isAdmin } from "../shared/admin";
 import { userMenuItems } from "./constants";
 
 export const UserMenuItems = ({
@@ -15,7 +16,7 @@ export const UserMenuItems = ({
     <>
       {userMenuItems.map((item) => {
         if (item.isAuthRequired && !user) return null;
-        if (item.isAdminOnly && (!user || !user.isAdmin)) return null;
+        if (item.isAdminOnly && !isAdmin(user)) return null;
 
         return (
           <li key={item.name}>

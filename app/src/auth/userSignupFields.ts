@@ -1,8 +1,6 @@
 import { defineUserSignupFields } from "wasp/auth/providers/types";
 import { z } from "zod";
 
-const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
-
 const emailDataSchema = z.object({
   email: z.string(),
 });
@@ -15,10 +13,6 @@ export const getEmailUserFields = defineUserSignupFields({
   username: (data) => {
     const emailData = emailDataSchema.parse(data);
     return emailData.email;
-  },
-  isAdmin: (data) => {
-    const emailData = emailDataSchema.parse(data);
-    return adminEmails.includes(emailData.email);
   },
 });
 
@@ -47,14 +41,6 @@ export const getGitHubUserFields = defineUserSignupFields({
   username: (data) => {
     const githubData = githubDataSchema.parse(data);
     return githubData.profile.login;
-  },
-  isAdmin: (data) => {
-    const githubData = githubDataSchema.parse(data);
-    const emailInfo = getGithubEmailInfo(githubData);
-    if (!emailInfo.verified) {
-      return false;
-    }
-    return adminEmails.includes(emailInfo.email);
   },
 });
 
@@ -88,13 +74,6 @@ export const getGoogleUserFields = defineUserSignupFields({
     const googleData = googleDataSchema.parse(data);
     return googleData.profile.email;
   },
-  isAdmin: (data) => {
-    const googleData = googleDataSchema.parse(data);
-    if (!googleData.profile.email_verified) {
-      return false;
-    }
-    return adminEmails.includes(googleData.profile.email);
-  },
 });
 
 export function getGoogleAuthConfig() {
@@ -125,13 +104,6 @@ export const getDiscordUserFields = defineUserSignupFields({
   username: (data) => {
     const discordData = discordDataSchema.parse(data);
     return discordData.profile.username;
-  },
-  isAdmin: (data) => {
-    const discordData = discordDataSchema.parse(data);
-    if (!discordData.profile.email || !discordData.profile.verified) {
-      return false;
-    }
-    return adminEmails.includes(discordData.profile.email);
   },
 });
 

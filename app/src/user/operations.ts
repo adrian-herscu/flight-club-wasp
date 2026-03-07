@@ -32,16 +32,27 @@ export const updateIsUserAdminById: UpdateIsUserAdminById<
     );
   }
 
-  if (!context.user.isAdmin) {
+  const adminRole = await prisma.role.findFirst({
+    where: { name: "admin" },
+    select: { id: true },
+  });
+
+  if (!adminRole || context.user.roleId !== adminRole.id) {
     throw new HttpError(
       403,
       "Only admins are allowed to perform this operation",
     );
   }
 
+  let roleId: string | null = null;
+
+  if (isAdmin && adminRole) {
+    roleId = adminRole.id;
+  }
+
   return context.entities.User.update({
     where: { id },
-    data: { isAdmin },
+    data: { roleId },
   });
 };
 
@@ -82,7 +93,12 @@ export const getPaginatedUsers: GetPaginatedUsers<
     );
   }
 
-  if (!context.user.isAdmin) {
+  const adminRole = await prisma.role.findFirst({
+    where: { name: "admin" },
+    select: { id: true },
+  });
+
+  if (!adminRole || context.user.roleId !== adminRole.id) {
     throw new HttpError(
       403,
       "Only admins are allowed to perform this operation",
@@ -117,7 +133,12 @@ export const getPaginatedUsers: GetPaginatedUsers<
             contains: emailContains,
             mode: "insensitive",
           },
-          isAdmin,
+          ...(isAdmin === true && {
+            roleId: adminRole.id,
+          }),
+          ...(isAdmin === false && {
+            OR: [{ roleId: null }, { roleId: { not: adminRole.id } }],
+          }),
         },
         {
           OR: [
@@ -137,7 +158,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
       id: true,
       email: true,
       username: true,
-      isAdmin: true,
+      roleId: true,
       subscriptionStatus: true,
       paymentProcessorUserId: true,
     },
@@ -153,7 +174,14 @@ export const getPaginatedUsers: GetPaginatedUsers<
   const totalPages = Math.ceil(totalUsers / pageSize);
 
   return {
-    users: pageOfUsers,
+    users: pageOfUsers.map((user) => ({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      subscriptionStatus: user.subscriptionStatus,
+      paymentProcessorUserId: user.paymentProcessorUserId,
+      isAdmin: user.roleId === adminRole.id,
+    })),
     totalPages,
   };
 };
