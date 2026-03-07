@@ -43,6 +43,8 @@
 
 ## Documentation preference
 - Prefer Wasp docs for final behavioral confirmation:
-  - https://wasp.sh/llms.txt
-  - https://wasp.sh/llms-full.txt
-  - https://wasp.sh/docs
+  - https://wasp.sh/llms.txt (quick reference)
+  - https://wasp.sh/llms-full.txt (comprehensive)
+  - https://wasp.sh/docs (human-readable)
+- When implementation details are unclear, use the fetch-wasp-docs skill or fetch-docs prompt to retrieve and search documentation
+- For OpenSaaS template specifics: https://docs.opensaas.sh/llms-full.txt
