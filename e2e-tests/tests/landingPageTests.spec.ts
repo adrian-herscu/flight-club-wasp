@@ -1,4 +1,5 @@
 import { Cookie, expect, test } from "@playwright/test";
+import { logUserIn } from "./utils";
 
 test.describe("general landing page tests", () => {
   test.beforeEach(async ({ page }) => {
@@ -7,6 +8,19 @@ test.describe("general landing page tests", () => {
 
   test("has title", async ({ page }) => {
     await expect(page).toHaveTitle(/SaaS/);
+  });
+
+  test("existing seeded user can log in", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+user.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/",
+    });
+
+    await expect(page.getByText("user_01")).toBeVisible();
   });
 
   test.skip("get started link", async ({ page }) => {

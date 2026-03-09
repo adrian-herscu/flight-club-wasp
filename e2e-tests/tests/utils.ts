@@ -9,7 +9,15 @@ export type User = {
 
 const DEFAULT_PASSWORD = "password123";
 
-export const logUserIn = async ({ page, user }: { page: Page; user: User }) => {
+export const logUserIn = async ({
+  page,
+  user,
+  expectedRedirectPath = "/",
+}: {
+  page: Page;
+  user: User;
+  expectedRedirectPath?: string;
+}) => {
   await page.goto("/");
 
   await page.getByRole("link", { name: "Log in" }).click();
@@ -18,7 +26,7 @@ export const logUserIn = async ({ page, user }: { page: Page; user: User }) => {
   });
 
   await page.fill('input[name="email"]', user.email);
-  await page.fill('input[name="password"]', DEFAULT_PASSWORD);
+  await page.fill('input[name="password"]', user.password ?? DEFAULT_PASSWORD);
 
   const clickLogin = page.click('button:has-text("Log in")');
 
@@ -28,11 +36,10 @@ export const logUserIn = async ({ page, user }: { page: Page; user: User }) => {
         return response.url().includes("login") && response.status() === 200;
       })
       .catch((err) => console.error(err.message)),
-    ,
     clickLogin,
   ]);
 
-  await page.waitForURL("**/demo-app");
+  await page.waitForURL((url) => url.pathname === expectedRedirectPath);
 };
 
 export const signUserUp = async ({
