@@ -137,12 +137,12 @@ page AccountPage {
 
 query getPaginatedUsers {
   fn: import { getPaginatedUsers } from "@src/user/operations",
-  entities: [User, Role]
+  entities: [User]
 }
 
 action updateIsUserAdminById {
   fn: import { updateIsUserAdminById } from "@src/user/operations",
-  entities: [User, Role]
+  entities: [User]
 }
 //#endregion
 
@@ -250,7 +250,7 @@ action deleteFile {
 //#region Analytics
 query getDailyStats {
   fn: import { getDailyStats } from "@src/analytics/operations",
-  entities: [User, Role, DailyStats]
+  entities: [User, DailyStats]
 }
 
 job dailyStatsJob {

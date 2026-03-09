@@ -7,12 +7,37 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Role {
-  id                        String          @id @default(uuid())
-  name                      String          @unique
-  createdAt                 DateTime        @default(now())
-  
-  users                     User[]
+enum SyllabusVersionStatus {
+  DRAFT
+  FINAL
+  OBSOLETE
+}
+
+enum UserRole {
+  SYSTEM_ADMIN
+  SCHOOL_MANAGER
+  INSTRUCTOR
+  STUDENT
+  USER
+}
+
+enum LessonEvaluationStatus {
+  PASS
+  FAIL
+}
+
+enum CourseInterestStatus {
+  INTERESTED
+  CONTACTED
+  ENROLLED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
 }
 
 model School {
@@ -24,10 +49,13 @@ model School {
   stateProvince             String?
   postalCode                String
   country                   String          // ISO 3166-1 alpha-2 country code (e.g., US, GB, FR)
+  currency                  String          // ISO 4217 currency code (e.g., USD, GBP, EUR)
   createdAt                 DateTime        @default(now())
   
   admin                     User            @relation("SchoolAdmin", fields: [adminId], references: [id])
   adminId                   String
+  syllabuses                Syllabus[]
+  accounts                  Account[]
   
   @@unique([name, country])
 }
@@ -38,23 +66,274 @@ model User {
 
   email                     String?         @unique
   username                  String?         @unique
-  isAdmin                   Boolean         @default(false)
+  phone                     String?
 
-  role                      Role?           @relation(fields: [roleId], references: [id])
-  roleId                    String?
+  role                      UserRole        @default(USER)
 
-  paymentProcessorUserId    String?         @unique
-  lemonSqueezyCustomerPortalUrl String?     // You can delete this if you're not using Lemon Squeezy as your payments processor.
-  subscriptionStatus        String?         // 'active', 'cancel_at_period_end', 'past_due', 'deleted'
-  subscriptionPlan          String?         // 'hobby', 'pro'
+  subscriptionStatus        SubscriptionStatus?
+  subscriptionPlan          String?
+  sendNewsletter            Boolean         @default(false)
   datePaid                  DateTime?
-  credits                   Int             @default(3)
+  credits                   Int             @default(0)
+  paymentProcessorUserId    String?
+  lemonSqueezyCustomerPortalUrl String?
 
   gptResponses              GptResponse[]
   contactFormMessages       ContactFormMessage[]
   tasks                     Task[]
   files                     File[]
   adminOfSchools            School[]        @relation("SchoolAdmin")
+  instructorProfile         Instructor?
+  studentProfile            Student?
+  courseInterests           CourseInterest[]
+  accounts                  Account[]
+}
+
+model Instructor {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  user                      User            @relation(fields: [userId], references: [id])
+  userId                    String          @unique
+
+  assignedCourses           AssignedInstructor[]
+  lessonEvaluations         StudentLessonEvaluation[]
+}
+
+model Student {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  user                      User            @relation(fields: [userId], references: [id])
+  userId                    String          @unique
+
+  enrolledCourses           EnrolledStudent[]
+  evaluations               StudentLessonEvaluation[]
+}
+
+model Syllabus {
+  id                        String                  @id @default(uuid())
+  createdAt                 DateTime                @default(now())
+
+  name                      String
+
+  school                    School?                 @relation(fields: [schoolId], references: [id])
+  schoolId                  String?
+
+  versions                  SyllabusVersion[]
+  prerequisites             SyllabusPrerequisite[]  @relation("RequiresSyllabus")
+  prerequisiteFor           SyllabusPrerequisite[]  @relation("IsPrerequisiteFor")
+
+  @@unique([schoolId, name])
+}
+
+model SyllabusPrerequisite {
+  syllabus              Syllabus @relation("RequiresSyllabus", fields: [syllabusId], references: [id], onDelete: Cascade)
+  syllabusId            String
+  
+  requiredSyllabus      Syllabus @relation("IsPrerequisiteFor", fields: [requiredSyllabusId], references: [id])
+  requiredSyllabusId    String
+  
+  isForInstructor       Boolean  // true = instructor requirement, false = student prerequisite
+  
+  @@id([syllabusId, requiredSyllabusId, isForInstructor])
+  @@index([syllabusId, isForInstructor])
+}
+
+model CourseInterest {
+  id                        String                @id @default(uuid())
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+
+  course                    Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                  String
+
+  user                      User                  @relation(fields: [userId], references: [id])
+  userId                    String
+
+  status                    CourseInterestStatus   @default(INTERESTED)
+  notes                     String?
+
+  @@unique([courseId, userId])
+  @@index([courseId, status])
+  @@index([userId, status])
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+model Account {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  user                      User            @relation(fields: [userId], references: [id])
+  userId                    String
+
+  // System accounts reference the special system school (seeded with known ID)
+  // School accounts reference the actual flight school
+  school                    School          @relation(fields: [schoolId], references: [id])
+  schoolId                  String
+
+  currency                  String          // ISO 4217: EUR for system, school.currency for school accounts
+  balanceMinor              Int             @default(0)  // Current balance in minor units
+
+  transactions              Transaction[]
+
+  @@unique([userId, schoolId])  // One account per user per school (including system)
+  @@index([userId])
+  @@index([schoolId])
+}
+
+model Transaction {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  account                   Account         @relation(fields: [accountId], references: [id])
+  accountId                 String
+
+  type                      TransactionType
+  amountMinor               Int             // Always positive; type determines debit/credit
+  currency                  String          // Currency at time of transaction (for audit)
+
+  // Link to counterpart transaction (e.g., student withdrawal ↔ school deposit)
+  linkedTransaction         Transaction?    @relation("LinkedPair", fields: [linkedTransactionId], references: [id], onDelete: SetNull)
+  linkedTransactionId       String?
+  linkedFromThis            Transaction[]   @relation("LinkedPair")
+
+  description               String?         // e.g., "Charged for PPL Course", "Refund for cancelled lesson", "Trip rental: Cessna 172"
+  notes                     String?         // Additional internal notes
+
+  @@index([accountId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model SyllabusVersion {
+  id                        String                @id @default(uuid())
+  createdAt                 DateTime              @default(now())
+
+  syllabus                  Syllabus              @relation(fields: [syllabusId], references: [id])
+  syllabusId                String
+
+  version                   Int
+  status                    SyllabusVersionStatus @default(DRAFT)
+
+  previousVersion           SyllabusVersion?      @relation("SyllabusVersionHistory", fields: [previousVersionId], references: [id])
+  previousVersionId         String?
+  nextVersions              SyllabusVersion[]     @relation("SyllabusVersionHistory")
+
+  lessons                   SyllabusLesson[]
+  courses                   Course[]
+
+  @@unique([syllabusId, version])
+  @@index([syllabusId, status])
+}
+
+model SyllabusLesson {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  syllabusVersion           SyllabusVersion @relation(fields: [syllabusVersionId], references: [id], onDelete: Cascade)
+  syllabusVersionId         String
+
+  position                  Int
+  name                      String
+  description               String
+  durationMinutes           Int
+
+  courseLessons             CourseLesson[]
+
+  @@unique([syllabusVersionId, position])
+}
+
+model Course {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  syllabusVersion           SyllabusVersion @relation(fields: [syllabusVersionId], references: [id])
+  syllabusVersionId         String
+
+  startDate                 DateTime?
+  minCapacity               Int?
+  maxCapacity               Int?
+  defaultLessonPrice        Int?            // Price in minor units (cents for USD, etc.), currency from school
+
+  courseInterests           CourseInterest[]
+  courseLessons             CourseLesson[]
+  assignedInstructors       AssignedInstructor[]
+  enrolledStudents          EnrolledStudent[]
+
+  @@index([startDate])
+  @@index([syllabusVersionId, startDate])
+}
+
+model CourseLesson {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  course                    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                  String
+
+  syllabusLesson            SyllabusLesson  @relation(fields: [syllabusLessonId], references: [id])
+  syllabusLessonId          String
+
+  // Optional metadata for additional sessions on the same syllabus topic.
+  isExtra                   Boolean         @default(false)
+
+  location                  String
+  date                      DateTime
+  bufferMinutes             Int             @default(30)
+  lessonPrice               Int?            // Price override in minor units (cents for USD, etc.), if null use course default
+
+  @@index([date])
+  @@index([courseId, date])
+  @@index([courseId, syllabusLessonId])
+  
+  studentEvaluations        StudentLessonEvaluation[]
+}
+
+model AssignedInstructor {
+  course                    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                  String
+
+  instructor                Instructor      @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+  instructorId              String
+
+  @@id([courseId, instructorId])
+}
+
+model EnrolledStudent {
+  course                    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                  String
+
+  student                   Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  studentId                 String
+
+  @@id([courseId, studentId])
+}
+
+model StudentLessonEvaluation {
+  id                        String                @id @default(uuid())
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+
+  student                   Student               @relation(fields: [studentId], references: [id])
+  studentId                 String
+
+  courseLesson              CourseLesson          @relation(fields: [courseLessonId], references: [id], onDelete: Cascade)
+  courseLessonId            String
+
+  instructor                Instructor            @relation(fields: [instructorId], references: [id])
+  instructorId              String
+
+  notes                     String?
+  status                    LessonEvaluationStatus
+
+  @@unique([studentId, courseLessonId])
+  @@index([instructorId])
+  @@index([status])
 }
 
 model GptResponse {
@@ -125,6 +404,17 @@ model Logs {
 
   message                  String
   level                    String
+}
+
+model AuditLog {
+  id                       String          @id @default(uuid())
+  createdAt                DateTime        @default(now())
+
+  entityType               String
+  entityId                 String
+
+  @@index([entityType, entityId, createdAt])
+  @@index([createdAt])
 }
 
 model ContactFormMessage {

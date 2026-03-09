@@ -1,10 +1,6 @@
 import { faker } from "@faker-js/faker";
 import type { PrismaClient } from "@prisma/client";
 import { type User } from "wasp/entities";
-import {
-  getSubscriptionPaymentPlanIds,
-  SubscriptionStatus,
-} from "../../payment/plans";
 
 type MockUserData = Omit<User, "id">;
 
@@ -26,11 +22,9 @@ function generateMockUsersData(numOfUsers: number): MockUserData[] {
 function generateMockUserData(): MockUserData {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
-  const subscriptionStatus =
-    faker.helpers.arrayElement<SubscriptionStatus | null>([
-      ...Object.values(SubscriptionStatus),
-      null,
-    ]);
+  const subscriptionStatus = faker.helpers.arrayElement<
+    "ACTIVE" | "PAST_DUE" | "PAUSED" | "CANCELLED" | null
+  >(["ACTIVE", "PAST_DUE", "PAUSED", "CANCELLED", null]);
   const now = new Date();
   const createdAt = faker.date.past({ refDate: now });
   const timePaid = faker.date.between({ from: createdAt, to: now });
@@ -41,9 +35,10 @@ function generateMockUserData(): MockUserData {
   return {
     email: faker.internet.email({ firstName, lastName }),
     username: faker.internet.userName({ firstName, lastName }),
+    phone: null,
+    role: "USER" as const,
     createdAt,
-    isAdmin: false,
-    roleId: null,
+    sendNewsletter: false,
     credits,
     subscriptionStatus,
     lemonSqueezyCustomerPortalUrl: null,
@@ -53,8 +48,6 @@ function generateMockUserData(): MockUserData {
     datePaid: hasUserPaidOnStripe
       ? faker.date.between({ from: createdAt, to: timePaid })
       : null,
-    subscriptionPlan: subscriptionStatus
-      ? faker.helpers.arrayElement(getSubscriptionPaymentPlanIds())
-      : null,
+    subscriptionPlan: subscriptionStatus ? "pro" : null,
   };
 }

@@ -178,8 +178,8 @@ function BuyMoreButton({
   subscriptionStatus,
 }: Pick<User, "subscriptionStatus">) {
   if (
-    subscriptionStatus === SubscriptionStatus.Active ||
-    subscriptionStatus === SubscriptionStatus.CancelAtPeriodEnd
+    subscriptionStatus === "ACTIVE" ||
+    subscriptionStatus === "PAUSED"
   ) {
     return null;
   }

@@ -22,17 +22,7 @@ export const getDailyStats: GetDailyStats<
     );
   }
 
-  const adminRole = context.user.roleId
-    ? await context.entities.Role.findFirst({
-        where: {
-          id: context.user.roleId,
-          name: "admin",
-        },
-        select: { id: true },
-      })
-    : null;
-
-  if (!adminRole) {
+  if (context.user.role !== "SYSTEM_ADMIN") {
     throw new HttpError(
       403,
       "Only admins are allowed to perform this operation",

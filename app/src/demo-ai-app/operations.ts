@@ -107,8 +107,8 @@ export const generateGptResponse: GenerateGptResponse<
 
 function isUserSubscribed(user: User) {
   return (
-    user.subscriptionStatus === SubscriptionStatus.Active ||
-    user.subscriptionStatus === SubscriptionStatus.CancelAtPeriodEnd
+    user.subscriptionStatus === "ACTIVE" ||
+    user.subscriptionStatus === "PAUSED"
   );
 }
 

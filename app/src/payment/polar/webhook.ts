@@ -11,7 +11,6 @@ import { assertUnreachable } from "../../shared/utils";
 import { UnhandledWebhookEventError } from "../errors";
 import {
   getPaymentPlanIdByPaymentProcessorPlanId,
-  SubscriptionStatus as OpenSaasSubscriptionStatus,
   PaymentPlanId,
   paymentPlans,
 } from "../plans";
@@ -105,7 +104,7 @@ async function handleOrderPaid(
         {
           paymentProcessorUserId: order.customerId,
           paymentPlanId,
-          subscriptionStatus: OpenSaasSubscriptionStatus.Active,
+          subscriptionStatus: "ACTIVE" as const,
           datePaid: order.createdAt,
         },
         userDelegate,
@@ -141,17 +140,17 @@ async function handleSubscriptionUpdated(
 
 function getOpenSaasSubscriptionStatus(
   subscription: Subscription,
-): OpenSaasSubscriptionStatus | undefined {
+): "ACTIVE" | "PAST_DUE" | "PAUSED" | "CANCELLED" | undefined {
   const polarToOpenSaasSubscriptionStatus: Record<
-    SubscriptionStatus,
-    OpenSaasSubscriptionStatus | undefined
+    string,
+    "ACTIVE" | "PAST_DUE" | "PAUSED" | "CANCELLED" | undefined
   > = {
-    trialing: OpenSaasSubscriptionStatus.Active,
-    active: OpenSaasSubscriptionStatus.Active,
-    past_due: OpenSaasSubscriptionStatus.PastDue,
-    canceled: OpenSaasSubscriptionStatus.Deleted,
-    unpaid: OpenSaasSubscriptionStatus.Deleted,
-    incomplete_expired: OpenSaasSubscriptionStatus.Deleted,
+    trialing: "ACTIVE",
+    active: "ACTIVE",
+    past_due: "PAST_DUE",
+    canceled: "CANCELLED",
+    unpaid: "CANCELLED",
+    incomplete_expired: "CANCELLED",
     incomplete: undefined,
   };
 
@@ -159,10 +158,10 @@ function getOpenSaasSubscriptionStatus(
     polarToOpenSaasSubscriptionStatus[subscription.status];
 
   if (
-    subscriptionStatus === OpenSaasSubscriptionStatus.Active &&
+    subscriptionStatus === "ACTIVE" &&
     subscription.cancelAtPeriodEnd
   ) {
-    return OpenSaasSubscriptionStatus.CancelAtPeriodEnd;
+    return "PAUSED";
   }
 
   return subscriptionStatus;

@@ -7,7 +7,7 @@ import { type PaymentsWebhook } from "wasp/server/api";
 import { requireNodeEnvVar } from "../../server/utils";
 import { assertUnreachable } from "../../shared/utils";
 import { UnhandledWebhookEventError } from "../errors";
-import { PaymentPlanId, paymentPlans, SubscriptionStatus } from "../plans";
+import { PaymentPlanId, paymentPlans } from "../plans";
 import { updateUserLemonSqueezyPaymentDetails } from "./paymentDetails";
 import {
   parseWebhookPayload,
@@ -153,7 +153,7 @@ async function handleSubscriptionCreated(
         lemonSqueezyId,
         userId,
         subscriptionPlan: planId,
-        subscriptionStatus: status as SubscriptionStatus,
+        subscriptionStatus: "ACTIVE" as const,
         datePaid: new Date(),
       },
       prismaUserDelegate,
@@ -189,7 +189,7 @@ async function handleSubscriptionUpdated(
         lemonSqueezyId,
         userId,
         subscriptionPlan: planId,
-        subscriptionStatus: status as SubscriptionStatus,
+        subscriptionStatus: (status === "past_due" ? "PAST_DUE" : "ACTIVE"),
         ...(status === "active" && { datePaid: new Date() }),
       },
       prismaUserDelegate,
@@ -211,7 +211,7 @@ async function handleSubscriptionCancelled(
       lemonSqueezyId,
       userId,
       // cancel_at_period_end is the Stripe equivalent of LemonSqueezy's cancelled
-      subscriptionStatus: "cancel_at_period_end" as SubscriptionStatus,
+      subscriptionStatus: "PAUSED",
     },
     prismaUserDelegate,
   );
@@ -232,7 +232,7 @@ async function handleSubscriptionExpired(
       lemonSqueezyId,
       userId,
       // deleted is the Stripe equivalent of LemonSqueezy's expired
-      subscriptionStatus: SubscriptionStatus.Deleted,
+      subscriptionStatus: "CANCELLED" as const,
     },
     prismaUserDelegate,
   );

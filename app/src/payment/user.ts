@@ -1,6 +1,7 @@
 import { User } from "wasp/entities";
 import { PrismaClient } from "wasp/server";
-import { PaymentPlanId, SubscriptionStatus } from "./plans";
+import type { SubscriptionStatus } from "@prisma/client";
+import { PaymentPlanId } from "./plans";
 
 export async function fetchUserPaymentProcessorUserId(
   userId: User["id"],
@@ -53,16 +54,21 @@ export function updateUserSubscription(
   }: UpdateUserSubscriptionArgs,
   userDelegate: PrismaClient["user"],
 ): Promise<User> {
-  return userDelegate.update({
-    where: {
-      paymentProcessorUserId,
-    },
-    data: {
-      subscriptionPlan: paymentPlanId,
-      subscriptionStatus,
-      datePaid,
-    },
-  });
+  // Find user by paymentProcessorUserId first, then update by id
+  return userDelegate
+    .findFirstOrThrow({
+      where: { paymentProcessorUserId },
+    })
+    .then((user) =>
+      userDelegate.update({
+        where: { id: user.id },
+        data: {
+          subscriptionPlan: paymentPlanId,
+          subscriptionStatus,
+          datePaid,
+        },
+      })
+    );
 }
 
 interface UpdateUserCreditsArgs {
@@ -79,13 +85,18 @@ export function updateUserCredits(
   }: UpdateUserCreditsArgs,
   userDelegate: PrismaClient["user"],
 ): Promise<User> {
-  return userDelegate.update({
-    where: {
-      paymentProcessorUserId,
-    },
-    data: {
-      credits: { increment: numOfCreditsPurchased },
-      datePaid,
-    },
-  });
+  // Find user by paymentProcessorUserId first, then update by id
+  return userDelegate
+    .findFirstOrThrow({
+      where: { paymentProcessorUserId },
+    })
+    .then((user) =>
+      userDelegate.update({
+        where: { id: user.id },
+        data: {
+          credits: { increment: numOfCreditsPurchased },
+          datePaid,
+        },
+      })
+    );
 }

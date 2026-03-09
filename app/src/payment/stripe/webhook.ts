@@ -11,7 +11,6 @@ import {
   getPaymentPlanIdByPaymentProcessorPlanId,
   PaymentPlanId,
   paymentPlans,
-  SubscriptionStatus,
 } from "../plans";
 import { updateUserCredits, updateUserSubscription } from "../user";
 import { stripeClient } from "./stripeClient";
@@ -125,7 +124,7 @@ async function handleInvoicePaid(
           paymentProcessorUserId: customerId,
           datePaid: invoicePaidAtDate,
           paymentPlanId,
-          subscriptionStatus: SubscriptionStatus.Active,
+          subscriptionStatus: "ACTIVE" as const,
         },
         prismaUserDelegate,
       );
@@ -185,17 +184,17 @@ async function handleCustomerSubscriptionUpdated(
 
 function getOpenSaasSubscriptionStatus(
   subscription: Stripe.Subscription,
-): SubscriptionStatus | undefined {
+): "ACTIVE" | "PAST_DUE" | "PAUSED" | "CANCELLED" | undefined {
   const stripeToOpenSaasSubscriptionStatus: Record<
     Stripe.Subscription.Status,
-    SubscriptionStatus | undefined
+    "ACTIVE" | "PAST_DUE" | "PAUSED" | "CANCELLED" | undefined
   > = {
-    trialing: SubscriptionStatus.Active,
-    active: SubscriptionStatus.Active,
-    past_due: SubscriptionStatus.PastDue,
-    canceled: SubscriptionStatus.Deleted,
-    unpaid: SubscriptionStatus.Deleted,
-    incomplete_expired: SubscriptionStatus.Deleted,
+    trialing: "ACTIVE",
+    active: "ACTIVE",
+    past_due: "PAST_DUE",
+    canceled: "CANCELLED",
+    unpaid: "CANCELLED",
+    incomplete_expired: "CANCELLED",
     paused: undefined,
     incomplete: undefined,
   };
@@ -204,10 +203,10 @@ function getOpenSaasSubscriptionStatus(
     stripeToOpenSaasSubscriptionStatus[subscription.status];
 
   if (
-    subscriptionStatus === SubscriptionStatus.Active &&
+    subscriptionStatus === "ACTIVE" &&
     subscription.cancel_at_period_end
   ) {
-    return SubscriptionStatus.CancelAtPeriodEnd;
+    return "PAUSED";
   }
 
   return subscriptionStatus;
@@ -238,7 +237,7 @@ async function handleCustomerSubscriptionDeleted(
   await updateUserSubscription(
     {
       paymentProcessorUserId: customerId,
-      subscriptionStatus: SubscriptionStatus.Deleted,
+      subscriptionStatus: "CANCELLED" as const,
     },
     prismaUserDelegate,
   );

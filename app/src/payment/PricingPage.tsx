@@ -61,7 +61,7 @@ const PricingPage = () => {
   const isUserSubscribed =
     !!user &&
     !!user.subscriptionStatus &&
-    user.subscriptionStatus !== SubscriptionStatus.Deleted;
+    user.subscriptionStatus !== "CANCELLED";
 
   const {
     data: customerPortalUrl,

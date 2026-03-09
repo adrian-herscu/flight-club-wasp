@@ -18,31 +18,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../client/components/ui/select";
-import { Switch } from "../../../client/components/ui/switch";
 import useDebounce from "../../../client/hooks/useDebounce";
-import { SubscriptionStatus } from "../../../payment/plans";
 import LoadingSpinner from "../../layout/LoadingSpinner";
 import DropdownEditDelete from "./DropdownEditDelete";
 
-function AdminSwitch({ id, isAdmin }: Pick<User, "id" | "isAdmin">) {
+const SUBSCRIPTION_STATUSES = ["ACTIVE", "PAST_DUE", "PAUSED", "CANCELLED"] as const;
+type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+const USER_ROLES = ["SYSTEM_ADMIN", "SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT", "USER"] as const;
+type UserRole = (typeof USER_ROLES)[number];
+
+function RoleSelect({ id, role }: Pick<User, "id" | "role">) {
   const { data: currentUser } = useAuth();
   const isCurrentUser = currentUser?.id === id;
 
   return (
-    <Switch
-      checked={isAdmin}
-      onCheckedChange={(value) =>
-        updateIsUserAdminById({ id: id, isAdmin: value })
-      }
+    <Select
+      value={role}
+      onValueChange={(value) => updateIsUserAdminById({ id, role: value as UserRole })}
       disabled={isCurrentUser}
-    />
+    >
+      <SelectTrigger className="w-[160px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {USER_ROLES.map((r) => (
+          <SelectItem key={r} value={r}>
+            {r}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
 const UsersTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [emailFilter, setEmailFilter] = useState<string | undefined>(undefined);
-  const [isAdminFilter, setIsAdminFilter] = useState<boolean | undefined>(
+  const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(
     undefined,
   );
   const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState<
@@ -57,7 +69,7 @@ const UsersTable = () => {
     skipPages,
     filter: {
       ...(debouncedEmailFilter && { emailContains: debouncedEmailFilter }),
-      ...(isAdminFilter !== undefined && { isAdmin: isAdminFilter }),
+      ...(roleFilter !== undefined && { roleIn: [roleFilter] }),
       ...(subscriptionStatusFilter.length > 0 && {
         subscriptionStatusIn: subscriptionStatusFilter,
       }),
@@ -68,7 +80,7 @@ const UsersTable = () => {
     function backToPageOne() {
       setCurrentPage(1);
     },
-    [debouncedEmailFilter, subscriptionStatusFilter, isAdminFilter],
+    [debouncedEmailFilter, subscriptionStatusFilter, roleFilter],
   );
 
   const handleStatusToggle = (status: SubscriptionStatus | null) => {
@@ -163,7 +175,7 @@ const UsersTable = () => {
                             Has Not Subscribed
                           </Label>
                         </div>
-                        {Object.values(SubscriptionStatus).map((status) => (
+                        {SUBSCRIPTION_STATUSES.map((status) => (
                           <div
                             key={status}
                             className="flex items-center space-x-2"
@@ -193,24 +205,27 @@ const UsersTable = () => {
                   htmlFor="admin-filter"
                   className="text-muted-foreground ml-2 text-sm"
                 >
-                  isAdmin:
+                  role:
                 </Label>
                 <Select
                   onValueChange={(value) => {
-                    if (value === "both") {
-                      setIsAdminFilter(undefined);
+                    if (value === "all") {
+                      setRoleFilter(undefined);
                     } else {
-                      setIsAdminFilter(value === "true");
+                      setRoleFilter(value as UserRole);
                     }
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="both" />
+                    <SelectValue placeholder="all" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="both">both</SelectItem>
-                    <SelectItem value="true">true</SelectItem>
-                    <SelectItem value="false">false</SelectItem>
+                    <SelectItem value="all">all</SelectItem>
+                    {USER_ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -275,7 +290,7 @@ const UsersTable = () => {
             <p className="font-medium">Stripe ID</p>
           </div>
           <div className="col-span-1 flex items-center">
-            <p className="font-medium">Is Admin</p>
+            <p className="font-medium">Role</p>
           </div>
           <div className="col-span-1 flex items-center">
             <p className="font-medium"></p>
@@ -307,7 +322,7 @@ const UsersTable = () => {
               </div>
               <div className="col-span-1 flex items-center">
                 <div className="text-foreground text-sm">
-                  <AdminSwitch {...user} />
+                  <RoleSelect {...user} />
                 </div>
               </div>
               <div className="col-span-1 flex items-center">

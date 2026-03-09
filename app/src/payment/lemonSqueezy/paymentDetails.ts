@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import type { SubscriptionStatus } from "../plans";
+import type { SubscriptionStatus } from "@prisma/client";
 import { PaymentPlanId } from "../plans";
 
 export const updateUserLemonSqueezyPaymentDetails = async (
@@ -15,7 +15,7 @@ export const updateUserLemonSqueezyPaymentDetails = async (
     lemonSqueezyId: string;
     userId: string;
     subscriptionPlan?: PaymentPlanId;
-    subscriptionStatus?: SubscriptionStatus;
+    subscriptionStatus?: SubscriptionStatus | null;
     numOfCreditsPurchased?: number;
     lemonSqueezyCustomerPortalUrl?: string;
     datePaid?: Date;
@@ -30,7 +30,7 @@ export const updateUserLemonSqueezyPaymentDetails = async (
       paymentProcessorUserId: lemonSqueezyId,
       lemonSqueezyCustomerPortalUrl,
       subscriptionPlan,
-      subscriptionStatus,
+      subscriptionStatus: subscriptionStatus || null,
       datePaid,
       credits:
         numOfCreditsPurchased !== undefined

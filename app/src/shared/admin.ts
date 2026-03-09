@@ -1,9 +1,10 @@
+import type { UserRole } from "@prisma/client";
+
 type UserLike = {
-  isAdmin?: boolean | null;
-  role?: { name?: string | null } | null;
+  role?: UserRole | null;
 };
 
 export function isAdmin(user?: UserLike | null): boolean {
   if (!user) return false;
-  return user.role?.name === "admin" || user.isAdmin === true;
+  return user.role === "SYSTEM_ADMIN" || user.role === "SCHOOL_MANAGER";
 }

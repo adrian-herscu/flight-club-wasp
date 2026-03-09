@@ -1,4 +1,4 @@
-import { type Prisma } from "@prisma/client";
+import { type Prisma, type SubscriptionStatus, type UserRole } from "@prisma/client";
 import { type User } from "wasp/entities";
 import { HttpError, prisma } from "wasp/server";
 import {
@@ -6,22 +6,21 @@ import {
   type UpdateIsUserAdminById,
 } from "wasp/server/operations";
 import * as z from "zod";
-import { SubscriptionStatus } from "../payment/plans";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 
-const updateUserAdminByIdInputSchema = z.object({
+const updateUserRoleByIdInputSchema = z.object({
   id: z.string().nonempty(),
-  isAdmin: z.boolean(),
+  role: z.enum(["SYSTEM_ADMIN", "SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT", "USER"]),
 });
 
-type UpdateUserAdminByIdInput = z.infer<typeof updateUserAdminByIdInputSchema>;
+type UpdateUserRoleByIdInput = z.infer<typeof updateUserRoleByIdInputSchema>;
 
 export const updateIsUserAdminById: UpdateIsUserAdminById<
-  UpdateUserAdminByIdInput,
+  UpdateUserRoleByIdInput,
   User
 > = async (rawArgs, context) => {
-  const { id, isAdmin } = ensureArgsSchemaOrThrowHttpError(
-    updateUserAdminByIdInputSchema,
+  const { id, role } = ensureArgsSchemaOrThrowHttpError(
+    updateUserRoleByIdInputSchema,
     rawArgs,
   );
 
@@ -32,27 +31,19 @@ export const updateIsUserAdminById: UpdateIsUserAdminById<
     );
   }
 
-  const adminRole = await prisma.role.findFirst({
-    where: { name: "admin" },
-    select: { id: true },
-  });
-
-  if (!adminRole || context.user.roleId !== adminRole.id) {
+  if (
+    context.user.role !== "SYSTEM_ADMIN" &&
+    context.user.role !== "SCHOOL_MANAGER"
+  ) {
     throw new HttpError(
       403,
       "Only admins are allowed to perform this operation",
     );
   }
 
-  let roleId: string | null = null;
-
-  if (isAdmin && adminRole) {
-    roleId = adminRole.id;
-  }
-
   return context.entities.User.update({
     where: { id },
-    data: { roleId },
+    data: { role },
   });
 };
 
@@ -62,9 +53,9 @@ type GetPaginatedUsersOutput = {
     | "id"
     | "email"
     | "username"
+    | "role"
     | "subscriptionStatus"
     | "paymentProcessorUserId"
-    | "isAdmin"
   >[];
   totalPages: number;
 };
@@ -73,9 +64,11 @@ const getPaginatorArgsSchema = z.object({
   skipPages: z.number(),
   filter: z.object({
     emailContains: z.string().nonempty().optional(),
-    isAdmin: z.boolean().optional(),
+    roleIn: z
+      .array(z.enum(["SYSTEM_ADMIN", "SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT", "USER"]))
+      .optional(),
     subscriptionStatusIn: z
-      .array(z.nativeEnum(SubscriptionStatus).nullable())
+      .array(z.enum(["ACTIVE", "PAST_DUE", "PAUSED", "CANCELLED"]).nullable())
       .optional(),
   }),
 });
@@ -93,12 +86,10 @@ export const getPaginatedUsers: GetPaginatedUsers<
     );
   }
 
-  const adminRole = await prisma.role.findFirst({
-    where: { name: "admin" },
-    select: { id: true },
-  });
-
-  if (!adminRole || context.user.roleId !== adminRole.id) {
+  if (
+    context.user.role !== "SYSTEM_ADMIN" &&
+    context.user.role !== "SCHOOL_MANAGER"
+  ) {
     throw new HttpError(
       403,
       "Only admins are allowed to perform this operation",
@@ -110,16 +101,16 @@ export const getPaginatedUsers: GetPaginatedUsers<
     filter: {
       subscriptionStatusIn: subscriptionStatus,
       emailContains,
-      isAdmin,
+      roleIn,
     },
   } = ensureArgsSchemaOrThrowHttpError(getPaginatorArgsSchema, rawArgs);
 
   const includeUnsubscribedUsers = !!subscriptionStatus?.some(
     (status) => status === null,
   );
-  const desiredSubscriptionStatuses = subscriptionStatus?.filter(
+  const desiredSubscriptionStatuses = (subscriptionStatus?.filter(
     (status) => status !== null,
-  );
+  ) || []) as SubscriptionStatus[];
 
   const pageSize = 10;
 
@@ -133,11 +124,8 @@ export const getPaginatedUsers: GetPaginatedUsers<
             contains: emailContains,
             mode: "insensitive",
           },
-          ...(isAdmin === true && {
-            roleId: adminRole.id,
-          }),
-          ...(isAdmin === false && {
-            OR: [{ roleId: null }, { roleId: { not: adminRole.id } }],
+          ...(roleIn && roleIn.length > 0 && {
+            role: { in: roleIn as UserRole[] },
           }),
         },
         {
@@ -158,7 +146,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
       id: true,
       email: true,
       username: true,
-      roleId: true,
+      role: true,
       subscriptionStatus: true,
       paymentProcessorUserId: true,
     },
@@ -178,9 +166,9 @@ export const getPaginatedUsers: GetPaginatedUsers<
       id: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
       subscriptionStatus: user.subscriptionStatus,
       paymentProcessorUserId: user.paymentProcessorUserId,
-      isAdmin: user.roleId === adminRole.id,
     })),
     totalPages,
   };
