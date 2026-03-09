@@ -1,0 +1,4 @@
+{
+  "playwright.configFile": "playwright.config.ts",
+  "playwright.showTrace": true
+}

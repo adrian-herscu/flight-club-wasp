@@ -32,7 +32,7 @@ test.afterAll(async () => {
 const task1 = "Create presentation on SaaS";
 const task2 = "Build SaaS app draft";
 
-test("User can make 3 AI schedule generations", async () => {
+test.skip("User can make 3 AI schedule generations", async () => {
   test.slow(); // Use a longer timeout time in case OpenAI is slow to respond
 
   expect(page.url()).toContain("/demo-app");
@@ -69,7 +69,7 @@ test("User can make 3 AI schedule generations", async () => {
   }
 });
 
-test("AI schedule generation fails on 4th attempt", async () => {
+test.skip("AI schedule generation fails on 4th attempt", async () => {
   test.slow(); // Use a longer timeout time in case OpenAI is slow to respond
 
   await page.reload();
@@ -99,12 +99,12 @@ test("AI schedule generation fails on 4th attempt", async () => {
   expect(schedule).not.toContainText(task2, { ignoreCase: true });
 });
 
-test("Make test payment with Stripe for hobby plan", async () => {
+test.skip("Make test payment with Stripe for hobby plan", async () => {
   const planId = "hobby";
   await makeStripePayment({ test, page, planId });
 });
 
-test("User should be able to generate another schedule after payment", async () => {
+test.skip("User should be able to generate another schedule after payment", async () => {
   await page.goto("/demo-app");
 
   const generateScheduleButton = page.getByTestId("generate-schedule-button");

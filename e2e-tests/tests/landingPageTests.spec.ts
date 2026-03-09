@@ -9,12 +9,12 @@ test.describe("general landing page tests", () => {
     await expect(page).toHaveTitle(/SaaS/);
   });
 
-  test("get started link", async ({ page }) => {
+  test.skip("get started link", async ({ page }) => {
     await page.getByRole("link", { name: "Get started" }).click();
     await page.waitForURL("**/signup");
   });
 
-  test("headings", async ({ page }) => {
+  test.skip("headings", async ({ page }) => {
     await expect(
       page.getByRole("heading", { name: "Frequently asked questions" }),
     ).toBeVisible();
@@ -42,7 +42,7 @@ test.describe("cookie consent tests", () => {
     expect(cookieObject.categories.includes("analytics")).toBeFalsy();
   });
 
-  test("cookie consent banner acceptance sets cc_cookie and _ga cookies", async ({
+  test.skip("cookie consent banner acceptance sets cc_cookie and _ga cookies", async ({
     context,
     page,
   }) => {

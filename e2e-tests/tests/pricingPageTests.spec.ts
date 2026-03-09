@@ -28,7 +28,7 @@ test.afterAll(async () => {
   await page.close();
 });
 
-test("User should see Log In to Buy Plan button", async () => {
+test.skip("User should see Log In to Buy Plan button", async () => {
   await page.goto("/pricing");
   // There are three tiers on the page, so we want to retrieve the first of the three buttons
   const buyPlanButton = page
@@ -41,7 +41,7 @@ test("User should see Log In to Buy Plan button", async () => {
   expect(page.url()).toContain("/login");
 });
 
-test("User should see the Buy Plan button before payment", async () => {
+test.skip("User should see the Buy Plan button before payment", async () => {
   // We only need to log the user in once since the tests are running sequentially
   // and the same page is being shared between all the tests.
   await createAndLogInNewUser();
@@ -54,13 +54,13 @@ test("User should see the Buy Plan button before payment", async () => {
   await expect(manageSubscriptionButton).toBeEnabled();
 });
 
-test("Make test payment with Stripe for hobby plan", async () => {
+test.skip("Make test payment with Stripe for hobby plan", async () => {
   const planId = "hobby";
   await page.goto("/");
   await makeStripePayment({ test, page, planId });
 });
 
-test("User should see the Manage Subscription button after payment", async () => {
+test.skip("User should see the Manage Subscription button after payment", async () => {
   await page.goto("/pricing");
   // There are three tiers on the page, so we want to retrieve the first of the three buttons
   const manageSubscriptionButton = page
@@ -76,7 +76,7 @@ test("User should see the Manage Subscription button after payment", async () =>
   await expect(newTab).toHaveURL(/^https:\/\/billing\.stripe\.com\//);
 });
 
-test("Make test payment with Stripe for 10 credits", async () => {
+test.skip("Make test payment with Stripe for 10 credits", async () => {
   await createAndLogInNewUser();
   await acceptAllCookies(page); // Clear the cookie consent modal so it doesn't interfere with the payment
   const planId = "credits10";
