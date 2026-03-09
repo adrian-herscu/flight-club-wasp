@@ -146,6 +146,55 @@ action updateIsUserAdminById {
 }
 //#endregion
 
+//#region School Manager
+route ManagerSchoolRoute { path: "/admin/school", to: ManagerSchoolPage }
+page ManagerSchoolPage {
+  authRequired: true,
+  component: import ManagerSchoolPage from "@src/school-manager/ManagerSchoolPage"
+}
+
+route ManagerSyllabusesRoute { path: "/admin/syllabuses", to: ManagerSyllabusesPage }
+page ManagerSyllabusesPage {
+  authRequired: true,
+  component: import ManagerSyllabusesPage from "@src/school-manager/ManagerSyllabusesPage"
+}
+
+query getMyManagedSchool {
+  fn: import { getMyManagedSchool } from "@src/school-manager/operations",
+  entities: [User, School, Account]
+}
+
+query getManagerSyllabusCatalog {
+  fn: import { getManagerSyllabusCatalog } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+
+query getSyllabusVersionDetails {
+  fn: import { getSyllabusVersionDetails } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+
+action createDraftSyllabusFromScratch {
+  fn: import { createDraftSyllabusFromScratch } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+
+action createDraftSyllabusFromTemplate {
+  fn: import { createDraftSyllabusFromTemplate } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+
+action saveDraftSyllabusRevision {
+  fn: import { saveDraftSyllabusRevision } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+
+action publishDraftSyllabusVersion {
+  fn: import { publishDraftSyllabusVersion } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+//#endregion
+
 //#region Demo AI App
 route DemoAppRoute { path: "/demo-app", to: DemoAppPage }
 page DemoAppPage {
