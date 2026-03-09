@@ -58,6 +58,7 @@
   - `fetch-wasp-docs`: `.github/skills/fetch-wasp-docs/SKILL.md`
   - `pdf`: `.github/skills/pdf/SKILL.md`
   - `shadcn-component-add`: `.github/skills/shadcn-component-add/SKILL.md`
+  - `wasp-db-workflow-validation`: `.github/skills/wasp-db-workflow-validation/SKILL.md`
   - `wasp-db-seeding`: `.github/skills/wasp-db-seeding/SKILL.md`
   - `wasp-deployment`: `.github/skills/wasp-deployment/SKILL.md`
 

@@ -48,6 +48,7 @@ Use this skill when adding or updating database seeds for this Wasp app, especia
   - Do **not** rewrite applied history in shared/prod environments.
 - After any schema/migration update run:
   - `wasp db migrate-dev`
+  - no need to set DATABASE_URL
 
 ## Verification checklist (required)
 - Count seeded users (expected set present).

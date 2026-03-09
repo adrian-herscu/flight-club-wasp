@@ -48,6 +48,56 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
   - Cause: extension/config mismatch
   - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `e2e-tests`
 
+## Auth smoke patterns (seeded-user login recipes)
+
+### When to use
+- Test existing-user login without signup side-effects (flakier, slower, email-dependent).
+- Validate auth routes and redirects post-login.
+- Validate authenticated UI state changes (e.g., "Log in" link disappears, username visible).
+
+### Seeded user credentials (from `app/migrations/20260309103000_seed_users_by_role/migration.sql`)
+- Baseline non-admin: `seed+user.01@example.test` / `12345678`
+- Admin: `seed+system_admin.01@example.test` / `12345678`
+- Instructor: `seed+instructor.01@example.test` / `12345678`
+- All seeded users have `isEmailVerified: true` and shared password hash.
+
+### Helper pattern: flexible `logUserIn()`
+```typescript
+export const logUserIn = async ({
+  page,
+  user,
+  expectedRedirectPath = "/",
+}: {
+  page: Page;
+  user: User;
+  expectedRedirectPath?: string;
+}) => {
+  // Accepts user.password (optional, defaults to DEFAULT_PASSWORD for signup-created users)
+  // Accepts expectedRedirectPath (optional, defaults to "/" per onAuthSucceededRedirectTo config)
+}
+```
+
+### Minimal login-success assertion template
+```typescript
+test("existing seeded user can log in", async ({ page }) => {
+  await logUserIn({
+    page,
+    user: {
+      email: "seed+user.01@example.test",
+      password: "12345678",
+    },
+    expectedRedirectPath: "/",
+  });
+  // Assert one authenticated UI signal (e.g., username visible, "Log in" link gone)
+  await expect(page.getByText("user_01")).toBeVisible();
+});
+```
+
+### Design rules
+- Helpers: avoid hardcoded redirect paths; accept `expectedRedirectPath` from caller.
+- Assertions: validate login response status `200`, URL leaves `/login`, plus one lightweight UI confirmation.
+- Test placement: append to existing suites if testing baseline auth (e.g., `landingPageTests.spec.ts`); create new spec for auth-focused matrix (signup/login/logout/role guards).
+
 ## Guardrails
 - Do not edit generated Wasp output (`app/.wasp/out/**`).
 - Prefer fixing source config/script in `e2e-tests`.
