@@ -48,3 +48,16 @@
   - https://wasp.sh/docs (human-readable)
 - When implementation details are unclear, use the fetch-wasp-docs skill or fetch-docs prompt to retrieve and search documentation
 - For OpenSaaS template specifics: https://docs.opensaas.sh/llms-full.txt
+
+
+## Skills
+- Local skills live under `.github/skills`.
+- Prefer applying the most relevant skill for making changes in that area.
+- Available skills:
+  - `e2e-playwright-maintenance`: `.github/skills/e2e-playwright-maintenance/SKILL.md`
+  - `fetch-wasp-docs`: `.github/skills/fetch-wasp-docs/SKILL.md`
+  - `pdf`: `.github/skills/pdf/SKILL.md`
+  - `shadcn-component-add`: `.github/skills/shadcn-component-add/SKILL.md`
+  - `wasp-db-seeding`: `.github/skills/wasp-db-seeding/SKILL.md`
+  - `wasp-deployment`: `.github/skills/wasp-deployment/SKILL.md`
+
