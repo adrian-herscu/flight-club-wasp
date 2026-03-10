@@ -1,4 +1,4 @@
-import { SyllabusVersionStatus, UserRole } from "@prisma/client";
+import { Prisma, SyllabusVersionStatus, UserRole } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -43,6 +43,48 @@ const publishDraftSchema = z.object({
 
 type PublishDraftInput = z.infer<typeof publishDraftSchema>;
 
+const managerCourseEnrollmentDetailsSchema = z.object({
+  courseId: z.string().nullable(),
+});
+
+type ManagerCourseEnrollmentDetailsInput = z.infer<
+  typeof managerCourseEnrollmentDetailsSchema
+>;
+
+const managerCourseInstructorDetailsSchema = z.object({
+  courseId: z.string().nullable(),
+});
+
+type ManagerCourseInstructorDetailsInput = z.infer<
+  typeof managerCourseInstructorDetailsSchema
+>;
+
+const enrollStudentInCourseSchema = z.object({
+  courseId: z.string().min(1),
+  studentId: z.string().min(1),
+});
+
+type EnrollStudentInCourseInput = z.infer<typeof enrollStudentInCourseSchema>;
+
+const assignInstructorToCourseSchema = z.object({
+  courseId: z.string().min(1),
+  instructorId: z.string().min(1),
+});
+
+type AssignInstructorToCourseInput = z.infer<typeof assignInstructorToCourseSchema>;
+
+const createCourseFromFinalSyllabusSchema = z.object({
+  syllabusVersionId: z.string().min(1),
+  startDate: z.string().datetime().nullable().optional(),
+  minCapacity: z.number().int().positive().nullable().optional(),
+  maxCapacity: z.number().int().positive().nullable().optional(),
+  defaultLessonPrice: z.number().int().positive().nullable().optional(),
+});
+
+type CreateCourseFromFinalSyllabusInput = z.infer<
+  typeof createCourseFromFinalSyllabusSchema
+>;
+
 type SyllabusCatalogItem = {
   syllabusId: string;
   syllabusName: string;
@@ -71,6 +113,40 @@ type SyllabusVersionDetails = {
   schoolId: string | null;
   schoolName: string | null;
   lessons: LessonDetails[];
+} | null;
+
+type ManagerCourseListItem = {
+  courseId: string;
+  syllabusName: string;
+  syllabusVersion: number;
+  startDate: Date | null;
+  enrolledCount: number;
+};
+
+type ManagerStudentListItem = {
+  studentId: string;
+  userId: string;
+  displayName: string;
+  email: string | null;
+};
+
+type ManagerInstructorListItem = {
+  instructorId: string;
+  userId: string;
+  displayName: string;
+  email: string | null;
+};
+
+type ManagerCourseEnrollmentDetails = {
+  courseId: string;
+  enrolledCount: number;
+  enrolledStudents: ManagerStudentListItem[];
+} | null;
+
+type ManagerCourseInstructorDetails = {
+  courseId: string;
+  assignedCount: number;
+  assignedInstructors: ManagerInstructorListItem[];
 } | null;
 
 async function getManagedSchoolForUserId(userId: string) {
@@ -129,7 +205,12 @@ export const getManagerSyllabusCatalog = async (
   const versions = await prisma.syllabusVersion.findMany({
     where: {
       OR: [
-        { status: SyllabusVersionStatus.FINAL },
+        {
+          status: SyllabusVersionStatus.FINAL,
+          syllabus: {
+            OR: [{ schoolId: null }, { schoolId: school.id }],
+          },
+        },
         {
           status: SyllabusVersionStatus.DRAFT,
           syllabus: { schoolId: school.id },
@@ -481,4 +562,464 @@ export const publishDraftSyllabusVersion = async (
   });
 
   return created;
+};
+
+export const getManagerCoursesForEnrollment = async (
+  _args: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<ManagerCourseListItem[]> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+
+  const courses = await prisma.course.findMany({
+    where: {
+      syllabusVersion: {
+        syllabus: {
+          schoolId: school.id,
+        },
+      },
+    },
+    include: {
+      syllabusVersion: {
+        include: {
+          syllabus: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          enrolledStudents: true,
+        },
+      },
+    },
+    orderBy: [{ startDate: "asc" }, { createdAt: "desc" }],
+  });
+
+  return courses.map((course) => ({
+    courseId: course.id,
+    syllabusName: course.syllabusVersion.syllabus.name,
+    syllabusVersion: course.syllabusVersion.version,
+    startDate: course.startDate,
+    enrolledCount: course._count.enrolledStudents,
+  }));
+};
+
+export const getManagerStudentsForEnrollment = async (
+  _args: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<ManagerStudentListItem[]> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+
+  const students = await prisma.student.findMany({
+    where: {
+      user: {
+        accounts: {
+          some: {
+            schoolId: school.id,
+          },
+        },
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  return students.map((student) => ({
+    studentId: student.id,
+    userId: student.user.id,
+    displayName: student.user.username ?? student.user.email ?? student.id,
+    email: student.user.email,
+  }));
+};
+
+export const getManagerInstructorsForAssignment = async (
+  _args: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<ManagerInstructorListItem[]> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+
+  const instructors = await prisma.instructor.findMany({
+    where: {
+      user: {
+        accounts: {
+          some: {
+            schoolId: school.id,
+          },
+        },
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  return instructors.map((instructor) => ({
+    instructorId: instructor.id,
+    userId: instructor.user.id,
+    displayName: instructor.user.username ?? instructor.user.email ?? instructor.id,
+    email: instructor.user.email,
+  }));
+};
+
+export const getManagerCourseEnrollmentDetails = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<ManagerCourseEnrollmentDetails> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+  const { courseId } = ensureArgsSchemaOrThrowHttpError(
+    managerCourseEnrollmentDetailsSchema,
+    rawArgs,
+  ) as ManagerCourseEnrollmentDetailsInput;
+
+  if (!courseId) {
+    return null;
+  }
+
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      syllabusVersion: {
+        syllabus: {
+          schoolId: school.id,
+        },
+      },
+    },
+    include: {
+      enrolledStudents: {
+        include: {
+          student: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  const enrolledStudents = course.enrolledStudents
+    .map((enrollment) => ({
+      studentId: enrollment.student.id,
+      userId: enrollment.student.user.id,
+      displayName:
+        enrollment.student.user.username ??
+        enrollment.student.user.email ??
+        enrollment.student.id,
+      email: enrollment.student.user.email,
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  return {
+    courseId: course.id,
+    enrolledCount: enrolledStudents.length,
+    enrolledStudents,
+  };
+};
+
+export const enrollStudentInCourse = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<{ courseId: string; studentId: string }> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+  const { courseId, studentId } = ensureArgsSchemaOrThrowHttpError(
+    enrollStudentInCourseSchema,
+    rawArgs,
+  ) as EnrollStudentInCourseInput;
+
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      syllabusVersion: {
+        syllabus: {
+          schoolId: school.id,
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  const student = await prisma.student.findFirst({
+    where: {
+      id: studentId,
+      user: {
+        accounts: {
+          some: {
+            schoolId: school.id,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!student) {
+    throw new HttpError(404, "Student not found in your school scope.");
+  }
+
+  try {
+    await prisma.enrolledStudent.create({
+      data: {
+        courseId,
+        studentId,
+      },
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new HttpError(409, "Student is already enrolled in this course.");
+    }
+    throw error;
+  }
+
+  return {
+    courseId,
+    studentId,
+  };
+};
+
+export const getManagerCourseInstructorDetails = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<ManagerCourseInstructorDetails> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+  const { courseId } = ensureArgsSchemaOrThrowHttpError(
+    managerCourseInstructorDetailsSchema,
+    rawArgs,
+  ) as ManagerCourseInstructorDetailsInput;
+
+  if (!courseId) {
+    return null;
+  }
+
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      syllabusVersion: {
+        syllabus: {
+          schoolId: school.id,
+        },
+      },
+    },
+    include: {
+      assignedInstructors: {
+        include: {
+          instructor: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  const assignedInstructors = course.assignedInstructors
+    .map((assignment) => ({
+      instructorId: assignment.instructor.id,
+      userId: assignment.instructor.user.id,
+      displayName:
+        assignment.instructor.user.username ??
+        assignment.instructor.user.email ??
+        assignment.instructor.id,
+      email: assignment.instructor.user.email,
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  return {
+    courseId: course.id,
+    assignedCount: assignedInstructors.length,
+    assignedInstructors,
+  };
+};
+
+export const assignInstructorToCourse = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<{ courseId: string; instructorId: string }> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+  const { courseId, instructorId } = ensureArgsSchemaOrThrowHttpError(
+    assignInstructorToCourseSchema,
+    rawArgs,
+  ) as AssignInstructorToCourseInput;
+
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      syllabusVersion: {
+        syllabus: {
+          schoolId: school.id,
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  const instructor = await prisma.instructor.findFirst({
+    where: {
+      id: instructorId,
+      user: {
+        accounts: {
+          some: {
+            schoolId: school.id,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!instructor) {
+    throw new HttpError(404, "Instructor not found in your school scope.");
+  }
+
+  try {
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId,
+        instructorId,
+      },
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new HttpError(409, "Instructor is already assigned to this course.");
+    }
+    throw error;
+  }
+
+  return {
+    courseId,
+    instructorId,
+  };
+};
+
+export const createCourseFromFinalSyllabus = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<{ courseId: string }> => {
+  const user = ensureSchoolManager(context);
+  const school = await getManagedSchoolForUserId(user.id);
+  const {
+    syllabusVersionId,
+    startDate,
+    minCapacity,
+    maxCapacity,
+    defaultLessonPrice,
+  } = ensureArgsSchemaOrThrowHttpError(
+    createCourseFromFinalSyllabusSchema,
+    rawArgs,
+  ) as CreateCourseFromFinalSyllabusInput;
+
+  if (
+    minCapacity != null &&
+    maxCapacity != null &&
+    minCapacity > maxCapacity
+  ) {
+    throw new HttpError(400, "minCapacity cannot be greater than maxCapacity.");
+  }
+
+  const finalVersion = await prisma.syllabusVersion.findFirst({
+    where: {
+      id: syllabusVersionId,
+      status: SyllabusVersionStatus.FINAL,
+      syllabus: {
+        OR: [{ schoolId: null }, { schoolId: school.id }],
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!finalVersion) {
+    throw new HttpError(
+      404,
+      "FINAL syllabus version not found in your manager scope.",
+    );
+  }
+
+  const created = await prisma.course.create({
+    data: {
+      syllabusVersionId,
+      startDate: startDate ? new Date(startDate) : null,
+      minCapacity: minCapacity ?? null,
+      maxCapacity: maxCapacity ?? null,
+      defaultLessonPrice: defaultLessonPrice ?? null,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return {
+    courseId: created.id,
+  };
 };

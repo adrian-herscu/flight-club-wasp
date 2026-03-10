@@ -19,9 +19,17 @@ import { Textarea } from "../client/components/ui/textarea";
 import { toast } from "../client/hooks/use-toast";
 
 const {
+  assignInstructorToCourse,
+  createCourseFromFinalSyllabus,
   createDraftSyllabusFromScratch,
   createDraftSyllabusFromTemplate,
+  enrollStudentInCourse,
+  getManagerCourseInstructorDetails,
+  getManagerCourseEnrollmentDetails,
+  getManagerCoursesForEnrollment,
+  getManagerInstructorsForAssignment,
   getManagerSyllabusCatalog,
+  getManagerStudentsForEnrollment,
   getSyllabusVersionDetails,
   publishDraftSyllabusVersion,
   saveDraftSyllabusRevision,
@@ -68,6 +76,40 @@ type ManagerSyllabusCatalog = {
   editableDrafts: CatalogItem[];
 };
 
+type EnrollmentCourseItem = {
+  courseId: string;
+  syllabusName: string;
+  syllabusVersion: number;
+  startDate: string | null;
+  enrolledCount: number;
+};
+
+type EnrollmentStudentItem = {
+  studentId: string;
+  userId: string;
+  displayName: string;
+  email: string | null;
+};
+
+type AssignmentInstructorItem = {
+  instructorId: string;
+  userId: string;
+  displayName: string;
+  email: string | null;
+};
+
+type CourseEnrollmentDetails = {
+  courseId: string;
+  enrolledCount: number;
+  enrolledStudents: EnrollmentStudentItem[];
+} | null;
+
+type CourseInstructorDetails = {
+  courseId: string;
+  assignedCount: number;
+  assignedInstructors: AssignmentInstructorItem[];
+} | null;
+
 type SyllabusesSection = "catalog" | "create" | "details" | "editor";
 const validSections: SyllabusesSection[] = ["catalog", "create", "details", "editor"];
 
@@ -95,11 +137,58 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     refetch: refetchVersion,
   } = useQuery(getSyllabusVersionDetails, { syllabusVersionId: selectedVersionId });
 
+  const {
+    data: coursesForEnrollmentData,
+    refetch: refetchCoursesForEnrollment,
+  } = useQuery(getManagerCoursesForEnrollment);
+
+  const {
+    data: studentsForEnrollmentData,
+    refetch: refetchStudentsForEnrollment,
+  } = useQuery(getManagerStudentsForEnrollment);
+
+  const {
+    data: instructorsForAssignmentData,
+    refetch: refetchInstructorsForAssignment,
+  } = useQuery(getManagerInstructorsForAssignment);
+
   const catalog = catalogData as ManagerSyllabusCatalog | undefined;
   const versionDetails = versionDetailsData as SyllabusVersionDetails;
+  const coursesForEnrollment =
+    (coursesForEnrollmentData as EnrollmentCourseItem[] | undefined) ?? [];
+  const studentsForEnrollment =
+    (studentsForEnrollmentData as EnrollmentStudentItem[] | undefined) ?? [];
+  const instructorsForAssignment =
+    (instructorsForAssignmentData as AssignmentInstructorItem[] | undefined) ?? [];
 
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
   const editableDrafts = catalog?.editableDrafts ?? [];
+
+  const [selectedEnrollmentCourseId, setSelectedEnrollmentCourseId] = useState<
+    string | null
+  >(null);
+  const [selectedStudentIdToEnroll, setSelectedStudentIdToEnroll] = useState<string>("");
+  const [selectedAssignmentCourseId, setSelectedAssignmentCourseId] = useState<string | null>(null);
+  const [selectedInstructorIdToAssign, setSelectedInstructorIdToAssign] =
+    useState<string>("");
+
+  const {
+    data: courseEnrollmentDetailsData,
+    refetch: refetchCourseEnrollmentDetails,
+  } = useQuery(getManagerCourseEnrollmentDetails, {
+    courseId: selectedEnrollmentCourseId,
+  });
+  const courseEnrollmentDetails =
+    courseEnrollmentDetailsData as CourseEnrollmentDetails;
+
+  const {
+    data: courseInstructorDetailsData,
+    refetch: refetchCourseInstructorDetails,
+  } = useQuery(getManagerCourseInstructorDetails, {
+    courseId: selectedAssignmentCourseId,
+  });
+  const courseInstructorDetails =
+    courseInstructorDetailsData as CourseInstructorDetails;
 
   const [templateVersionId, setTemplateVersionId] = useState<string>("");
   const [newSyllabusName, setNewSyllabusName] = useState("");
@@ -119,7 +208,81 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [isSavingRevision, setIsSavingRevision] = useState(false);
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
+  const [isAssigningInstructor, setIsAssigningInstructor] = useState(false);
+  const [newCourseTemplateVersionId, setNewCourseTemplateVersionId] = useState<string>("");
+  const [newCourseStartDate, setNewCourseStartDate] = useState<string>("");
+  const [newCourseMinCapacity, setNewCourseMinCapacity] = useState<string>("");
+  const [newCourseMaxCapacity, setNewCourseMaxCapacity] = useState<string>("");
+  const [newCourseDefaultPrice, setNewCourseDefaultPrice] = useState<string>("");
+
+  useEffect(() => {
+    if (!coursesForEnrollment.length) {
+      setSelectedEnrollmentCourseId(null);
+      return;
+    }
+
+    if (
+      selectedEnrollmentCourseId &&
+      coursesForEnrollment.some((course) => course.courseId === selectedEnrollmentCourseId)
+    ) {
+      return;
+    }
+
+    setSelectedEnrollmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
+  }, [coursesForEnrollment, selectedEnrollmentCourseId]);
+
+  useEffect(() => {
+    if (!coursesForEnrollment.length) {
+      setSelectedAssignmentCourseId(null);
+      return;
+    }
+
+    if (
+      selectedAssignmentCourseId &&
+      coursesForEnrollment.some((course) => course.courseId === selectedAssignmentCourseId)
+    ) {
+      return;
+    }
+
+    setSelectedAssignmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
+  }, [coursesForEnrollment, selectedAssignmentCourseId]);
+
+  useEffect(() => {
+    if (!studentsForEnrollment.length) {
+      setSelectedStudentIdToEnroll("");
+      return;
+    }
+
+    if (
+      selectedStudentIdToEnroll &&
+      studentsForEnrollment.some((student) => student.studentId === selectedStudentIdToEnroll)
+    ) {
+      return;
+    }
+
+    setSelectedStudentIdToEnroll(studentsForEnrollment[0]?.studentId ?? "");
+  }, [selectedStudentIdToEnroll, studentsForEnrollment]);
+
+  useEffect(() => {
+    if (!instructorsForAssignment.length) {
+      setSelectedInstructorIdToAssign("");
+      return;
+    }
+
+    if (
+      selectedInstructorIdToAssign &&
+      instructorsForAssignment.some(
+        (instructor) => instructor.instructorId === selectedInstructorIdToAssign,
+      )
+    ) {
+      return;
+    }
+
+    setSelectedInstructorIdToAssign(instructorsForAssignment[0]?.instructorId ?? "");
+  }, [instructorsForAssignment, selectedInstructorIdToAssign]);
 
   const goToSection = (section: SyllabusesSection) => {
     hasChangedSectionRef.current = true;
@@ -368,6 +531,208 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
+  const handleEnrollStudent = async () => {
+    if (!selectedEnrollmentCourseId) {
+      toast({
+        title: "No course selected",
+        description: "Select a course before enrolling a student.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedStudentIdToEnroll) {
+      toast({
+        title: "No student selected",
+        description: "Select a student to enroll.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEnrollingStudent(true);
+    try {
+      await enrollStudentInCourse({
+        courseId: selectedEnrollmentCourseId,
+        studentId: selectedStudentIdToEnroll,
+      });
+
+      await Promise.all([
+        refetchCoursesForEnrollment(),
+        refetchStudentsForEnrollment(),
+        refetchCourseEnrollmentDetails(),
+      ]);
+
+      toast({
+        title: "Student enrolled",
+        description: "Enrollment was saved successfully.",
+      });
+    } catch (enrollError: unknown) {
+      toast({
+        title: "Enrollment failed",
+        description:
+          enrollError instanceof Error
+            ? enrollError.message
+            : "Unable to enroll student in selected course.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnrollingStudent(false);
+    }
+  };
+
+  const handleAssignInstructor = async () => {
+    if (!selectedAssignmentCourseId) {
+      toast({
+        title: "No course selected",
+        description: "Select a course before assigning an instructor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedInstructorIdToAssign) {
+      toast({
+        title: "No instructor selected",
+        description: "Select an instructor to assign.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAssigningInstructor(true);
+    try {
+      await assignInstructorToCourse({
+        courseId: selectedAssignmentCourseId,
+        instructorId: selectedInstructorIdToAssign,
+      });
+
+      await Promise.all([
+        refetchCoursesForEnrollment(),
+        refetchInstructorsForAssignment(),
+        refetchCourseInstructorDetails(),
+      ]);
+
+      toast({
+        title: "Instructor assigned",
+        description: "Instructor assignment was saved successfully.",
+      });
+    } catch (assignError: unknown) {
+      toast({
+        title: "Assignment failed",
+        description:
+          assignError instanceof Error
+            ? assignError.message
+            : "Unable to assign instructor to selected course.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssigningInstructor(false);
+    }
+  };
+
+  const handleCreateCourse = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!newCourseTemplateVersionId) {
+      toast({
+        title: "Missing template",
+        description: "Select a FINAL syllabus version for the new course.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const parsedMinCapacity =
+      newCourseMinCapacity.trim() === "" ? null : Number(newCourseMinCapacity);
+    const parsedMaxCapacity =
+      newCourseMaxCapacity.trim() === "" ? null : Number(newCourseMaxCapacity);
+    const parsedDefaultPrice =
+      newCourseDefaultPrice.trim() === "" ? null : Number(newCourseDefaultPrice);
+
+    if (parsedMinCapacity != null && (!Number.isInteger(parsedMinCapacity) || parsedMinCapacity <= 0)) {
+      toast({
+        title: "Invalid min capacity",
+        description: "Minimum capacity must be a positive integer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (parsedMaxCapacity != null && (!Number.isInteger(parsedMaxCapacity) || parsedMaxCapacity <= 0)) {
+      toast({
+        title: "Invalid max capacity",
+        description: "Maximum capacity must be a positive integer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      parsedMinCapacity != null &&
+      parsedMaxCapacity != null &&
+      parsedMinCapacity > parsedMaxCapacity
+    ) {
+      toast({
+        title: "Invalid capacity range",
+        description: "Minimum capacity cannot be greater than maximum capacity.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      parsedDefaultPrice != null &&
+      (!Number.isInteger(parsedDefaultPrice) || parsedDefaultPrice <= 0)
+    ) {
+      toast({
+        title: "Invalid lesson price",
+        description: "Default lesson price must be a positive integer in minor units.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingCourse(true);
+    try {
+      await createCourseFromFinalSyllabus({
+        syllabusVersionId: newCourseTemplateVersionId,
+        startDate: newCourseStartDate ? new Date(newCourseStartDate).toISOString() : null,
+        minCapacity: parsedMinCapacity,
+        maxCapacity: parsedMaxCapacity,
+        defaultLessonPrice: parsedDefaultPrice,
+      });
+
+      await Promise.all([
+        refetchCoursesForEnrollment(),
+        refetchCourseEnrollmentDetails(),
+        refetchCourseInstructorDetails(),
+      ]);
+
+      setNewCourseTemplateVersionId("");
+      setNewCourseStartDate("");
+      setNewCourseMinCapacity("");
+      setNewCourseMaxCapacity("");
+      setNewCourseDefaultPrice("");
+
+      toast({
+        title: "Course created",
+        description: "A new course was opened from FINAL syllabus version.",
+      });
+    } catch (createCourseError: unknown) {
+      toast({
+        title: "Course creation failed",
+        description:
+          createCourseError instanceof Error
+            ? createCourseError.message
+            : "Unable to create course from selected FINAL syllabus.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingCourse(false);
+    }
+  };
+
   const updateLessonDraft = (index: number, patch: Partial<LessonDraft>) => {
     setLessonDrafts((current) =>
       current.map((lesson, lessonIndex) =>
@@ -509,11 +874,197 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
             </CardContent>
           </Card>
             </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Workflow 2 MVP: Single Student Enrollment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Course</label>
+                    <Select
+                      value={selectedEnrollmentCourseId ?? ""}
+                      onValueChange={(value) => setSelectedEnrollmentCourseId(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select manager-owned course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {coursesForEnrollment.map((course) => (
+                          <SelectItem key={course.courseId} value={course.courseId}>
+                            {course.syllabusName} (v{course.syllabusVersion}) • enrolled {course.enrolledCount}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Student</label>
+                    <Select
+                      value={selectedStudentIdToEnroll}
+                      onValueChange={setSelectedStudentIdToEnroll}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {studentsForEnrollment.map((student) => (
+                          <SelectItem key={student.studentId} value={student.studentId}>
+                            {student.displayName}
+                            {student.email ? ` • ${student.email}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={handleEnrollStudent}
+                    disabled={
+                      isEnrollingStudent || !selectedEnrollmentCourseId || !selectedStudentIdToEnroll
+                    }
+                  >
+                    {isEnrollingStudent ? "Enrolling..." : "Enroll student"}
+                  </Button>
+                </div>
+
+                <div className="rounded-md border p-3">
+                  {!selectedEnrollmentCourseId && (
+                    <p className="text-muted-foreground text-sm">Select a course to view enrolled students.</p>
+                  )}
+
+                  {selectedEnrollmentCourseId && !courseEnrollmentDetails && (
+                    <p className="text-muted-foreground text-sm">No details available for selected course.</p>
+                  )}
+
+                  {courseEnrollmentDetails && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        Enrolled students ({courseEnrollmentDetails.enrolledCount})
+                      </p>
+
+                      {courseEnrollmentDetails.enrolledStudents.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No students are currently enrolled.</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {courseEnrollmentDetails.enrolledStudents.map((student) => (
+                            <li key={`${courseEnrollmentDetails.courseId}-${student.studentId}`}>
+                              <p className="text-sm">
+                                {student.displayName}
+                                {student.email ? ` • ${student.email}` : ""}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Workflow 2 MVP: Instructor Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Course</label>
+                    <Select
+                      value={selectedAssignmentCourseId ?? ""}
+                      onValueChange={(value) => setSelectedAssignmentCourseId(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select manager-owned course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {coursesForEnrollment.map((course) => (
+                          <SelectItem key={`assign-course-${course.courseId}`} value={course.courseId}>
+                            {course.syllabusName} (v{course.syllabusVersion}) • enrolled {course.enrolledCount}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Instructor</label>
+                    <Select
+                      value={selectedInstructorIdToAssign}
+                      onValueChange={setSelectedInstructorIdToAssign}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select instructor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {instructorsForAssignment.map((instructor) => (
+                          <SelectItem key={instructor.instructorId} value={instructor.instructorId}>
+                            {instructor.displayName}
+                            {instructor.email ? ` • ${instructor.email}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={handleAssignInstructor}
+                    disabled={
+                      isAssigningInstructor || !selectedAssignmentCourseId || !selectedInstructorIdToAssign
+                    }
+                  >
+                    {isAssigningInstructor ? "Assigning..." : "Assign instructor"}
+                  </Button>
+                </div>
+
+                <div className="rounded-md border p-3">
+                  {!selectedAssignmentCourseId && (
+                    <p className="text-muted-foreground text-sm">Select a course to view assigned instructors.</p>
+                  )}
+
+                  {selectedAssignmentCourseId && !courseInstructorDetails && (
+                    <p className="text-muted-foreground text-sm">No details available for selected course.</p>
+                  )}
+
+                  {courseInstructorDetails && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        Assigned instructors ({courseInstructorDetails.assignedCount})
+                      </p>
+
+                      {courseInstructorDetails.assignedInstructors.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No instructors are currently assigned.</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {courseInstructorDetails.assignedInstructors.map((instructor) => (
+                            <li key={`${courseInstructorDetails.courseId}-${instructor.instructorId}`}>
+                              <p className="text-sm">
+                                {instructor.displayName}
+                                {instructor.email ? ` • ${instructor.email}` : ""}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {activeSection === "create" && (
-        <div className="grid gap-6 2xl:grid-cols-2">
+        <div className="grid gap-6 2xl:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Create School Draft from FINAL Template</CardTitle>
@@ -617,6 +1168,80 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
                 <Button type="submit" disabled={isCreatingFromScratch}>
                   {isCreatingFromScratch ? "Creating..." : "Create from scratch"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Open Course from FINAL Syllabus</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateCourse} className="space-y-3">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">FINAL syllabus version</label>
+                  <Select
+                    value={newCourseTemplateVersionId}
+                    onValueChange={setNewCourseTemplateVersionId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select FINAL syllabus version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {finalCandidates.map((item: CatalogItem) => (
+                        <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
+                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? "System"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Start date and time (optional)</label>
+                  <Input
+                    type="datetime-local"
+                    value={newCourseStartDate}
+                    onChange={(event) => setNewCourseStartDate(event.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Min capacity (optional)</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={newCourseMinCapacity}
+                      onChange={(event) => setNewCourseMinCapacity(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Max capacity (optional)</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={newCourseMaxCapacity}
+                      onChange={(event) => setNewCourseMaxCapacity(event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">
+                    Default lesson price in minor units (optional)
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={newCourseDefaultPrice}
+                    onChange={(event) => setNewCourseDefaultPrice(event.target.value)}
+                  />
+                </div>
+
+                <Button type="submit" disabled={isCreatingCourse}>
+                  {isCreatingCourse ? "Creating course..." : "Open course"}
                 </Button>
               </form>
             </CardContent>

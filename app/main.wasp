@@ -193,6 +193,46 @@ action publishDraftSyllabusVersion {
   fn: import { publishDraftSyllabusVersion } from "@src/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
 }
+
+action createCourseFromFinalSyllabus {
+  fn: import { createCourseFromFinalSyllabus } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course]
+}
+
+query getManagerCoursesForEnrollment {
+  fn: import { getManagerCoursesForEnrollment } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, EnrolledStudent]
+}
+
+query getManagerStudentsForEnrollment {
+  fn: import { getManagerStudentsForEnrollment } from "@src/school-manager/operations",
+  entities: [User, School, Student, Account]
+}
+
+query getManagerCourseEnrollmentDetails {
+  fn: import { getManagerCourseEnrollmentDetails } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent]
+}
+
+query getManagerInstructorsForAssignment {
+  fn: import { getManagerInstructorsForAssignment } from "@src/school-manager/operations",
+  entities: [User, School, Instructor, Account]
+}
+
+query getManagerCourseInstructorDetails {
+  fn: import { getManagerCourseInstructorDetails } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, Instructor, AssignedInstructor]
+}
+
+action enrollStudentInCourse {
+  fn: import { enrollStudentInCourse } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent, Account]
+}
+
+action assignInstructorToCourse {
+  fn: import { assignInstructorToCourse } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, Instructor, AssignedInstructor, Account]
+}
 //#endregion
 
 //#region Demo AI App
