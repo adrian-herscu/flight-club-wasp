@@ -121,21 +121,6 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  const activeSectionLabel = useMemo(() => {
-    switch (activeSection) {
-      case "catalog":
-        return "Catalog";
-      case "create":
-        return "Create";
-      case "details":
-        return "Details";
-      case "editor":
-        return "Editor";
-      default:
-        return "Catalog";
-    }
-  }, [activeSection]);
-
   const goToSection = (section: SyllabusesSection) => {
     hasChangedSectionRef.current = true;
     const params = new URLSearchParams(location.search);
@@ -404,16 +389,18 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName="Syllabuses" />
+      <Breadcrumb pageName="Syllabuses" showTitle={false} />
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading syllabus catalog...</p>}
       {error && <p className="text-sm text-red-500">{error.message}</p>}
 
-      <div className="bg-background/95 sticky top-0 z-20 mb-6 rounded-md border p-2 backdrop-blur supports-backdrop-filter:bg-background/70">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="sticky top-0 z-20 mb-2 backdrop-blur supports-backdrop-filter:bg-background/70">
+        <div className="relative flex overflow-x-auto" style={{
+          maskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
+        }}>
           <Button
             type="button"
-            className="shrink-0"
+            className="shrink-0 rounded-none border-r"
             variant={activeSection === "catalog" ? "secondary" : "outline"}
             onClick={() => goToSection("catalog")}
           >
@@ -421,7 +408,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           </Button>
           <Button
             type="button"
-            className="shrink-0"
+            className="shrink-0 rounded-none border-r"
             variant={activeSection === "create" ? "secondary" : "outline"}
             onClick={() => goToSection("create")}
           >
@@ -429,7 +416,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           </Button>
           <Button
             type="button"
-            className="shrink-0"
+            className="shrink-0 rounded-none border-r"
             variant={activeSection === "details" ? "secondary" : "outline"}
             onClick={() => goToSection("details")}
           >
@@ -437,17 +424,13 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           </Button>
           <Button
             type="button"
-            className="shrink-0"
+            className="shrink-0 rounded-none"
             variant={activeSection === "editor" ? "secondary" : "outline"}
             onClick={() => goToSection("editor")}
           >
             Editor
           </Button>
         </div>
-
-        <p className="text-muted-foreground px-1 text-sm">
-          Active section: <span className="text-foreground font-medium">{activeSectionLabel}</span>
-        </p>
       </div>
 
       <div ref={sectionContentRef} className="scroll-mt-20">

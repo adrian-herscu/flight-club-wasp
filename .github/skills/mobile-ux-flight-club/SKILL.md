@@ -45,11 +45,18 @@ Use this skill when designing or refactoring UI flows in `app/src/client` or fea
 - Keep section switcher as a **sticky top toolbar** for long mobile screens.
 - Make section switching feel immediate:
 	- highlighted active button,
-	- explicit active section label,
-	- auto-scroll to section content on section change.
+	- auto-scroll to section content on section change,
+	- ~~explicit active section label~~ (redundant if button states are clear).
 - Avoid placing non-interactive policy/info blocks above section switcher on mobile.
 - Place policy/help text **inside the relevant section** (e.g., catalog policy under `Catalog`).
 - If section buttons exist, each should navigate to **distinct URLs** (not only local state).
+- **Toolbar styling**: Maximize horizontal real estate on mobile:
+	- Use `rounded-none` borders with subtle `border-r` dividers between buttons (flat toolbar look).
+	- No gaps between buttons; full-width coverage.
+	- Apply CSS `mask-image` gradient fade for scroll indicators at edges when buttons overflow.
+	- Remove redundant headings if already in breadcrumb.
+	- Reusable pattern: make breadcrumb title optional (e.g., `showTitle={false}`) so pages can keep breadcrumb context without the large duplicate header.
+	- Minimize vertical margins (e.g., `mb-2` instead of `mb-6`) to conserve scarce mobile screen space.
 
 ## URL state and deep-linking policy
 
