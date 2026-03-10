@@ -98,6 +98,29 @@ test("existing seeded user can log in", async ({ page }) => {
 - Assertions: validate login response status `200`, URL leaves `/login`, plus one lightweight UI confirmation.
 - Test placement: append to existing suites if testing baseline auth (e.g., `landingPageTests.spec.ts`); create new spec for auth-focused matrix (signup/login/logout/role guards).
 
+## Generic test-engineering patterns
+
+### 1) Policy matrix coverage
+- Represent key policy decisions as a matrix (who can see/use/edit by status/scope).
+- Add at least one positive and one negative test per matrix row.
+- Keep assertions focused on user-visible behavior + server response correctness.
+
+### 2) Deterministic test data first
+- Prefer seeded accounts/entities over runtime-created test data for auth/role flows.
+- Use fixed identifiers and credentials for repeatability.
+- Keep one helper API per repeated user journey (login, signup, checkout, etc.).
+
+### 3) Guard against generated-type/import drift
+- After operation declaration changes (`main.wasp`), restart local app before debugging failing tests deeply.
+- If tests fail with import/type mismatches, verify app compiles and generated operations are refreshed first.
+
+### 4) Layered verification strategy
+- UI assertion (visible state)
+- Network assertion (status code/endpoint success)
+- Navigation assertion (expected route)
+
+Use all three for critical flows to reduce false positives.
+
 ## Guardrails
 - Do not edit generated Wasp output (`app/.wasp/out/**`).
 - Prefer fixing source config/script in `e2e-tests`.

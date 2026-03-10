@@ -31,24 +31,40 @@ For each workflow request, produce:
 5. Add assertion SELECTs after every key mutation.
 6. Validate end-state aggregate query (counts/status/links).
 
-## Project-specific rules learned from this session
+## Generic engineering patterns (reusable)
 
-### 1) System syllabus visibility
-- Global syllabuses are represented by `Syllabus.schoolId IS NULL`.
-- School managers should see reusable system syllabuses via this rule.
+### 1) Three-layer policy enforcement
+For business-critical rules, enforce at all layers:
+- **UI layer**: filter/disallow invalid user choices.
+- **Server layer**: reject invalid operation args/state transitions.
+- **DB layer**: use constraints/triggers as final hard stop.
 
-### 2) Instructor qualification model
-- No separate certification model is required.
-- Qualification is inferred from completed syllabus lessons:
-  - Instructor-linked student profile exists
-  - `StudentLessonEvaluation.status = PASS` for all lessons in target syllabus
+This prevents policy drift and protects against bypasses.
 
-### 3) Migration reliability in this repo
+### 2) Immutable-domain editing via revisioning
+When updates/deletes are constrained by triggers or audit policy:
+- implement “edit” as **create next revision**,
+- keep prior versions immutable,
+- publish by promoting/creating a new terminal state version (e.g. `FINAL`).
+
+### 3) Explicit status transition model
+Define allowed transitions in one place (server/DB), e.g.:
+- `DRAFT -> FINAL` allowed,
+- `FINAL -> DRAFT` disallowed,
+- edits only allowed in mutable statuses.
+
+UI should mirror this model, not define it.
+
+### 4) Canonical workflow read models
+Prefer one canonical query per workflow intent and derive UI sections from it
+(e.g. selectable/publishable/editable subsets), instead of duplicating policy logic across many queries.
+
+### 5) Deterministic + idempotent workflow fixtures
 - Prefer deterministic IDs for seeded rows.
 - Always include required non-default columns in raw SQL inserts.
 - Keep seeds idempotent using `ON CONFLICT DO NOTHING/UPDATE`.
 
-### 4) Trigger compatibility safety check
+### 6) Trigger compatibility safety check
 Before relying on triggers in workflow scripts, confirm trigger functions match current schema fields.
 Common drift patterns:
 - Old field names (`syllabusId` vs `syllabusVersionId`)
@@ -76,3 +92,4 @@ If drift exists, patch trigger function definitions in a migration before workfl
 - Null constraint failures during seed: missing required columns in raw SQL.
 - Qualification checks returning empty: wrong student profile linked to instructor.
 - Inconsistent workflow reruns: missing `ON CONFLICT` handling.
+- Rule appears enforced in UI but not DB: add server + DB enforcement; UI-only checks are insufficient.

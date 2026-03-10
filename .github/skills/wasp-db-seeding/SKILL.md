@@ -41,6 +41,18 @@ Use this skill when adding or updating database seeds for this Wasp app, especia
    - Use `ON CONFLICT ... DO UPDATE` / `DO NOTHING`.
    - Use `DO $$ ... $$` blocks when conditional flow is needed.
 
+6. **Model policy-relevant fixtures explicitly**
+   - Seed records that represent each policy state you need to test (e.g., mutable vs immutable statuses).
+   - Seed both “allowed” and “rejected” scenarios for operation-level tests.
+   - Keep fixtures minimal and explain intent in comments.
+
+## Generic reproducibility rules
+- Prefer deterministic IDs over random UUIDs in seed migrations.
+- Prefer stable synthetic emails/usernames and fixed timestamps when possible.
+- Keep one seed migration focused on one business concern.
+- Make reruns safe: no manual cleanup required between runs.
+- Ensure seeded data is usable both for SQL workflow checks and E2E smoke tests.
+
 ## Migration management rules
 - Same subject => prefer one migration.
 - If a migration was already applied and must be squashed locally:
@@ -62,3 +74,4 @@ Use this skill when adding or updating database seeds for this Wasp app, especia
 - "Email not verified": `providerData.isEmailVerified` is false/missing.
 - "Duplicate key" on rerun: seeding is not idempotent; add conflict handling.
 - "Migration drift" after squash: reset local DB and reapply migrations.
+- "Tests flaky across machines": remove non-deterministic seed values and rely on stable fixture keys.

@@ -56,6 +56,7 @@
 - Available skills:
   - `e2e-playwright-maintenance`: `.github/skills/e2e-playwright-maintenance/SKILL.md`
   - `fetch-wasp-docs`: `.github/skills/fetch-wasp-docs/SKILL.md`
+  - `mobile-ux-flight-club`: `.github/skills/mobile-ux-flight-club/SKILL.md`
   - `pdf`: `.github/skills/pdf/SKILL.md`
   - `shadcn-component-add`: `.github/skills/shadcn-component-add/SKILL.md`
   - `wasp-db-workflow-validation`: `.github/skills/wasp-db-workflow-validation/SKILL.md`
