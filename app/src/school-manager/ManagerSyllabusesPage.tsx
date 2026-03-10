@@ -1,5 +1,6 @@
 import { SyllabusVersionStatus } from "@prisma/client";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../admin/layout/Breadcrumb";
@@ -67,6 +68,9 @@ type ManagerSyllabusCatalog = {
   editableDrafts: CatalogItem[];
 };
 
+type SyllabusesSection = "catalog" | "create" | "details" | "editor";
+const validSections: SyllabusesSection[] = ["catalog", "create", "details", "editor"];
+
 const initialLesson = (position = 1): LessonDraft => ({
   position,
   name: "",
@@ -75,6 +79,8 @@ const initialLesson = (position = 1): LessonDraft => ({
 });
 
 const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
     data: catalogData,
     isLoading,
@@ -98,12 +104,76 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [templateVersionId, setTemplateVersionId] = useState<string>("");
   const [newSyllabusName, setNewSyllabusName] = useState("");
   const [scratchName, setScratchName] = useState("");
+  const sectionContentRef = useRef<HTMLDivElement | null>(null);
+  const hasChangedSectionRef = useRef(false);
+
+  const activeSection = useMemo<SyllabusesSection>(() => {
+    const section = new URLSearchParams(location.search).get("section");
+    if (section && validSections.includes(section as SyllabusesSection)) {
+      return section as SyllabusesSection;
+    }
+    return "catalog";
+  }, [location.search]);
 
   const [lessonDrafts, setLessonDrafts] = useState<LessonDraft[]>([initialLesson()]);
   const [isSavingRevision, setIsSavingRevision] = useState(false);
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  const activeSectionLabel = useMemo(() => {
+    switch (activeSection) {
+      case "catalog":
+        return "Catalog";
+      case "create":
+        return "Create";
+      case "details":
+        return "Details";
+      case "editor":
+        return "Editor";
+      default:
+        return "Catalog";
+    }
+  }, [activeSection]);
+
+  const goToSection = (section: SyllabusesSection) => {
+    hasChangedSectionRef.current = true;
+    const params = new URLSearchParams(location.search);
+    params.set("section", section);
+    navigate(
+      {
+        pathname: "/admin/syllabuses",
+        search: `?${params.toString()}`,
+      },
+      { replace: false },
+    );
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get("section");
+    if (section && validSections.includes(section as SyllabusesSection)) {
+      return;
+    }
+
+    params.set("section", "catalog");
+    navigate(
+      {
+        pathname: "/admin/syllabuses",
+        search: `?${params.toString()}`,
+      },
+      { replace: true },
+    );
+  }, [location.search, navigate]);
+
+  useEffect(() => {
+    if (!hasChangedSectionRef.current) return;
+
+    sectionContentRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [activeSection]);
 
   const selectedDraftId = useMemo(() => {
     if (!versionDetails) return null;
@@ -133,6 +203,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       await refetchCatalog();
       setSelectedVersionId(created.syllabusVersionId);
       await refetchVersion();
+      goToSection("details");
       setTemplateVersionId("");
       setNewSyllabusName("");
       toast({
@@ -188,6 +259,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       await refetchCatalog();
       setSelectedVersionId(created.syllabusVersionId);
       await refetchVersion();
+      goToSection("details");
       setScratchName("");
       setLessonDrafts([initialLesson()]);
       toast({
@@ -219,6 +291,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
         durationMinutes: lesson.durationMinutes,
       })),
     );
+    goToSection("editor");
   };
 
   const handleSaveRevision = async () => {
@@ -255,6 +328,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       await refetchCatalog();
       setSelectedVersionId(result.syllabusVersionId);
       await refetchVersion();
+      goToSection("details");
 
       toast({
         title: "Draft revision saved",
@@ -290,6 +364,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       await refetchCatalog();
       setSelectedVersionId(result.syllabusVersionId);
       await refetchVersion();
+      goToSection("details");
       toast({
         title: "Published",
         description: `A FINAL version (${result.version}) is now available for course opening.`,
@@ -331,281 +406,377 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     <DefaultLayout user={user}>
       <Breadcrumb pageName="Syllabuses" />
 
-      <div className="mb-6 rounded-md border p-4 text-sm">
-        <p className="font-semibold">Visibility and usage policy</p>
-        <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
-          <li>Course opening can use only FINAL syllabus versions.</li>
-          <li>Drafts are private to the manager&apos;s school.</li>
-          <li>Only school-local drafts can be edited and published.</li>
-        </ul>
-      </div>
-
       {isLoading && <p className="text-muted-foreground text-sm">Loading syllabus catalog...</p>}
       {error && <p className="text-sm text-red-500">{error.message}</p>}
 
-      <div className="grid gap-6 2xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Available for Course Opening (FINAL)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {finalCandidates.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No FINAL syllabuses are available.</p>
-            ) : (
-              <ul className="space-y-2">
-                {finalCandidates.map((item: CatalogItem) => (
-                  <li key={item.syllabusVersionId}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedVersionId(item.syllabusVersionId)}
-                      className="hover:bg-accent w-full rounded-md border p-3 text-left"
-                    >
-                      <p className="text-sm font-medium">{item.syllabusName}</p>
-                      <p className="text-muted-foreground text-xs">
-                        v{item.version} • {item.lessonCount} lessons • {item.schoolName ?? "System"}
-                      </p>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+      <div className="bg-background/95 sticky top-0 z-20 mb-6 rounded-md border p-2 backdrop-blur supports-backdrop-filter:bg-background/70">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <Button
+            type="button"
+            className="shrink-0"
+            variant={activeSection === "catalog" ? "secondary" : "outline"}
+            onClick={() => goToSection("catalog")}
+          >
+            Catalog
+          </Button>
+          <Button
+            type="button"
+            className="shrink-0"
+            variant={activeSection === "create" ? "secondary" : "outline"}
+            onClick={() => goToSection("create")}
+          >
+            Create
+          </Button>
+          <Button
+            type="button"
+            className="shrink-0"
+            variant={activeSection === "details" ? "secondary" : "outline"}
+            onClick={() => goToSection("details")}
+          >
+            Details
+          </Button>
+          <Button
+            type="button"
+            className="shrink-0"
+            variant={activeSection === "editor" ? "secondary" : "outline"}
+            onClick={() => goToSection("editor")}
+          >
+            Editor
+          </Button>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Editable School Drafts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {editableDrafts.length === 0 ? (
-              <p className="text-muted-foreground text-sm">You currently have no editable drafts.</p>
-            ) : (
-              <ul className="space-y-2">
-                {editableDrafts.map((item: CatalogItem) => (
-                  <li key={item.syllabusVersionId}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedVersionId(item.syllabusVersionId)}
-                      className="hover:bg-accent w-full rounded-md border p-3 text-left"
-                    >
-                      <p className="text-sm font-medium">{item.syllabusName}</p>
-                      <p className="text-muted-foreground text-xs">
-                        draft v{item.version} • {item.lessonCount} lessons
-                      </p>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Create School Draft from FINAL Template</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateFromTemplate} className="space-y-3">
-              <div className="space-y-2">
-                <label className="text-xs font-medium">FINAL template</label>
-                <Select value={templateVersionId} onValueChange={setTemplateVersionId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select FINAL syllabus version" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {finalCandidates.map((item: CatalogItem) => (
-                      <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
-                        {item.syllabusName} (v{item.version}) • {item.schoolName ?? "System"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium">New syllabus name</label>
-                <Input
-                  value={newSyllabusName}
-                  onChange={(event) => setNewSyllabusName(event.target.value)}
-                  placeholder="Cloudbase Tandem Advanced"
-                />
-              </div>
-
-              <Button type="submit" disabled={isCreatingFromTemplate}>
-                {isCreatingFromTemplate ? "Creating..." : "Create from template"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Create School Draft from Scratch</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateFromScratch} className="space-y-3">
-              <div className="space-y-2">
-                <label className="text-xs font-medium">Syllabus name</label>
-                <Input
-                  value={scratchName}
-                  onChange={(event) => setScratchName(event.target.value)}
-                  placeholder="Cloudbase Ground Handling"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-medium">Initial lessons</p>
-                {lessonDrafts.map((lesson, index) => (
-                  <div key={`scratch-${index}`} className="rounded-md border p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold">Lesson {index + 1}</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeLessonDraft(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Lesson name"
-                        value={lesson.name}
-                        onChange={(event) =>
-                          updateLessonDraft(index, { name: event.target.value })
-                        }
-                      />
-                      <Textarea
-                        placeholder="Lesson description"
-                        value={lesson.description}
-                        onChange={(event) =>
-                          updateLessonDraft(index, { description: event.target.value })
-                        }
-                      />
-                      <Input
-                        type="number"
-                        min={1}
-                        value={lesson.durationMinutes}
-                        onChange={(event) =>
-                          updateLessonDraft(index, {
-                            durationMinutes: Number(event.target.value) || 1,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={addLessonDraft}>
-                  Add lesson
-                </Button>
-              </div>
-
-              <Button type="submit" disabled={isCreatingFromScratch}>
-                {isCreatingFromScratch ? "Creating..." : "Create from scratch"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <p className="text-muted-foreground px-1 text-sm">
+          Active section: <span className="text-foreground font-medium">{activeSectionLabel}</span>
+        </p>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Selected Syllabus Version Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isVersionLoading && (
-            <p className="text-muted-foreground text-sm">Loading selected version details...</p>
-          )}
+      <div ref={sectionContentRef} className="scroll-mt-20">
 
-          {!isVersionLoading && !versionDetails && (
-            <p className="text-muted-foreground text-sm">
-              Select a syllabus version from the lists above.
-            </p>
-          )}
+      {activeSection === "catalog" && (
+        <div className="space-y-6">
+          <div className="rounded-md border p-4 text-sm">
+            <p className="font-semibold">Visibility and usage policy</p>
+            <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+              <li>Course opening can use only FINAL syllabus versions.</li>
+              <li>Drafts are private to the manager&apos;s school.</li>
+              <li>Only school-local drafts can be edited and published.</li>
+            </ul>
+          </div>
 
-          {versionDetails && (
-            <div className="space-y-4">
-              <div className="rounded-md border p-4">
-                <p className="text-sm font-medium">{versionDetails.syllabusName}</p>
-                <p className="text-muted-foreground text-xs">
-                  v{versionDetails.version} • {versionDetails.status} •{" "}
-                  {versionDetails.schoolName ?? "System"}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={loadLessonsIntoEditor}>
-                  Load lessons into draft editor
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleSaveRevision}
-                  disabled={!selectedDraftId || isSavingRevision}
-                >
-                  {isSavingRevision ? "Saving..." : "Save as new draft revision"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handlePublish}
-                  disabled={!selectedDraftId || isPublishing}
-                >
-                  {isPublishing ? "Publishing..." : "Publish as FINAL version"}
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Lesson editor</p>
-                {lessonDrafts.map((lesson, index) => (
-                  <div key={`editor-${index}`} className="rounded-md border p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold">Lesson {index + 1}</p>
-                      <Button
+          <div className="grid gap-6 2xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available for Course Opening (FINAL)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {finalCandidates.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No FINAL syllabuses are available.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {finalCandidates.map((item: CatalogItem) => (
+                    <li key={item.syllabusVersionId}>
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeLessonDraft(index)}
+                        onClick={() => {
+                          setSelectedVersionId(item.syllabusVersionId);
+                          goToSection("details");
+                        }}
+                        className="hover:bg-accent w-full rounded-md border p-3 text-left"
                       >
-                        Remove
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <Input
-                        value={lesson.name}
-                        placeholder="Lesson name"
-                        onChange={(event) =>
-                          updateLessonDraft(index, { name: event.target.value })
-                        }
-                      />
-                      <Textarea
-                        value={lesson.description}
-                        placeholder="Lesson description"
-                        onChange={(event) =>
-                          updateLessonDraft(index, { description: event.target.value })
-                        }
-                      />
-                      <Input
-                        type="number"
-                        min={1}
-                        value={lesson.durationMinutes}
-                        onChange={(event) =>
-                          updateLessonDraft(index, {
-                            durationMinutes: Number(event.target.value) || 1,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={addLessonDraft}>
-                  Add lesson
-                </Button>
-              </div>
+                        <p className="text-sm font-medium">{item.syllabusName}</p>
+                        <p className="text-muted-foreground text-xs">
+                          v{item.version} • {item.lessonCount} lessons • {item.schoolName ?? "System"}
+                        </p>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Editable School Drafts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {editableDrafts.length === 0 ? (
+                <p className="text-muted-foreground text-sm">You currently have no editable drafts.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {editableDrafts.map((item: CatalogItem) => (
+                    <li key={item.syllabusVersionId}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedVersionId(item.syllabusVersionId);
+                          goToSection("details");
+                        }}
+                        className="hover:bg-accent w-full rounded-md border p-3 text-left"
+                      >
+                        <p className="text-sm font-medium">{item.syllabusName}</p>
+                        <p className="text-muted-foreground text-xs">
+                          draft v{item.version} • {item.lessonCount} lessons
+                        </p>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
             </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
+
+      {activeSection === "create" && (
+        <div className="grid gap-6 2xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create School Draft from FINAL Template</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateFromTemplate} className="space-y-3">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">FINAL template</label>
+                  <Select value={templateVersionId} onValueChange={setTemplateVersionId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select FINAL syllabus version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {finalCandidates.map((item: CatalogItem) => (
+                        <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
+                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? "System"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">New syllabus name</label>
+                  <Input
+                    value={newSyllabusName}
+                    onChange={(event) => setNewSyllabusName(event.target.value)}
+                    placeholder="Cloudbase Tandem Advanced"
+                  />
+                </div>
+
+                <Button type="submit" disabled={isCreatingFromTemplate}>
+                  {isCreatingFromTemplate ? "Creating..." : "Create from template"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Create School Draft from Scratch</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateFromScratch} className="space-y-3">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Syllabus name</label>
+                  <Input
+                    value={scratchName}
+                    onChange={(event) => setScratchName(event.target.value)}
+                    placeholder="Cloudbase Ground Handling"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium">Initial lessons</p>
+                  {lessonDrafts.map((lesson, index) => (
+                    <div key={`scratch-${index}`} className="rounded-md border p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-xs font-semibold">Lesson {index + 1}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeLessonDraft(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Lesson name"
+                          value={lesson.name}
+                          onChange={(event) =>
+                            updateLessonDraft(index, { name: event.target.value })
+                          }
+                        />
+                        <Textarea
+                          placeholder="Lesson description"
+                          value={lesson.description}
+                          onChange={(event) =>
+                            updateLessonDraft(index, { description: event.target.value })
+                          }
+                        />
+                        <Input
+                          type="number"
+                          min={1}
+                          value={lesson.durationMinutes}
+                          onChange={(event) =>
+                            updateLessonDraft(index, {
+                              durationMinutes: Number(event.target.value) || 1,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={addLessonDraft}>
+                    Add lesson
+                  </Button>
+                </div>
+
+                <Button type="submit" disabled={isCreatingFromScratch}>
+                  {isCreatingFromScratch ? "Creating..." : "Create from scratch"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeSection === "details" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Selected Syllabus Version Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isVersionLoading && (
+              <p className="text-muted-foreground text-sm">Loading selected version details...</p>
+            )}
+
+            {!isVersionLoading && !versionDetails && (
+              <p className="text-muted-foreground text-sm">
+                Select a syllabus version from Catalog first.
+              </p>
+            )}
+
+            {versionDetails && (
+              <div className="space-y-4">
+                <div className="rounded-md border p-4">
+                  <p className="text-sm font-medium">{versionDetails.syllabusName}</p>
+                  <p className="text-muted-foreground text-xs">
+                    v{versionDetails.version} • {versionDetails.status} •{" "}
+                    {versionDetails.schoolName ?? "System"}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={loadLessonsIntoEditor}>
+                    Load lessons into editor
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSaveRevision}
+                    disabled={!selectedDraftId || isSavingRevision}
+                  >
+                    {isSavingRevision ? "Saving..." : "Save as new draft revision"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handlePublish}
+                    disabled={!selectedDraftId || isPublishing}
+                  >
+                    {isPublishing ? "Publishing..." : "Publish as FINAL version"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeSection === "editor" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Lesson Editor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!versionDetails && (
+              <p className="text-muted-foreground text-sm">
+                Select a syllabus in Catalog, open Details, and load lessons into editor.
+              </p>
+            )}
+
+            {versionDetails && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {lessonDrafts.map((lesson, index) => (
+                    <div key={`editor-${index}`} className="rounded-md border p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-xs font-semibold">Lesson {index + 1}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeLessonDraft(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          value={lesson.name}
+                          placeholder="Lesson name"
+                          onChange={(event) =>
+                            updateLessonDraft(index, { name: event.target.value })
+                          }
+                        />
+                        <Textarea
+                          value={lesson.description}
+                          placeholder="Lesson description"
+                          onChange={(event) =>
+                            updateLessonDraft(index, { description: event.target.value })
+                          }
+                        />
+                        <Input
+                          type="number"
+                          min={1}
+                          value={lesson.durationMinutes}
+                          onChange={(event) =>
+                            updateLessonDraft(index, {
+                              durationMinutes: Number(event.target.value) || 1,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={addLessonDraft}>
+                    Add lesson
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleSaveRevision}
+                    disabled={!selectedDraftId || isSavingRevision}
+                  >
+                    {isSavingRevision ? "Saving..." : "Save as new draft revision"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handlePublish}
+                    disabled={!selectedDraftId || isPublishing}
+                  >
+                    {isPublishing ? "Publishing..." : "Publish as FINAL version"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      </div>
     </DefaultLayout>
   );
 };
