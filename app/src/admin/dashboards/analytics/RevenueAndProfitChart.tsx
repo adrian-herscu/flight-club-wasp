@@ -1,7 +1,10 @@
 import { ApexOptions } from "apexcharts";
 import { useEffect, useMemo, useState } from "react";
 import ReactApexChart from "react-apexcharts";
-import { type DailyStatsProps } from "../../../analytics/stats";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DailyStatsProps = { weeklyStats?: any[]; isLoading?: boolean };
+
 
 const options: ApexOptions = {
   legend: {

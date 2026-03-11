@@ -1,6 +1,9 @@
 import { ArrowUp, UsersRound } from "lucide-react";
 import { useMemo } from "react";
-import { type DailyStatsProps } from "../../../analytics/stats";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DailyStatsProps = { dailyStats?: any; isLoading?: boolean };
+
 import {
   Card,
   CardContent,

@@ -18,7 +18,7 @@ export default function App() {
   const location = useLocation();
   const isMarketingPage = useMemo(() => {
     return (
-      location.pathname === "/" || location.pathname.startsWith("/pricing")
+      location.pathname === "/"
     );
   }, [location]);
 
@@ -28,8 +28,7 @@ export default function App() {
 
   const shouldDisplayAppNavBar = useMemo(() => {
     return (
-      location.pathname !== routes.LoginRoute.build() &&
-      location.pathname !== routes.SignupRoute.build()
+      location.pathname !== routes.LoginRoute.build()
     );
   }, [location]);
 
