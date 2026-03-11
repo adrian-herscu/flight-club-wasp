@@ -1,10 +1,25 @@
-import { GoogleSignInButton } from "wasp/client/auth";
+import { LoginForm } from "wasp/client/auth";
+import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { AuthPageLayout } from "./AuthPageLayout";
 
 export default function Login() {
   return (
     <AuthPageLayout>
-      <GoogleSignInButton />
+      <LoginForm />
+      <br />
+      <span className="text-sm font-medium text-gray-900">
+        Don't have an account?{" "}
+        <WaspRouterLink to={routes.SignupRoute.to} className="underline">
+          Sign up
+        </WaspRouterLink>
+      </span>
+      <br />
+      <span className="text-sm font-medium text-gray-900">
+        Forgot your password?{" "}
+        <WaspRouterLink to={routes.RequestPasswordResetRoute.to} className="underline">
+          Reset it
+        </WaspRouterLink>
+      </span>
     </AuthPageLayout>
   );
 }
