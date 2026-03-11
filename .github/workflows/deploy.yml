@@ -12,6 +12,10 @@ jobs:
       RAILWAY_PROJECT_NAME: flight-club-wasp
       RAILWAY_PROJECT_ID: d5b510d7-cad3-4b81-b785-f5ec6f8b3ddb
 
+    defaults:
+      run:
+        working-directory: app
+
     steps:
       - uses: actions/checkout@v6
 
