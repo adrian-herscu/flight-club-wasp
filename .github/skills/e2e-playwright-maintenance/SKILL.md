@@ -44,6 +44,9 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
 - `Port 5432 already in use`
   - Cause: existing local PostgreSQL instance
   - Fix: allow fallback path in startup script and continue with existing DB
+- title test passes but tests cannot find `Log in` or cookie-consent buttons
+  - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or an `import` vs `importDefault` mismatch in `main.wasp.ts`
+  - Fix: restart `wasp start`, inspect the browser console, and verify `main.wasp.ts` declaration import style matches component exports
 - tests pass in CLI but fail in VS Code panel
   - Cause: extension/config mismatch
   - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `e2e-tests`

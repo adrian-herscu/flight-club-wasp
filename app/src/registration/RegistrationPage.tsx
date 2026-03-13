@@ -36,11 +36,17 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     return <Navigate to="/" replace />;
   }
 
+  const currentUser = user as AuthUser & { fullName?: string | null; phone?: string | null };
+  const initialFullName = typeof currentUser.fullName === "string" ? currentUser.fullName : "";
+  const initialPhone = typeof user.phone === "string" ? user.phone : "";
+
   const { data: existingRequest, isLoading, refetch } = useQuery(getMyRegistrationRequest);
   const { data: schoolOptionsData } = useQuery(getRegistrationSchoolOptions);
 
   const schoolOptions = (schoolOptionsData as SchoolOption[] | undefined) ?? [];
 
+  const [fullName, setFullName] = useState(initialFullName);
+  const [phone, setPhone] = useState(initialPhone);
   const [requestedRole, setRequestedRole] = useState<RegistrationRole>("SCHOOL_MANAGER");
   const [targetSchoolId, setTargetSchoolId] = useState("");
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
@@ -61,6 +67,15 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   }, [existingRequest?.targetSchoolId, schoolOptions]);
 
   const handleSubmit = async () => {
+    if (!fullName.trim() || !phone.trim()) {
+      toast({
+        title: "Missing details",
+        description: "Full name and phone number are required before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isManagerRequest && !targetSchoolId) {
       toast({
         title: "School required",
@@ -73,6 +88,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     setIsSubmitting(true);
     try {
       await submitRegistrationRequest({
+        fullName,
+        phone,
         requestedRole,
         targetSchoolId: isManagerRequest ? undefined : targetSchoolId,
         requestedSchoolName: isManagerRequest ? requestedSchoolName : undefined,
@@ -156,6 +173,28 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
           <CardTitle>Complete your registration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full name</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="Enter your full name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="Enter your phone number"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Register as</Label>
             <Select

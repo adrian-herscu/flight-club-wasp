@@ -11,5 +11,6 @@ applyTo: "app/main.wasp,app/schema.prisma,app/src/**/*.{ts,tsx},app/src/**/*.css
 - Keep queries/actions in each feature's `operations.ts`.
 - Use `wasp/...` imports in `.ts/.tsx` files.
 - Use `@src/...` imports only in `main.wasp` declarations.
+- In `main.wasp.ts`, use `importDefault` for default exports and `import` for named exports; mismatches can cause runtime blank pages.
 - Use relative imports for non-Wasp source imports inside `.ts/.tsx`.
 - Ensure the root app component renders `<Outlet />` for nested routes.

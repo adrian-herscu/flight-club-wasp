@@ -49,7 +49,7 @@ type GetPaginatedUsersOutput = {
     User,
     | "id"
     | "email"
-    | "username"
+    | "fullName"
     | "role"
     | "subscriptionStatus"
     | "paymentProcessorUserId"
@@ -142,13 +142,13 @@ export const getPaginatedUsers: GetPaginatedUsers<
     select: {
       id: true,
       email: true,
-      username: true,
+      fullName: true,
       role: true,
       subscriptionStatus: true,
       paymentProcessorUserId: true,
     },
     orderBy: {
-      username: "asc",
+      fullName: "asc",
     },
   };
 
@@ -162,7 +162,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
     users: pageOfUsers.map((user) => ({
       id: user.id,
       email: user.email,
-      username: user.username,
+      fullName: user.fullName,
       role: user.role,
       subscriptionStatus: user.subscriptionStatus,
       paymentProcessorUserId: user.paymentProcessorUserId,

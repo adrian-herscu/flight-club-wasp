@@ -50,6 +50,17 @@
 - For OpenSaaS template specifics: https://docs.opensaas.sh/llms-full.txt
 
 
+## Prompts
+- Reusable prompts live under `.github/prompts`.
+- Invoke them by name at the start of a task or investigation.
+- Available prompts:
+  - `deploy-fly`: `.github/prompts/deploy-fly.prompt.md`
+  - `deploy-railway`: `.github/prompts/deploy-railway.prompt.md`
+  - `fetch-docs`: `.github/prompts/fetch-docs.prompt.md`
+  - `session-review`: `.github/prompts/session-review.prompt.md` — end-of-session insight triage
+  - `solution-selection`: `.github/prompts/solution-selection.prompt.md`
+  - `troubleshoot-wasp`: `.github/prompts/troubleshoot-wasp.prompt.md`
+
 ## Skills
 - Local skills live under `.github/skills`.
 - Prefer applying the most relevant skill for making changes in that area.

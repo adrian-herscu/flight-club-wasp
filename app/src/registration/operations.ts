@@ -58,6 +58,8 @@ async function ensureSchoolManagerAndGetSchool(context: RequestContext) {
 
 const submitRegistrationRequestSchema = z
   .object({
+    fullName: z.string().trim().min(1, "Full name is required."),
+    phone: z.string().trim().min(1, "Phone number is required."),
     requestedRole: z.enum(["SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT"]),
     targetSchoolId: z.string().min(1).optional(),
     requestedSchoolName: z.string().trim().min(2).optional(),
@@ -127,6 +129,22 @@ const submitRegistrationRequestSchema = z
 
 type SubmitRegistrationRequestInput = z.infer<typeof submitRegistrationRequestSchema>;
 
+function uniqueConstraintTargets(
+  error: Prisma.PrismaClientKnownRequestError,
+): string[] {
+  const { target } = error.meta ?? {};
+
+  if (Array.isArray(target)) {
+    return target.map(String);
+  }
+
+  if (typeof target === "string") {
+    return [target];
+  }
+
+  return [];
+}
+
 const requestIdSchema = z.object({
   requestId: z.string().min(1),
 });
@@ -147,7 +165,7 @@ type RegistrationRequestListItem = {
   status: RegistrationRequestStatus;
   requester: {
     id: string;
-    username: string | null;
+    fullName: string | null;
     email: string | null;
     phone: string | null;
   };
@@ -238,55 +256,86 @@ export const submitRegistrationRequest = async (
     }
   }
 
+  const fullName = args.fullName.trim();
+  const phone = args.phone.trim();
+
+  const registrationRequestData = {
+    requesterId: user.id,
+    requestedRole: args.requestedRole,
+    targetSchoolId:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? null
+        : args.targetSchoolId,
+    requestedSchoolName:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedSchoolName?.trim() ?? null
+        : null,
+    requestedAddressLine1:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedAddressLine1?.trim() ?? null
+        : null,
+    requestedAddressLine2:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedAddressLine2?.trim() ?? null
+        : null,
+    requestedCity:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedCity?.trim() ?? null
+        : null,
+    requestedStateProvince:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedStateProvince?.trim() ?? null
+        : null,
+    requestedPostalCode:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedPostalCode?.trim() ?? null
+        : null,
+    requestedCountry:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedCountry?.trim().toUpperCase() ?? null
+        : null,
+    requestedCurrency:
+      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? args.requestedCurrency?.trim().toUpperCase() ?? null
+        : null,
+  } satisfies Prisma.RegistrationRequestUncheckedCreateInput;
+
   try {
-    return await prisma.registrationRequest.create({
-      data: {
-        requesterId: user.id,
-        requestedRole: args.requestedRole,
-        targetSchoolId:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? null
-            : args.targetSchoolId,
-        requestedSchoolName:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedSchoolName?.trim() ?? null
-            : null,
-        requestedAddressLine1:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedAddressLine1?.trim() ?? null
-            : null,
-        requestedAddressLine2:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedAddressLine2?.trim() ?? null
-            : null,
-        requestedCity:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedCity?.trim() ?? null
-            : null,
-        requestedStateProvince:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedStateProvince?.trim() ?? null
-            : null,
-        requestedPostalCode:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedPostalCode?.trim() ?? null
-            : null,
-        requestedCountry:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedCountry?.trim().toUpperCase() ?? null
-            : null,
-        requestedCurrency:
-          args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-            ? args.requestedCurrency?.trim().toUpperCase() ?? null
-            : null,
-      },
-    });
+    const [, registrationRequest] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          fullName,
+          phone,
+        },
+      }),
+      prisma.registrationRequest.create({
+        data: registrationRequestData,
+      }),
+    ]);
+
+    return registrationRequest;
   } catch (error: unknown) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      throw new HttpError(409, "You already submitted a registration request.");
+      const targets = uniqueConstraintTargets(error);
+      const isRequesterDuplicate = targets.some(
+        (target) =>
+          target === "requesterId" ||
+          target.includes("requesterId") ||
+          target.includes("RegistrationRequest_requesterId"),
+      );
+
+      if (isRequesterDuplicate) {
+        throw new HttpError(409, "You already submitted a registration request.");
+      }
+
+      throw new HttpError(
+        409,
+        "A value you entered is already in use. Please review your details and try again.",
+      );
     }
 
     throw error;
@@ -308,7 +357,7 @@ export const getPendingSchoolManagerRequests = async (
       requester: {
         select: {
           id: true,
-          username: true,
+          fullName: true,
           email: true,
           phone: true,
         },
@@ -344,7 +393,7 @@ export const getPendingSchoolMemberRequests = async (
       requester: {
         select: {
           id: true,
-          username: true,
+          fullName: true,
           email: true,
           phone: true,
         },

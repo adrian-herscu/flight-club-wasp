@@ -22,7 +22,7 @@ type SchoolRequestItem = {
   id: string;
   createdAt: string;
   requester: {
-    username: string | null;
+    fullName: string | null;
     email: string | null;
     phone: string | null;
   };
@@ -54,7 +54,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
     if (!normalized) return requests;
 
     return requests.filter((request) => {
-      const name = (request.requester.username ?? request.requester.email ?? "").toLowerCase();
+      const name = (request.requester.fullName ?? request.requester.email ?? "").toLowerCase();
       const phone = (request.requester.phone ?? "").toLowerCase();
       return name.includes(normalized) || phone.includes(normalized);
     });
@@ -138,7 +138,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                     <div>
                       <p className="text-xs uppercase text-muted-foreground">Requester</p>
                       <p className="text-sm font-medium">
-                        {request.requester.username ?? request.requester.email ?? "Unknown"}
+                        {request.requester.fullName ?? request.requester.email ?? "Unknown"}
                       </p>
                       <p className="text-sm text-muted-foreground">{request.requester.email ?? "-"}</p>
                       <p className="text-sm text-muted-foreground">{request.requester.phone ?? "-"}</p>

@@ -630,7 +630,7 @@ export const getManagerStudentsForEnrollment = async (
       user: {
         select: {
           id: true,
-          username: true,
+          fullName: true,
           email: true,
           phone: true,
         },
@@ -644,7 +644,7 @@ export const getManagerStudentsForEnrollment = async (
   return students.map((student) => ({
     studentId: student.id,
     userId: student.user.id,
-    displayName: student.user.username ?? student.user.email ?? student.id,
+    displayName: student.user.fullName ?? student.user.email ?? student.id,
     email: student.user.email,
     phone: student.user.phone,
   }));
@@ -671,7 +671,7 @@ export const getManagerInstructorsForAssignment = async (
       user: {
         select: {
           id: true,
-          username: true,
+          fullName: true,
           email: true,
           phone: true,
         },
@@ -685,7 +685,7 @@ export const getManagerInstructorsForAssignment = async (
   return instructors.map((instructor) => ({
     instructorId: instructor.id,
     userId: instructor.user.id,
-    displayName: instructor.user.username ?? instructor.user.email ?? instructor.id,
+    displayName: instructor.user.fullName ?? instructor.user.email ?? instructor.id,
     email: instructor.user.email,
     phone: instructor.user.phone,
   }));
@@ -723,7 +723,7 @@ export const getManagerCourseEnrollmentDetails = async (
               user: {
                 select: {
                   id: true,
-                  username: true,
+                  fullName: true,
                   email: true,
                   phone: true,
                 },
@@ -744,7 +744,7 @@ export const getManagerCourseEnrollmentDetails = async (
       studentId: enrollment.student.id,
       userId: enrollment.student.user.id,
       displayName:
-        enrollment.student.user.username ??
+        enrollment.student.user.fullName ??
         enrollment.student.user.email ??
         enrollment.student.id,
       email: enrollment.student.user.email,
@@ -863,7 +863,7 @@ export const getManagerCourseInstructorDetails = async (
               user: {
                 select: {
                   id: true,
-                  username: true,
+                  fullName: true,
                   email: true,
                   phone: true,
                 },
@@ -884,7 +884,7 @@ export const getManagerCourseInstructorDetails = async (
       instructorId: assignment.instructor.id,
       userId: assignment.instructor.user.id,
       displayName:
-        assignment.instructor.user.username ??
+        assignment.instructor.user.fullName ??
         assignment.instructor.user.email ??
         assignment.instructor.id,
       email: assignment.instructor.user.email,

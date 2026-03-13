@@ -15,6 +15,15 @@ import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
 
 const SettingsPage = ({ user }: { user: AuthUser }) => {
+  const currentUser = user as AuthUser & {
+    fullName?: string | null;
+    phone?: string | null;
+    email?: string | null;
+  };
+  const fullName = typeof currentUser.fullName === "string" ? currentUser.fullName : "";
+  const phone = typeof currentUser.phone === "string" ? currentUser.phone : "";
+  const email = typeof currentUser.email === "string" ? currentUser.email : "";
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     // TODO implement
     event.preventDefault();
@@ -49,8 +58,8 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                           type="text"
                           name="fullName"
                           id="full-name"
-                          placeholder="Devid Jhon"
-                          defaultValue="Devid Jhon"
+                          placeholder="Not set"
+                          defaultValue={fullName}
                         />
                       </div>
                     </div>
@@ -63,11 +72,11 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         Phone Number
                       </Label>
                       <Input
-                        type=""
+                        type="tel"
                         name="phoneNumber"
                         id="phone-number"
-                        placeholder="+990 3343 7865"
-                        defaultValue="+990 3343 7865"
+                        placeholder="Not set"
+                        defaultValue={phone}
                       />
                     </div>
                   </div>
@@ -86,28 +95,11 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         type="email"
                         name="emailAddress"
                         id="email-address"
-                        placeholder="devidjond45@gmail.com"
-                        defaultValue="devidjond45@gmail.com"
+                        placeholder="Not set"
+                        defaultValue={email}
                       />
                     </div>
                   </div>
-
-                  <div className="mb-5.5">
-                    <Label
-                      htmlFor="username"
-                      className="text-foreground mb-3 block text-sm font-medium"
-                    >
-                      Username
-                    </Label>
-                    <Input
-                      type="text"
-                      name="Username"
-                      id="username"
-                      placeholder="devidjhon24"
-                      defaultValue="devidjhon24"
-                    />
-                  </div>
-
                   <div className="mb-5.5">
                     <Label
                       htmlFor="bio"
@@ -123,7 +115,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         id="bio"
                         rows={6}
                         placeholder="Write your bio here"
-                        defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque posuere fermentum urna, eu condimentum mauris tempus ut. Donec fermentum blandit aliquet."
+                        defaultValue=""
                       ></Textarea>
                     </div>
                   </div>

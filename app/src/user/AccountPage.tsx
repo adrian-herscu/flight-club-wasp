@@ -8,6 +8,8 @@ import {
 import { Separator } from "../client/components/ui/separator";
 
 export default function AccountPage({ user }: { user: User }) {
+  const currentUser = user as User & { fullName?: string | null };
+
   return (
     <div className="mt-10 px-6">
       <Card className="mb-4 lg:m-8">
@@ -30,16 +32,16 @@ export default function AccountPage({ user }: { user: User }) {
                 </div>
               </div>
             )}
-            {!!user.username && (
+            {!!currentUser.fullName && (
               <>
                 <Separator />
                 <div className="px-6 py-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 sm:gap-4">
                     <div className="text-muted-foreground text-sm font-medium">
-                      Username
+                      Full name
                     </div>
                     <div className="text-foreground mt-1 text-sm sm:col-span-2 sm:mt-0">
-                      {user.username}
+                      {currentUser.fullName}
                     </div>
                   </div>
                 </div>

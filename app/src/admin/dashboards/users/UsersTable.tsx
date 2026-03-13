@@ -281,7 +281,7 @@ const UsersTable = () => {
 
         <div className="border-border py-4.5 grid grid-cols-9 border-t-4 px-4 md:px-6">
           <div className="col-span-3 flex items-center">
-            <p className="font-medium">Email / Username</p>
+            <p className="font-medium">Email / Full name</p>
           </div>
           <div className="col-span-2 flex items-center">
             <p className="font-medium">Subscription Status</p>
@@ -307,7 +307,7 @@ const UsersTable = () => {
               <div className="col-span-3 flex items-center">
                 <div className="flex flex-col gap-1">
                   <p className="text-foreground text-sm">{user.email}</p>
-                  <p className="text-foreground text-sm">{user.username}</p>
+                  <p className="text-foreground text-sm">{user.fullName}</p>
                 </div>
               </div>
               <div className="col-span-2 flex items-center">

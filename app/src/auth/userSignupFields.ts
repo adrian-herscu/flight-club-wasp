@@ -10,7 +10,7 @@ export const getEmailUserFields = defineUserSignupFields({
     const emailData = emailDataSchema.parse(data);
     return emailData.email;
   },
-  username: (data) => {
+  fullName: (data) => {
     const emailData = emailDataSchema.parse(data);
     return emailData.email;
   },
@@ -38,7 +38,7 @@ export const getGitHubUserFields = defineUserSignupFields({
     const githubData = githubDataSchema.parse(data);
     return getGithubEmailInfo(githubData).email;
   },
-  username: (data) => {
+  fullName: (data) => {
     const githubData = githubDataSchema.parse(data);
     return githubData.profile.login;
   },
@@ -51,7 +51,7 @@ function getGithubEmailInfo(githubData: z.infer<typeof githubDataSchema>) {
 }
 
 // NOTE: if we don't want to access users' emails, we can use scope ["user:read"]
-// instead of ["user"] and access args.profile.username instead
+// instead of ["user"] and map fullName from args.profile.login instead.
 export function getGitHubAuthConfig() {
   return {
     scopes: ["user:email"],
@@ -70,7 +70,7 @@ export const getGoogleUserFields = defineUserSignupFields({
     const googleData = googleDataSchema.parse(data);
     return googleData.profile.email;
   },
-  username: (data) => {
+  fullName: (data) => {
     const googleData = googleDataSchema.parse(data);
     return googleData.profile.email;
   },
@@ -101,7 +101,7 @@ export const getDiscordUserFields = defineUserSignupFields({
     }
     return discordData.profile.email;
   },
-  username: (data) => {
+  fullName: (data) => {
     const discordData = discordDataSchema.parse(data);
     return discordData.profile.username;
   },

@@ -14,13 +14,17 @@ import { userMenuItems } from "./constants";
 
 export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
   const [open, setOpen] = useState(false);
+  const currentUser = user as Partial<UserEntity> & {
+    fullName?: string | null;
+    email?: string | null;
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out">
           <span className="text-foreground mr-2 hidden text-right text-sm font-medium lg:block">
-            {user.username}
+            {currentUser.fullName ?? currentUser.email ?? "User"}
           </span>
           <User className="size-5" />
           <ChevronDown className="size-4" />
