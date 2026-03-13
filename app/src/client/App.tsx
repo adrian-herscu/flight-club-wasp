@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
+import { useAuth } from "wasp/client/auth";
 import { routes } from "wasp/client/router";
 import { Toaster } from "../client/components/ui/toaster";
 import "./Main.css";
@@ -16,6 +17,17 @@ import CookieConsentBanner from "./components/cookie-consent/Banner";
  */
 export default function App() {
   const location = useLocation();
+  const { data: user, isLoading: isUserLoading } = useAuth();
+
+  const shouldRedirectToRegistration =
+    !isUserLoading &&
+    user?.role === "USER" &&
+    location.pathname !== routes.RegistrationRoute.build();
+
+  if (shouldRedirectToRegistration) {
+    return <Navigate to={routes.RegistrationRoute.build()} replace />;
+  }
+
   const isMarketingPage = useMemo(() => {
     return (
       location.pathname === "/"

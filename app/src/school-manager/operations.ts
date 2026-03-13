@@ -128,6 +128,7 @@ type ManagerStudentListItem = {
   userId: string;
   displayName: string;
   email: string | null;
+  phone: string | null;
 };
 
 type ManagerInstructorListItem = {
@@ -135,6 +136,7 @@ type ManagerInstructorListItem = {
   userId: string;
   displayName: string;
   email: string | null;
+  phone: string | null;
 };
 
 type ManagerCourseEnrollmentDetails = {
@@ -630,6 +632,7 @@ export const getManagerStudentsForEnrollment = async (
           id: true,
           username: true,
           email: true,
+          phone: true,
         },
       },
     },
@@ -643,6 +646,7 @@ export const getManagerStudentsForEnrollment = async (
     userId: student.user.id,
     displayName: student.user.username ?? student.user.email ?? student.id,
     email: student.user.email,
+    phone: student.user.phone,
   }));
 };
 
@@ -669,6 +673,7 @@ export const getManagerInstructorsForAssignment = async (
           id: true,
           username: true,
           email: true,
+          phone: true,
         },
       },
     },
@@ -682,6 +687,7 @@ export const getManagerInstructorsForAssignment = async (
     userId: instructor.user.id,
     displayName: instructor.user.username ?? instructor.user.email ?? instructor.id,
     email: instructor.user.email,
+    phone: instructor.user.phone,
   }));
 };
 
@@ -719,6 +725,7 @@ export const getManagerCourseEnrollmentDetails = async (
                   id: true,
                   username: true,
                   email: true,
+                  phone: true,
                 },
               },
             },
@@ -741,6 +748,7 @@ export const getManagerCourseEnrollmentDetails = async (
         enrollment.student.user.email ??
         enrollment.student.id,
       email: enrollment.student.user.email,
+      phone: enrollment.student.user.phone,
     }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -857,6 +865,7 @@ export const getManagerCourseInstructorDetails = async (
                   id: true,
                   username: true,
                   email: true,
+                  phone: true,
                 },
               },
             },
@@ -879,6 +888,7 @@ export const getManagerCourseInstructorDetails = async (
         assignment.instructor.user.email ??
         assignment.instructor.id,
       email: assignment.instructor.user.email,
+      phone: assignment.instructor.user.phone,
     }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 

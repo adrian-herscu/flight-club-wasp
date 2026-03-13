@@ -2,6 +2,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   GraduationCap,
   LayoutDashboard,
   LayoutTemplate,
@@ -19,9 +20,10 @@ import SidebarLinkGroup from "./SidebarLinkGroup";
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (arg: boolean) => void;
+  userRole: string | null;
 }
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   const location = useLocation();
   const { pathname } = location;
 
@@ -146,28 +148,71 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               </li>
               {/* <!-- Menu Item Users --> */}
 
+              {userRole === "SYSTEM_ADMIN" && (
+                <li>
+                  <NavLink
+                    to="/admin/school-requests"
+                    end
+                    className={({ isActive }) =>
+                      cn(
+                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
+                        {
+                          "bg-accent text-accent-foreground": isActive,
+                        },
+                      )
+                    }
+                  >
+                    <ClipboardList />
+                    School Requests
+                  </NavLink>
+                </li>
+              )}
+
+              {userRole === "SCHOOL_MANAGER" && (
+                <li>
+                  <NavLink
+                    to="/admin/member-requests"
+                    end
+                    className={({ isActive }) =>
+                      cn(
+                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
+                        {
+                          "bg-accent text-accent-foreground": isActive,
+                        },
+                      )
+                    }
+                  >
+                    <ClipboardList />
+                    Member Requests
+                  </NavLink>
+                </li>
+              )}
+
               {/* <!-- Menu Item School --> */}
-              <li>
-                <NavLink
-                  to="/admin/school"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
-                >
-                  <School />
-                  My School
-                </NavLink>
-              </li>
+              {userRole === "SCHOOL_MANAGER" && (
+                <li>
+                  <NavLink
+                    to="/admin/school"
+                    end
+                    className={({ isActive }) =>
+                      cn(
+                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
+                        {
+                          "bg-accent text-accent-foreground": isActive,
+                        },
+                      )
+                    }
+                  >
+                    <School />
+                    My School
+                  </NavLink>
+                </li>
+              )}
               {/* <!-- Menu Item School --> */}
 
               {/* <!-- Menu Item Syllabuses --> */}
-              <li>
+              {userRole === "SCHOOL_MANAGER" && (
+                <li>
                 <NavLink
                   to="/admin/syllabuses?section=catalog"
                   className={() =>
@@ -184,7 +229,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   <GraduationCap />
                   Syllabuses
                 </NavLink>
-              </li>
+                </li>
+              )}
               {/* <!-- Menu Item Syllabuses --> */}
 
               {/* <!-- Menu Item Settings --> */}

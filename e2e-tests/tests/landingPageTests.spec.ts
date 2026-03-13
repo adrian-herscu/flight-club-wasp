@@ -14,13 +14,13 @@ test.describe("general landing page tests", () => {
     await logUserIn({
       page,
       user: {
-        email: "seed+user.01@example.test",
+        email: "seed+student.02@example.test",
         password: "12345678",
       },
       expectedRedirectPath: "/",
     });
 
-    await expect(page.getByText("user_01")).toBeVisible();
+    await expect(page.getByText("student_02")).toBeVisible();
   });
 
   test.skip("get started link", async ({ page }) => {

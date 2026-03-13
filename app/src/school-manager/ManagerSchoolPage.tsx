@@ -1,10 +1,15 @@
+import { type FormEvent, useEffect, useState } from "react";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
-import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
+import { Button } from "../client/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
+import { Input } from "../client/components/ui/input";
+import { Label } from "../client/components/ui/label";
+import { toast } from "../client/hooks/use-toast";
 
-const { getMyManagedSchool, useQuery } = operations as any;
+const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as any;
 
 type ManagedSchool = {
   name: string;
@@ -26,8 +31,59 @@ const labelClassName = "text-muted-foreground text-xs uppercase tracking-wide";
 const valueClassName = "text-foreground text-sm font-medium";
 
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
-  const { data, isLoading, error } = useQuery(getMyManagedSchool);
+  const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
   const school = data as ManagedSchool | undefined;
+
+  const [name, setName] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [stateProvince, setStateProvince] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!school) return;
+
+    setName(school.name);
+    setAddressLine1(school.addressLine1);
+    setAddressLine2(school.addressLine2 ?? "");
+    setCity(school.city);
+    setStateProvince(school.stateProvince ?? "");
+    setPostalCode(school.postalCode);
+  }, [school]);
+
+  const handleSave = async (event: FormEvent) => {
+    event.preventDefault();
+
+    setIsSaving(true);
+    try {
+      await updateMyManagedSchool({
+        name,
+        addressLine1,
+        addressLine2,
+        city,
+        stateProvince,
+        postalCode,
+      });
+      await refetch();
+      toast({
+        title: "School profile updated",
+        description: "School details were saved successfully.",
+      });
+    } catch (saveError: unknown) {
+      toast({
+        title: "Update failed",
+        description:
+          saveError instanceof Error
+            ? saveError.message
+            : "Unable to update school details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <DefaultLayout user={user}>
@@ -55,40 +111,91 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
             <CardHeader>
               <CardTitle>School Profile</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4">
-              <div>
-                <p className={labelClassName}>Name</p>
+            <CardContent className="grid gap-5">
+              <div className="rounded-md border p-4">
+                <p className={labelClassName}>Current profile</p>
                 <p className={valueClassName}>{school.name}</p>
-              </div>
-              <div>
-                <p className={labelClassName}>Address</p>
                 <p className={valueClassName}>{school.addressLine1}</p>
                 {school.addressLine2 ? (
                   <p className={valueClassName}>{school.addressLine2}</p>
                 ) : null}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className={labelClassName}>City</p>
-                  <p className={valueClassName}>{school.city}</p>
-                </div>
-                <div>
-                  <p className={labelClassName}>State / Province</p>
-                  <p className={valueClassName}>{school.stateProvince ?? "-"}</p>
-                </div>
-                <div>
-                  <p className={labelClassName}>Postal Code</p>
-                  <p className={valueClassName}>{school.postalCode}</p>
-                </div>
-                <div>
-                  <p className={labelClassName}>Country</p>
-                  <p className={valueClassName}>{school.country}</p>
-                </div>
-              </div>
-              <div>
-                <p className={labelClassName}>School Currency</p>
+                <p className={valueClassName}>{school.city}</p>
                 <p className={valueClassName}>{school.currency}</p>
               </div>
+
+              <form onSubmit={handleSave} className="grid gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-name">Name</Label>
+                  <Input
+                    id="school-name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-address-line1">Address line 1</Label>
+                  <Input
+                    id="school-address-line1"
+                    value={addressLine1}
+                    onChange={(event) => setAddressLine1(event.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-address-line2">Address line 2 (optional)</Label>
+                  <Input
+                    id="school-address-line2"
+                    value={addressLine2}
+                    onChange={(event) => setAddressLine2(event.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="school-city">City</Label>
+                    <Input
+                      id="school-city"
+                      value={city}
+                      onChange={(event) => setCity(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="school-state">State / Province (optional)</Label>
+                    <Input
+                      id="school-state"
+                      value={stateProvince}
+                      onChange={(event) => setStateProvince(event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-postal-code">Postal code</Label>
+                  <Input
+                    id="school-postal-code"
+                    value={postalCode}
+                    onChange={(event) => setPostalCode(event.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className={labelClassName}>Country</p>
+                    <p className={valueClassName}>{school.country}</p>
+                  </div>
+                  <div>
+                    <p className={labelClassName}>School Currency</p>
+                    <p className={valueClassName}>{school.currency}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save details"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
 

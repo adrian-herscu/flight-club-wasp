@@ -31,13 +31,10 @@ export const updateIsUserAdminById: UpdateIsUserAdminById<
     );
   }
 
-  if (
-    context.user.role !== "SYSTEM_ADMIN" &&
-    context.user.role !== "SCHOOL_MANAGER"
-  ) {
+  if (context.user.role !== "SYSTEM_ADMIN") {
     throw new HttpError(
       403,
-      "Only admins are allowed to perform this operation",
+      "Only system admins are allowed to perform this operation",
     );
   }
 
