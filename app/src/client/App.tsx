@@ -24,10 +24,6 @@ export default function App() {
     user?.role === "USER" &&
     location.pathname !== routes.RegistrationRoute.build();
 
-  if (shouldRedirectToRegistration) {
-    return <Navigate to={routes.RegistrationRoute.build()} replace />;
-  }
-
   const isMarketingPage = useMemo(() => {
     return (
       location.pathname === "/"
@@ -57,6 +53,10 @@ export default function App() {
       }
     }
   }, [location]);
+
+  if (shouldRedirectToRegistration) {
+    return <Navigate to={routes.RegistrationRoute.build()} replace />;
+  }
 
   return (
     <>
