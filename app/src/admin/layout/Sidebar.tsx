@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
 import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
@@ -24,6 +25,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const { pathname } = location;
 
@@ -74,10 +76,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
     <aside
       ref={sidebar}
       className={cn(
-        "bg-muted absolute top-0 left-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden border-r duration-300 ease-linear lg:static lg:translate-x-0",
+        "bg-muted absolute top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden duration-300 ease-linear lg:static lg:translate-x-0",
         {
-          "translate-x-0": sidebarOpen,
-          "-translate-x-full": !sidebarOpen,
+          "ltr:left-0 rtl:right-0 border-e ltr:translate-x-0 rtl:translate-x-0": sidebarOpen,
+          "ltr:left-0 ltr:-translate-x-full ltr:border-e rtl:right-0 rtl:translate-x-full rtl:border-s lg:translate-x-0!": !sidebarOpen,
         },
       )}
     >
@@ -104,8 +106,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
         <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">
           {/* <!-- Menu Group --> */}
           <div>
-            <h3 className="text-muted-foreground mb-4 ml-4 text-sm font-semibold">
-              MENU
+            <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
+              {t("nav.menu")}
             </h3>
 
             <ul className="mb-6 flex flex-col gap-1.5">
@@ -123,7 +125,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                 }
               >
                 <LayoutDashboard />
-                Dashboard
+                {t("admin.dashboard")}
               </NavLink>
 
               {/* <!-- Menu Item Dashboard --> */}
@@ -143,7 +145,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   }
                 >
                   <Sheet />
-                  Users
+                  {t("admin.users")}
                 </NavLink>
               </li>
               {/* <!-- Menu Item Users --> */}
@@ -163,7 +165,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                     }
                   >
                     <ClipboardList />
-                    School Requests
+                    {t("admin.schoolRequests")}
                   </NavLink>
                 </li>
               )}
@@ -183,7 +185,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                     }
                   >
                     <ClipboardList />
-                    Member Requests
+                    {t("admin.memberRequests")}
                   </NavLink>
                 </li>
               )}
@@ -204,7 +206,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                     }
                   >
                     <School />
-                    My School
+                    {t("admin.mySchool")}
                   </NavLink>
                 </li>
               )}
@@ -227,7 +229,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   }
                 >
                   <GraduationCap />
-                  Syllabuses
+                  {t("admin.syllabuses")}
                 </NavLink>
                 </li>
               )}
@@ -248,7 +250,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   }
                 >
                   <Settings />
-                  Settings
+                  {t("admin.settings")}
                 </NavLink>
               </li>
               {/* <!-- Menu Item Settings --> */}
@@ -257,8 +259,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
 
           {/* <!-- Others Group --> */}
           <div>
-            <h3 className="text-muted-foreground mb-4 ml-4 text-sm font-semibold">
-              Extra Components
+            <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
+              {t("admin.extraComponents")}
             </h3>
 
             <ul className="mb-6 flex flex-col gap-1.5">
@@ -277,7 +279,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   }
                 >
                   <Calendar />
-                  Calendar
+                  {t("admin.calendar")}
                 </NavLink>
               </li>
               {/* <!-- Menu Item Calendar --> */}

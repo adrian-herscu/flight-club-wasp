@@ -1,5 +1,6 @@
 import { SyllabusVersionStatus } from "@prisma/client";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -121,6 +122,7 @@ const initialLesson = (position = 1): LessonDraft => ({
 });
 
 const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -335,8 +337,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (!templateVersionId || !newSyllabusName.trim()) {
       toast({
-        title: "Missing input",
-        description: "Choose a FINAL template and provide a new syllabus name.",
+        title: t("syllabus.missingInput"),
+        description: t("syllabus.chooseTemplate_desc"),
         variant: "destructive",
       });
       return;
@@ -355,16 +357,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       setTemplateVersionId("");
       setNewSyllabusName("");
       toast({
-        title: "Draft created",
-        description: "A new school-private draft was created from the selected template.",
+        title: t("syllabus.draftCreated"),
+        description: t("syllabus.draftCreated_desc"),
       });
     } catch (creationError: unknown) {
       toast({
-        title: "Create from template failed",
+        title: t("syllabus.createFromTemplateFailed"),
         description:
           creationError instanceof Error
             ? creationError.message
-            : "Unable to create syllabus draft from template.",
+            : t("syllabus.missingName"),
         variant: "destructive",
       });
     } finally {
@@ -377,8 +379,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (!scratchName.trim()) {
       toast({
-        title: "Missing name",
-        description: "Provide a syllabus name before creating a draft.",
+        title: t("syllabus.missingName"),
+        description: t("syllabus.provideName"),
         variant: "destructive",
       });
       return;
@@ -386,8 +388,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (lessonDrafts.some((lesson) => !lesson.name.trim())) {
       toast({
-        title: "Missing lesson names",
-        description: "Each lesson must have a name.",
+        title: t("syllabus.missingLessonNames"),
+        description: t("syllabus.eachLessonMustHaveName"),
         variant: "destructive",
       });
       return;
@@ -411,16 +413,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       setScratchName("");
       setLessonDrafts([initialLesson()]);
       toast({
-        title: "Draft created",
-        description: "A new draft syllabus was created from scratch.",
+        title: t("syllabus.draftCreated"),
+        description: t("syllabus.draftCreated_scratch_desc"),
       });
     } catch (creationError: unknown) {
       toast({
-        title: "Create from scratch failed",
+        title: t("syllabus.createFromScratchFailed"),
         description:
           creationError instanceof Error
             ? creationError.message
-            : "Unable to create draft syllabus from scratch.",
+            : t("syllabus.unableCreateScratch"),
         variant: "destructive",
       });
     } finally {
@@ -445,8 +447,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const handleSaveRevision = async () => {
     if (!selectedDraftId) {
       toast({
-        title: "No editable draft selected",
-        description: "Select one of your draft versions before saving.",
+        title: t("syllabus.noEditableDraft"),
+        description: t("syllabus.selectDraftBeforeSaving"),
         variant: "destructive",
       });
       return;
@@ -454,8 +456,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (lessonDrafts.some((lesson) => !lesson.name.trim())) {
       toast({
-        title: "Missing lesson names",
-        description: "Each lesson must have a name.",
+        title: t("syllabus.missingLessonNames"),
+        description: t("syllabus.eachLessonMustHaveName"),
         variant: "destructive",
       });
       return;
@@ -479,16 +481,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       goToSection("details");
 
       toast({
-        title: "Draft revision saved",
-        description: `Saved as draft version ${result.version}.`,
+        title: t("syllabus.draftRevisionSaved"),
+        description: `${t("syllabus.draftRevisionSaved_desc")} ${result.version}.`,
       });
     } catch (saveError: unknown) {
       toast({
-        title: "Save failed",
+        title: t("syllabus.saveFailed"),
         description:
           saveError instanceof Error
             ? saveError.message
-            : "Unable to create a new draft revision.",
+            : t("syllabus.unableSaveRevision"),
         variant: "destructive",
       });
     } finally {
@@ -499,8 +501,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const handlePublish = async () => {
     if (!selectedDraftId) {
       toast({
-        title: "No draft selected",
-        description: "Choose one of your editable drafts before publishing.",
+        title: t("syllabus.noDraftSelected"),
+        description: t("syllabus.chooseDraftBeforePublishing"),
         variant: "destructive",
       });
       return;
@@ -514,16 +516,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       await refetchVersion();
       goToSection("details");
       toast({
-        title: "Published",
-        description: `A FINAL version (${result.version}) is now available for course opening.`,
+        title: t("syllabus.published"),
+        description: `${t("syllabus.published_desc")} (${result.version}) ${t("syllabus.isNowAvailableForCourseOpening")}.`,
       });
     } catch (publishError: unknown) {
       toast({
-        title: "Publish failed",
+        title: t("syllabus.publishFailed"),
         description:
           publishError instanceof Error
             ? publishError.message
-            : "Unable to publish this draft.",
+            : t("syllabus.unablePublish"),
         variant: "destructive",
       });
     } finally {
@@ -760,12 +762,22 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       {error && <p className="text-sm text-red-500">{error.message}</p>}
 
       <div className="sticky top-0 z-20 mb-2 backdrop-blur supports-backdrop-filter:bg-background/70">
-        <div className="relative flex overflow-x-auto" style={{
-          maskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
-        }}>
+        <div
+          className="relative flex overflow-x-auto"
+          style={{
+            maskImage:
+              document.documentElement.dir === "rtl"
+                ? "linear-gradient(to left, black 0, black calc(100% - 20px), transparent 100%)"
+                : "linear-gradient(to right, black 0, black calc(100% - 20px), transparent 100%)",
+            WebkitMaskImage:
+              document.documentElement.dir === "rtl"
+                ? "linear-gradient(to left, black 0, black calc(100% - 20px), transparent 100%)"
+                : "linear-gradient(to right, black 0, black calc(100% - 20px), transparent 100%)",
+          }}
+        >
           <Button
             type="button"
-            className="shrink-0 rounded-none border-r"
+            className="shrink-0 rounded-none border-s"
             variant={activeSection === "catalog" ? "secondary" : "outline"}
             onClick={() => goToSection("catalog")}
           >
@@ -773,7 +785,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           </Button>
           <Button
             type="button"
-            className="shrink-0 rounded-none border-r"
+            className="shrink-0 rounded-none border-s"
             variant={activeSection === "create" ? "secondary" : "outline"}
             onClick={() => goToSection("create")}
           >
@@ -781,7 +793,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           </Button>
           <Button
             type="button"
-            className="shrink-0 rounded-none border-r"
+            className="shrink-0 rounded-none border-s"
             variant={activeSection === "details" ? "secondary" : "outline"}
             onClick={() => goToSection("details")}
           >
@@ -804,7 +816,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
         <div className="space-y-6">
           <div className="rounded-md border p-4 text-sm">
             <p className="font-semibold">Visibility and usage policy</p>
-            <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+            <ul className="text-muted-foreground mt-2 list-disc space-y-1 ps-5">
               <li>Course opening can use only FINAL syllabus versions.</li>
               <li>Drafts are private to the manager&apos;s school.</li>
               <li>Only school-local drafts can be edited and published.</li>
@@ -829,7 +841,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                           setSelectedVersionId(item.syllabusVersionId);
                           goToSection("details");
                         }}
-                        className="hover:bg-accent w-full rounded-md border p-3 text-left"
+                        className="hover:bg-accent w-full rounded-md border p-3 text-start"
                       >
                         <p className="text-sm font-medium">{item.syllabusName}</p>
                         <p className="text-muted-foreground text-xs">
@@ -860,7 +872,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                           setSelectedVersionId(item.syllabusVersionId);
                           goToSection("details");
                         }}
-                        className="hover:bg-accent w-full rounded-md border p-3 text-left"
+                        className="hover:bg-accent w-full rounded-md border p-3 text-start"
                       >
                         <p className="text-sm font-medium">{item.syllabusName}</p>
                         <p className="text-muted-foreground text-xs">

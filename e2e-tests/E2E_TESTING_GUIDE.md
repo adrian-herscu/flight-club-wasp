@@ -10,6 +10,12 @@ This project has a comprehensive e2e testing setup that works reliably in all sc
 
 ## Quick Start
 
+## Mandatory change/fix workflow
+
+Follow the canonical testing policy in [../.github/copilot-instructions.md](../.github/copilot-instructions.md#testing-workflow-policy).
+
+In short: keep baseline green, use test-first for fixes, and choose focused vs full-suite runs based on impact.
+
 ### Option 1: Command Line (Recommended)
 
 ```bash

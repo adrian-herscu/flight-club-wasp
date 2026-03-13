@@ -10,17 +10,18 @@ test.describe("general landing page tests", () => {
     await expect(page).toHaveTitle(/SaaS/);
   });
 
-  test("existing seeded user can log in", async ({ page }) => {
+  test("existing seeded user can log in through translated login form", async ({ page }) => {
     await logUserIn({
       page,
       user: {
-        email: "seed+student.02@example.test",
+        email: "seed+school_manager.01@example.test",
         password: "12345678",
       },
       expectedRedirectPath: "/",
     });
 
-    await expect(page.getByText("student_02")).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText("school_manager_01")).toBeVisible();
   });
 
   test.skip("get started link", async ({ page }) => {

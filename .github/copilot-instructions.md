@@ -4,6 +4,20 @@
 - Consider a few viable solutions first, then choose the best one.
 - State concise rationale for key technical decisions.
 
+## Session start
+- At the very start of each new chat session, before anything else, run the VS Code task **"Open new chat git workspace"** (Command Palette → Run Task) so that work happens in a dedicated git worktree named after the chat title.
+- Do not proceed with any implementation or planning until the user confirms that the task has been run and the new workspace is ready.
+
+## Execution gate (plan first)
+- Before implementing any code/config/test change, provide a concise step-by-step plan.
+- Wait for explicit user approval (e.g., "yes" / "approved") before any state-changing action.
+- State-changing actions include edits, migrations, seeding, code generation, and validating test runs that are part of implementation.
+- Read-only investigation (file reads/search, documentation lookup, diagnostics that do not modify project state) may proceed before approval.
+- Treat approval as explicit only when the user clearly confirms (prefer the exact token "approved").
+- If scope changes during execution, stop and re-issue an updated plan for approval before continuing.
+- If instructions conflict, this execution gate takes precedence for implementation actions.
+- Every implementation plan must explicitly include test-first workflow steps from `## Testing workflow policy` (baseline check, failing test for behavior fixes, then fix and re-run to green).
+
 ## Source of truth
 - Treat `main.wasp` (or `main.wasp.ts`) as the source of truth for app structure and Wasp declarations.
 - Treat `schema.prisma` as the source of truth for data models and relationships.
@@ -40,6 +54,11 @@
 ## Troubleshooting defaults
 - If Wasp types/imports are stale after config/schema changes, restart dev server before deep debugging.
 - Check operation declarations, entity lists, path imports, server logs, and browser console.
+
+## Testing workflow policy
+- Baseline MUST be green before changing or adding implementation: run the relevant E2E tests first.
+- If E2E is already green and you are fixing behavior, add/adjust a test first to prove the issue (make it fail), then apply the fix, then re-run until green.
+- Scope by impact: for infrastructure/testing-framework changes, run the full E2E suite; otherwise prefer focused tests for the affected area first, then expand only as needed.
 
 ## Documentation preference
 - Prefer Wasp docs for final behavioral confirmation:

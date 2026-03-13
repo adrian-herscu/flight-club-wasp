@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Navigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../../layout/Breadcrumb";
@@ -37,6 +38,7 @@ type SchoolRequestItem = {
 };
 
 const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
+  const { t } = useTranslation();
   if (user.role !== "SYSTEM_ADMIN") {
     return <Navigate to="/" replace />;
   }
@@ -66,13 +68,13 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
       await approveSchoolManagerRequest({ requestId });
       await refetch();
       toast({
-        title: "Request approved",
-        description: "School manager request approved successfully.",
+        title: t("admin.requestApproved"),
+        description: t("admin.approvalSuccess"),
       });
     } catch (error: unknown) {
       toast({
-        title: "Approval failed",
-        description: error instanceof Error ? error.message : "Unable to approve request.",
+        title: t("admin.approvalFailed"),
+        description: error instanceof Error ? error.message : t("admin.approvalError"),
         variant: "destructive",
       });
     } finally {
@@ -89,13 +91,13 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
       });
       await refetch();
       toast({
-        title: "Request rejected",
-        description: "School manager request rejected.",
+        title: t("admin.requestRejected"),
+        description: t("admin.rejectionSuccess"),
       });
     } catch (error: unknown) {
       toast({
-        title: "Rejection failed",
-        description: error instanceof Error ? error.message : "Unable to reject request.",
+        title: t("admin.rejectionFailed"),
+        description: error instanceof Error ? error.message : t("admin.rejectionError"),
         variant: "destructive",
       });
     } finally {
@@ -105,29 +107,29 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName="School Requests" />
+      <Breadcrumb pageName={t("admin.schoolRequestsPageTitle")} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Pending school manager requests</CardTitle>
+          <CardTitle>{t("admin.pendingSchoolManagerRequests")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="school-request-search">Filter by name or phone</Label>
+            <Label htmlFor="school-request-search">{t("admin.filterByNameOrPhone")}</Label>
             <Input
               id="school-request-search"
-              placeholder="Search by requester name, email, or phone"
+              placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
 
           {isLoading && (
-            <p className="text-sm text-muted-foreground">Loading requests...</p>
+            <p className="text-sm text-muted-foreground">{t("admin.loadingRequests")}</p>
           )}
 
           {!isLoading && filteredRequests.length === 0 && (
-            <p className="text-sm text-muted-foreground">No matching requests.</p>
+            <p className="text-sm text-muted-foreground">{t("admin.noMatchingRequests")}</p>
           )}
 
           <div className="space-y-3">
@@ -136,7 +138,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                 <CardContent className="space-y-3 pt-6">
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
-                      <p className="text-xs uppercase text-muted-foreground">Requester</p>
+                      <p className="text-xs uppercase text-muted-foreground">{t("admin.requester")}</p>
                       <p className="text-sm font-medium">
                         {request.requester.fullName ?? request.requester.email ?? "Unknown"}
                       </p>
@@ -144,7 +146,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                       <p className="text-sm text-muted-foreground">{request.requester.phone ?? "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase text-muted-foreground">Submitted</p>
+                      <p className="text-xs uppercase text-muted-foreground">{t("admin.submitted")}</p>
                       <p className="text-sm">{new Date(request.createdAt).toLocaleString()}</p>
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "wasp/client/auth";
 import {
   getPaginatedUsers,
@@ -52,6 +53,7 @@ function RoleSelect({ id, role }: Pick<User, "id" | "role">) {
 }
 
 const UsersTable = () => {
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [emailFilter, setEmailFilter] = useState<string | undefined>(undefined);
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(
@@ -111,12 +113,12 @@ const UsersTable = () => {
                 htmlFor="email-filter"
                 className="text-muted-foreground text-sm"
               >
-                email:
+                {t("admin.emailLabel")}
               </Label>
               <Input
                 type="text"
                 id="email-filter"
-                placeholder="dude@example.com"
+                placeholder={t("admin.emailPlaceholder")}
                 onChange={(e) => {
                   const value = e.currentTarget.value;
                   setEmailFilter(value === "" ? undefined : value);
@@ -126,25 +128,25 @@ const UsersTable = () => {
                 htmlFor="status-filter"
                 className="text-muted-foreground ml-2 text-sm"
               >
-                status:
+                {t("admin.statusLabel")}
               </Label>
               <div className="relative">
                 <Select>
-                  <SelectTrigger className="w-full min-w-[200px]">
-                    <SelectValue placeholder="Select Status Filter" />
+                  <SelectTrigger className="w-full min-w-50">
+                    <SelectValue placeholder={t("admin.statusFilterPlaceholder")} />
                   </SelectTrigger>
-                  <SelectContent className="w-[300px]">
+                  <SelectContent className="w-75">
                     <div className="p-2">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-sm font-medium">
-                          Subscription Status
+                          {t("admin.subscriptionStatus")}
                         </span>
                         {subscriptionStatusFilter.length > 0 && (
                           <button
                             onClick={clearAllStatusFilters}
                             className="text-muted-foreground hover:text-foreground text-xs"
                           >
-                            Clear all
+                            {t("admin.clearAllFilters")}
                           </button>
                         )}
                       </div>
@@ -159,7 +161,7 @@ const UsersTable = () => {
                             htmlFor="all-statuses"
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                           >
-                            All Statuses
+                            {t("admin.allStatuses")}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -172,7 +174,7 @@ const UsersTable = () => {
                             htmlFor="has-not-subscribed"
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                           >
-                            Has Not Subscribed
+                            {t("admin.hasNotSubscribed")}
                           </Label>
                         </div>
                         {SUBSCRIPTION_STATUSES.map((status) => (
@@ -191,7 +193,7 @@ const UsersTable = () => {
                               htmlFor={status}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {status}
+                              {t(`admin.${status.toLowerCase() === "past_due" ? "pastDue" : status.toLowerCase()}`)}
                             </Label>
                           </div>
                         ))}
@@ -205,7 +207,7 @@ const UsersTable = () => {
                   htmlFor="admin-filter"
                   className="text-muted-foreground ml-2 text-sm"
                 >
-                  role:
+                  {t("admin.roleLabel")}
                 </Label>
                 <Select
                   onValueChange={(value) => {
@@ -217,10 +219,10 @@ const UsersTable = () => {
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="all" />
+                    <SelectValue placeholder={t("common.more")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">all</SelectItem>
+                    <SelectItem value="all">{t("common.more")}</SelectItem>
                     {USER_ROLES.map((r) => (
                       <SelectItem key={r} value={r}>
                         {r}
@@ -232,7 +234,7 @@ const UsersTable = () => {
             </div>
             {data?.totalPages && (
               <div className="flex max-w-60 flex-row items-center">
-                <span className="text-md text-foreground mr-2">page</span>
+                <span className="text-md text-foreground mr-2">{t("admin.page")}</span>
                 <Input
                   type="number"
                   min={1}
@@ -281,16 +283,16 @@ const UsersTable = () => {
 
         <div className="border-border py-4.5 grid grid-cols-9 border-t-4 px-4 md:px-6">
           <div className="col-span-3 flex items-center">
-            <p className="font-medium">Email / Full name</p>
+            <p className="font-medium">{t("admin.emailFullName")}</p>
           </div>
           <div className="col-span-2 flex items-center">
-            <p className="font-medium">Subscription Status</p>
+            <p className="font-medium">{t("admin.subscriptionStatus")}</p>
           </div>
           <div className="col-span-2 flex items-center">
-            <p className="font-medium">Stripe ID</p>
+            <p className="font-medium">{t("admin.stripeID")}</p>
           </div>
           <div className="col-span-1 flex items-center">
-            <p className="font-medium">Role</p>
+            <p className="font-medium">{t("admin.role")}</p>
           </div>
           <div className="col-span-1 flex items-center">
             <p className="font-medium"></p>

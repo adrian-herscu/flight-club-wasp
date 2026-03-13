@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Open new chat git workspace",
+      "type": "shell",
+      "command": "bash \"${workspaceFolder}/scripts/open-chat-workspace.sh\"",
+      "problemMatcher": []
+    }
+  ]
+}

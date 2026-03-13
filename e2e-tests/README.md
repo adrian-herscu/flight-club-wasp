@@ -1,5 +1,9 @@
 # Open SaaS e2e Tests with Playwright
 
+## Change/Fix policy
+
+See canonical policy: [../.github/copilot-instructions.md](../.github/copilot-instructions.md#testing-workflow-policy).
+
 These are e2e tests that are written using [Playwright](https://playwright.dev/) for the Open SaaS project.
 
 They not only serve as tests for development of the Open SaaS project, but also as reference examples for how you can implement tests for the app you build with Open SaaS as a template, if you choose to do so.

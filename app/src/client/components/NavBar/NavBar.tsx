@@ -18,6 +18,7 @@ import { UserMenuItems } from "../../../user/UserMenuItems";
 import logo from "../../static/logo.webp";
 import { cn } from "../../utils";
 import DarkModeSwitcher from "../DarkModeSwitcher";
+import { LanguageSelector } from "../LanguageSelector";
 // import { Announcement } from "./Announcement";
 
 export interface NavigationItem {
@@ -116,6 +117,7 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
   return (
     <div className="hidden items-center justify-end gap-3 lg:flex lg:flex-1">
       <ul className="flex items-center justify-center gap-2 sm:gap-4">
+        <LanguageSelector />
         <DarkModeSwitcher />
       </ul>
       {isUserLoading ? null : !user ? (
@@ -158,6 +160,7 @@ function NavBarMobileMenu({
 }) {
   const { data: user, isLoading: isUserLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isRTL = typeof document !== "undefined" && document.documentElement.dir === "rtl";
 
   return (
     <div className="flex lg:hidden">
@@ -179,7 +182,7 @@ function NavBarMobileMenu({
             />
           </button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+        <SheetContent side={isRTL ? "left" : "right"} className="w-75 sm:w-100">
           <SheetHeader>
             <SheetTitle className="flex items-center">
               <WaspRouterLink to={routes.LandingPageRoute.to}>
@@ -212,7 +215,10 @@ function NavBarMobileMenu({
                 )}
               </div>
               <div className="py-6">
-                <DarkModeSwitcher />
+                <div className="flex flex-col gap-4">
+                  <LanguageSelector />
+                  <DarkModeSwitcher />
+                </div>
               </div>
             </div>
           </div>

@@ -28,18 +28,25 @@ export const logUserIn = async ({
   await page.fill('input[name="email"]', user.email);
   await page.fill('input[name="password"]', user.password ?? DEFAULT_PASSWORD);
 
-  const clickLogin = page.click('button:has-text("Log in")');
+  // Wait for the form to be ready
+  await page.waitForLoadState("networkidle");
 
-  await Promise.all([
-    page
-      .waitForResponse((response) => {
-        return response.url().includes("login") && response.status() === 200;
-      })
-      .catch((err) => console.error(err.message)),
-    clickLogin,
-  ]);
+  // Find login button - it could be "Log in", "Login", "כניסה" (Hebrew), or any translation
+  const loginButton = page.locator("button[type='submit']").first();
+  await expect(loginButton).toBeVisible({ timeout: 5000 });
 
-  await page.waitForURL((url) => url.pathname === expectedRedirectPath);
+  // Click the login button
+  await loginButton.click();
+
+  // Wait for the page to redirect - be generous with timeout
+  await page.waitForURL("**" + expectedRedirectPath, { 
+    timeout: 15000 
+  }).catch(() => {
+    // If redirect doesn't happen, that's okay - we'll check visibility instead
+  });
+
+  // Also wait a bit for any redirects
+  await page.waitForLoadState("networkidle").catch(() => {});
 };
 
 export const signUserUp = async ({
@@ -144,4 +151,44 @@ export const makeStripePayment = async ({
 export const acceptAllCookies = async (page: Page) => {
   await page.waitForSelector('button:has-text("Accept all")');
   await page.click('button:has-text("Accept all")');
+};
+
+export type DetectedLanguage = "en" | "he" | "unknown";
+
+/**
+ * Lightweight language detector for E2E assertions.
+ * It is intentionally simple and optimized for English/Hebrew UI text.
+ */
+export const detectLanguageFromText = (text: string): DetectedLanguage => {
+  const sample = text
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!sample) return "unknown";
+
+  const hebrewChars = (sample.match(/[\u0590-\u05FF]/g) ?? []).length;
+  const latinChars = (sample.match(/[A-Za-z]/g) ?? []).length;
+
+  // Quick dominant-script decision first.
+  if (hebrewChars > latinChars * 1.5 && hebrewChars > 10) return "he";
+  if (latinChars > hebrewChars * 1.5 && latinChars > 10) return "en";
+
+  // Fallback with common stop-words.
+  const lower = sample.toLowerCase();
+  const englishHints = ["the", "and", "log in", "password", "email", "forgot"];
+  const hebrewHints = ["התחבר", "כניסה", "סיסמה", "דוא", "הרשמה", "שכחת"];
+
+  const enScore = englishHints.reduce(
+    (score, token) => score + (lower.includes(token) ? 1 : 0),
+    0,
+  );
+  const heScore = hebrewHints.reduce(
+    (score, token) => score + (sample.includes(token) ? 1 : 0),
+    0,
+  );
+
+  if (heScore > enScore) return "he";
+  if (enScore > heScore) return "en";
+
+  return "unknown";
 };

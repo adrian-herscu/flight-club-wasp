@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../admin/layout/Breadcrumb";
@@ -31,6 +32,7 @@ const labelClassName = "text-muted-foreground text-xs uppercase tracking-wide";
 const valueClassName = "text-foreground text-sm font-medium";
 
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
   const school = data as ManagedSchool | undefined;
 
@@ -68,16 +70,16 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
       });
       await refetch();
       toast({
-        title: "School profile updated",
-        description: "School details were saved successfully.",
+        title: t("school.updatedSuccess"),
+        description: t("school.updateSuccessMessage"),
       });
     } catch (saveError: unknown) {
       toast({
-        title: "Update failed",
+        title: t("school.updateFailedMessage"),
         description:
           saveError instanceof Error
             ? saveError.message
-            : "Unable to update school details.",
+            : t("school.updateErrorMessage"),
         variant: "destructive",
       });
     } finally {
@@ -87,12 +89,12 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName="My School" />
+      <Breadcrumb pageName={t("school.mySchool")} />
 
       {isLoading && (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground text-sm">Loading school details...</p>
+            <p className="text-muted-foreground text-sm">{t("school.loadingSchoolDetails")}</p>
           </CardContent>
         </Card>
       )}
@@ -109,11 +111,11 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
         <div className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>School Profile</CardTitle>
+              <CardTitle>{t("school.schoolProfile")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5">
               <div className="rounded-md border p-4">
-                <p className={labelClassName}>Current profile</p>
+                <p className={labelClassName}>{t("school.currentProfile")}</p>
                 <p className={valueClassName}>{school.name}</p>
                 <p className={valueClassName}>{school.addressLine1}</p>
                 {school.addressLine2 ? (
@@ -125,7 +127,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
               <form onSubmit={handleSave} className="grid gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="school-name">Name</Label>
+                  <Label htmlFor="school-name">{t("school.name")}</Label>
                   <Input
                     id="school-name"
                     value={name}
@@ -134,7 +136,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="school-address-line1">Address line 1</Label>
+                  <Label htmlFor="school-address-line1">{t("school.addressLine1")}</Label>
                   <Input
                     id="school-address-line1"
                     value={addressLine1}
@@ -143,7 +145,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="school-address-line2">Address line 2 (optional)</Label>
+                  <Label htmlFor="school-address-line2">{t("school.addressLine2")}</Label>
                   <Input
                     id="school-address-line2"
                     value={addressLine2}
@@ -153,7 +155,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="school-city">City</Label>
+                    <Label htmlFor="school-city">{t("school.cityLabel")}</Label>
                     <Input
                       id="school-city"
                       value={city}
@@ -161,7 +163,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="school-state">State / Province (optional)</Label>
+                    <Label htmlFor="school-state">{t("school.stateProvinceLabel")}</Label>
                     <Input
                       id="school-state"
                       value={stateProvince}
@@ -171,7 +173,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="school-postal-code">Postal code</Label>
+                  <Label htmlFor="school-postal-code">{t("school.postalCodeLabel")}</Label>
                   <Input
                     id="school-postal-code"
                     value={postalCode}
@@ -181,18 +183,18 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <p className={labelClassName}>Country</p>
+                    <p className={labelClassName}>{t("school.countryLabel")}</p>
                     <p className={valueClassName}>{school.country}</p>
                   </div>
                   <div>
-                    <p className={labelClassName}>School Currency</p>
+                    <p className={labelClassName}>{t("school.schoolCurrency")}</p>
                     <p className={valueClassName}>{school.currency}</p>
                   </div>
                 </div>
 
                 <div className="flex justify-end">
                   <Button type="submit" disabled={isSaving}>
-                    {isSaving ? "Saving..." : "Save details"}
+                    {isSaving ? t("school.savingButton") : t("school.saveDetailsButton")}
                   </Button>
                 </div>
               </form>
@@ -201,26 +203,26 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Manager School Account</CardTitle>
+              <CardTitle>{t("school.managerSchoolAccount")}</CardTitle>
             </CardHeader>
             <CardContent>
               {school.accounts.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  No account is currently linked to this school manager.
+                  {t("school.noAccountLinked")}
                 </p>
               ) : (
                 <div className="space-y-4">
                   {school.accounts.map((account) => (
                     <div key={account.id} className="rounded-md border p-4">
-                      <p className={labelClassName}>Account ID</p>
+                      <p className={labelClassName}>{t("school.accountID")}</p>
                       <p className={valueClassName}>{account.id}</p>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <div>
-                          <p className={labelClassName}>Currency</p>
+                          <p className={labelClassName}>{t("school.currencyLabel")}</p>
                           <p className={valueClassName}>{account.currency}</p>
                         </div>
                         <div>
-                          <p className={labelClassName}>Balance (minor units)</p>
+                          <p className={labelClassName}>{t("school.balance")}</p>
                           <p className={valueClassName}>{account.balanceMinor}</p>
                         </div>
                       </div>

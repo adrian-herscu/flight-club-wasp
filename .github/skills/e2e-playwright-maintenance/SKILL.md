@@ -10,6 +10,7 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
 - VS Code recommendations/settings under `e2e-tests/.vscode`
 
 ## Run procedure (desktop)
+0. Provide a concise implementation plan and wait for explicit user approval before making any test/code/config changes.
 1. From `e2e-tests`, run Playwright (`npm run e2e:playwright`) or run from VS Code Testing panel.
 2. Let Playwright `webServer` manage startup:
    - If app is already running, `reuseExistingServer: true` reuses it.
@@ -101,6 +102,20 @@ test("existing seeded user can log in", async ({ page }) => {
 - Assertions: validate login response status `200`, URL leaves `/login`, plus one lightweight UI confirmation.
 - Test placement: append to existing suites if testing baseline auth (e.g., `landingPageTests.spec.ts`); create new spec for auth-focused matrix (signup/login/logout/role guards).
 
+### Selector strategy for translated auth UI
+- For auth forms in this repo, do not key critical actions off literal English button text like `Log in`.
+- Prefer stable selectors such as `button[type='submit']`, form-scoped role queries, or other language-agnostic locators.
+- Use text assertions to verify translation behavior, not to drive the login flow itself.
+- If a login helper starts failing after i18n changes, replace text-coupled selectors before investigating auth logic.
+
+### Isolate locale-mutating Playwright tests
+- If a test changes app language, RTL mode, or `localStorage` locale keys, avoid sharing that `page` across unrelated tests.
+- Prefer one of:
+  1. Playwright's per-test `page` fixture, or
+  2. a dedicated `browser.newContext()` / `newPage()` inside the locale-changing test.
+- Use isolated contexts especially for translation toggle tests, since locale state can leak between tests and make assertions order-dependent.
+- When a translation test passes alone but fails in the suite, check for shared page/context state before changing product code.
+
 ## Generic test-engineering patterns
 
 ### 1) Policy matrix coverage
@@ -125,6 +140,7 @@ test("existing seeded user can log in", async ({ page }) => {
 Use all three for critical flows to reduce false positives.
 
 ## Guardrails
+- Plan-first gate: do not edit files or run validation-changing actions before the user approves the plan.
 - Do not edit generated Wasp output (`app/.wasp/out/**`).
 - Prefer fixing source config/script in `e2e-tests`.
 - Keep desktop-first reliability; CI-specific behavior stays isolated behind `isCI`.

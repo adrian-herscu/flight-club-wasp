@@ -6,7 +6,7 @@ import {
   makeStripePayment,
   signUserUp,
   type User,
-} from "./utils";
+} from "../utils";
 
 let page: Page;
 let testUser: User;

@@ -10,6 +10,7 @@ import {
   marketingNavigationItems,
 } from "./components/NavBar/constants";
 import CookieConsentBanner from "./components/cookie-consent/Banner";
+import "./i18n";
 
 /**
  * use this component to wrap all child components
@@ -18,6 +19,10 @@ import CookieConsentBanner from "./components/cookie-consent/Banner";
 export default function App() {
   const location = useLocation();
   const { data: user, isLoading: isUserLoading } = useAuth();
+
+  // Determine RTL mode from document
+  const isRTL = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+  const toasterPosition = (isRTL ? "bottom-left" : "bottom-right") as "bottom-left" | "bottom-right";
 
   const shouldRedirectToRegistration =
     !isUserLoading &&
@@ -74,7 +79,7 @@ export default function App() {
           </>
         )}
       </div>
-      <Toaster position="bottom-right" />
+      <Toaster position={toasterPosition} />
       <CookieConsentBanner />
     </>
   );

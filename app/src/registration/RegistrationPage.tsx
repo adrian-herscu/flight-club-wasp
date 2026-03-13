@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Navigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import { Button } from "../client/components/ui/button";
@@ -32,6 +33,8 @@ type SchoolOption = {
 };
 
 export default function RegistrationPage({ user }: { user: AuthUser }) {
+  const { t } = useTranslation();
+  
   if (user.role && user.role !== "USER") {
     return <Navigate to="/" replace />;
   }
@@ -69,8 +72,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const handleSubmit = async () => {
     if (!fullName.trim() || !phone.trim()) {
       toast({
-        title: "Missing details",
-        description: "Full name and phone number are required before submitting.",
+        title: t("registration.missingDetails"),
+        description: t("registration.missingDetailsError"),
         variant: "destructive",
       });
       return;
@@ -88,8 +91,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
       if (missingFields.length > 0) {
         toast({
-          title: "Missing school details",
-          description: `Please complete: ${missingFields.join(", ")}.`,
+          title: t("registration.missingSchoolDetails"),
+          description: t("registration.missingFields", { fields: missingFields.join(", ") }),
           variant: "destructive",
         });
         return;
@@ -97,8 +100,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
       if (requestedCountry.trim().length !== 2) {
         toast({
-          title: "Invalid country code",
-          description: "Country must be a 2-letter ISO code (for example: US).",
+          title: t("registration.invalidCountryCode"),
+          description: t("registration.invalidCountryCodeError"),
           variant: "destructive",
         });
         return;
@@ -106,8 +109,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
       if (requestedCurrency.trim().length !== 3) {
         toast({
-          title: "Invalid currency code",
-          description: "Currency must be a 3-letter ISO code (for example: USD).",
+          title: t("registration.invalidCurrencyCode"),
+          description: t("registration.invalidCurrencyCodeError"),
           variant: "destructive",
         });
         return;
@@ -116,8 +119,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
     if (!isManagerRequest && !targetSchoolId) {
       toast({
-        title: "School required",
-        description: "Select a school before submitting your request.",
+        title: t("registration.schoolRequired"),
+        description: t("registration.schoolRequiredError"),
         variant: "destructive",
       });
       return;
@@ -141,13 +144,13 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
       });
       await refetch();
       toast({
-        title: "Request submitted",
-        description: "Your request is now in process.",
+        title: t("registration.requestSubmitted"),
+        description: t("registration.submissionSuccess"),
       });
     } catch (error: unknown) {
       toast({
-        title: "Submission failed",
-        description: error instanceof Error ? error.message : "Unable to submit request.",
+        title: t("registration.submissionFailed"),
+        description: error instanceof Error ? error.message : t("registration.submissionError"),
         variant: "destructive",
       });
     } finally {
@@ -159,7 +162,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     return (
       <div className="mx-auto mt-10 max-w-3xl px-6">
         <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">Loading...</CardContent>
+          <CardContent className="pt-6 text-sm text-muted-foreground">{t("common.loading")}</CardContent>
         </Card>
       </div>
     );
@@ -170,33 +173,33 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
       <div className="mx-auto mt-10 max-w-3xl px-6">
         <Card>
           <CardHeader>
-            <CardTitle>Registration request status</CardTitle>
+            <CardTitle>{t("registration.registration")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>
-              Request type: <strong>{existingRequest.requestedRole}</strong>
+              {t("registration.requestTypeLabel")} <strong>{existingRequest.requestedRole}</strong>
             </p>
             <p>
-              Status: <strong>{existingRequest.status}</strong>
+              {t("registration.statusLabel")} <strong>{existingRequest.status}</strong>
             </p>
             {existingRequest.requestedRole === "SCHOOL_MANAGER" && (
               <p>
-                School: <strong>{existingRequest.requestedSchoolName ?? "-"}</strong>
+                {t("registration.schoolLabel")} <strong>{existingRequest.requestedSchoolName ?? "-"}</strong>
               </p>
             )}
             {existingRequest.requestedRole !== "SCHOOL_MANAGER" && (
               <p>
-                School: <strong>{selectedSchool?.name ?? existingRequest.targetSchool?.name ?? "-"}</strong>
+                {t("registration.schoolLabel")} <strong>{selectedSchool?.name ?? existingRequest.targetSchool?.name ?? "-"}</strong>
               </p>
             )}
             {existingRequest.rejectionReason && (
               <div>
-                <p className="font-medium">Reason:</p>
+                <p className="font-medium">{t("registration.reasonLabel")}</p>
                 <p className="text-muted-foreground">{existingRequest.rejectionReason}</p>
               </div>
             )}
             <p className="text-muted-foreground">
-              Refresh the page to see approval updates.
+              {t("registration.refreshMessage")}
             </p>
           </CardContent>
         </Card>
@@ -208,33 +211,33 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     <div className="mx-auto mt-10 max-w-3xl px-6 pb-10">
       <Card>
         <CardHeader>
-          <CardTitle>Complete your registration</CardTitle>
+          <CardTitle>{t("registration.registration")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full name</Label>
+              <Label htmlFor="fullName">{t("registration.fullName")}</Label>
               <Input
                 id="fullName"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="Enter your full name"
+                placeholder={t("registration.fullName")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone number</Label>
+              <Label htmlFor="phone">{t("registration.phoneNumber")}</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                placeholder="Enter your phone number"
+                placeholder={t("registration.phoneNumber")}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Register as</Label>
+            <Label>{t("registration.selectRole")}</Label>
             <Select
               value={requestedRole}
               onValueChange={(value) => setRequestedRole(value as RegistrationRole)}
@@ -243,9 +246,9 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="SCHOOL_MANAGER">School manager</SelectItem>
-                <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
-                <SelectItem value="STUDENT">Student</SelectItem>
+                <SelectItem value="SCHOOL_MANAGER">{t("registration.schoolManager")}</SelectItem>
+                <SelectItem value="INSTRUCTOR">{t("registration.instructor")}</SelectItem>
+                <SelectItem value="STUDENT">{t("registration.student")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -253,7 +256,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
           {isManagerRequest ? (
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="requestedSchoolName">School name</Label>
+                <Label htmlFor="requestedSchoolName">{t("registration.schoolName")}</Label>
                 <Input
                   id="requestedSchoolName"
                   value={requestedSchoolName}
@@ -261,7 +264,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="requestedAddressLine1">Address line 1</Label>
+                <Label htmlFor="requestedAddressLine1">{t("registration.addressLine1")}</Label>
                 <Input
                   id="requestedAddressLine1"
                   value={requestedAddressLine1}
@@ -269,7 +272,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="requestedAddressLine2">Address line 2 (optional)</Label>
+                <Label htmlFor="requestedAddressLine2">{t("registration.addressLine2")}</Label>
                 <Input
                   id="requestedAddressLine2"
                   value={requestedAddressLine2}
@@ -278,7 +281,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="requestedCity">City</Label>
+                  <Label htmlFor="requestedCity">{t("registration.city")}</Label>
                   <Input
                     id="requestedCity"
                     value={requestedCity}
@@ -286,7 +289,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="requestedStateProvince">State / Province (optional)</Label>
+                  <Label htmlFor="requestedStateProvince">{t("registration.stateProvince")}</Label>
                   <Input
                     id="requestedStateProvince"
                     value={requestedStateProvince}
@@ -296,7 +299,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="requestedPostalCode">Postal code</Label>
+                  <Label htmlFor="requestedPostalCode">{t("registration.postalCode")}</Label>
                   <Input
                     id="requestedPostalCode"
                     value={requestedPostalCode}
@@ -304,7 +307,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="requestedCountry">Country (ISO code)</Label>
+                  <Label htmlFor="requestedCountry">{t("registration.countryCode")}</Label>
                   <Input
                     id="requestedCountry"
                     maxLength={2}
@@ -313,7 +316,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="requestedCurrency">Currency (ISO code)</Label>
+                  <Label htmlFor="requestedCurrency">{t("registration.currencyCode")}</Label>
                   <Input
                     id="requestedCurrency"
                     maxLength={3}
@@ -325,10 +328,10 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
             </div>
           ) : (
             <div className="space-y-2">
-              <Label>Select school</Label>
+              <Label>{t("registration.selectSchool")}</Label>
               <Select value={targetSchoolId} onValueChange={setTargetSchoolId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a school" />
+                  <SelectValue placeholder={t("registration.chooseSchool")} />
                 </SelectTrigger>
                 <SelectContent>
                   {schoolOptions.map((school) => (
@@ -339,18 +342,18 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 </SelectContent>
               </Select>
               {schoolOptions.length === 0 && (
-                <p className="text-muted-foreground text-sm">No schools are available yet.</p>
+                <p className="text-muted-foreground text-sm">{t("registration.noSchoolsAvailable")}</p>
               )}
             </div>
           )}
 
           <div className="rounded-md border p-3 text-sm text-muted-foreground">
-            Your role stays <strong>USER</strong> until this request is approved.
+            {t("registration.userRoleNotice")}
           </div>
 
           <div className="flex justify-end">
             <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit request"}
+              {isSubmitting ? t("registration.submitting") : t("registration.submit")}
             </Button>
           </div>
         </CardContent>
