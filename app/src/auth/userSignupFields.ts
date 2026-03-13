@@ -62,8 +62,53 @@ const googleDataSchema = z.object({
   profile: z.object({
     email: z.string(),
     email_verified: z.boolean(),
+    displayName: z.string().optional(),
+    name: z
+      .union([
+        z.string(),
+        z.object({
+          givenName: z.string().optional(),
+          familyName: z.string().optional(),
+          given_name: z.string().optional(),
+          family_name: z.string().optional(),
+        }),
+      ])
+      .optional(),
+    given_name: z.string().optional(),
+    family_name: z.string().optional(),
   }),
 });
+
+function getGoogleFullName(googleData: z.infer<typeof googleDataSchema>) {
+  const displayName = googleData.profile.displayName?.trim();
+  if (displayName) {
+    return displayName;
+  }
+
+  if (typeof googleData.profile.name === "string" && googleData.profile.name.trim()) {
+    return googleData.profile.name.trim();
+  }
+
+  const profileName =
+    typeof googleData.profile.name === "object" ? googleData.profile.name : undefined;
+
+  const givenName =
+    profileName?.givenName?.trim() ??
+    profileName?.given_name?.trim() ??
+    googleData.profile.given_name?.trim() ??
+    "";
+  const familyName =
+    profileName?.familyName?.trim() ??
+    profileName?.family_name?.trim() ??
+    googleData.profile.family_name?.trim() ??
+    "";
+  const combinedName = `${givenName} ${familyName}`.trim();
+  if (combinedName) {
+    return combinedName;
+  }
+
+  return googleData.profile.email.split("@")[0] ?? "User";
+}
 
 export const getGoogleUserFields = defineUserSignupFields({
   email: (data) => {
@@ -72,7 +117,7 @@ export const getGoogleUserFields = defineUserSignupFields({
   },
   fullName: (data) => {
     const googleData = googleDataSchema.parse(data);
-    return googleData.profile.email;
+    return getGoogleFullName(googleData);
   },
 });
 

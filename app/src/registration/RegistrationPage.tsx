@@ -76,6 +76,44 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
       return;
     }
 
+    if (isManagerRequest) {
+      const missingFields: string[] = [];
+
+      if (!requestedSchoolName.trim()) missingFields.push("School name");
+      if (!requestedAddressLine1.trim()) missingFields.push("Address line 1");
+      if (!requestedCity.trim()) missingFields.push("City");
+      if (!requestedPostalCode.trim()) missingFields.push("Postal code");
+      if (!requestedCountry.trim()) missingFields.push("Country (ISO code)");
+      if (!requestedCurrency.trim()) missingFields.push("Currency (ISO code)");
+
+      if (missingFields.length > 0) {
+        toast({
+          title: "Missing school details",
+          description: `Please complete: ${missingFields.join(", ")}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (requestedCountry.trim().length !== 2) {
+        toast({
+          title: "Invalid country code",
+          description: "Country must be a 2-letter ISO code (for example: US).",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (requestedCurrency.trim().length !== 3) {
+        toast({
+          title: "Invalid currency code",
+          description: "Currency must be a 3-letter ISO code (for example: USD).",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (!isManagerRequest && !targetSchoolId) {
       toast({
         title: "School required",
@@ -92,14 +130,14 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
         phone,
         requestedRole,
         targetSchoolId: isManagerRequest ? undefined : targetSchoolId,
-        requestedSchoolName: isManagerRequest ? requestedSchoolName : undefined,
-        requestedAddressLine1: isManagerRequest ? requestedAddressLine1 : undefined,
-        requestedAddressLine2: isManagerRequest ? requestedAddressLine2 : undefined,
-        requestedCity: isManagerRequest ? requestedCity : undefined,
-        requestedStateProvince: isManagerRequest ? requestedStateProvince : undefined,
-        requestedPostalCode: isManagerRequest ? requestedPostalCode : undefined,
-        requestedCountry: isManagerRequest ? requestedCountry : undefined,
-        requestedCurrency: isManagerRequest ? requestedCurrency : undefined,
+        requestedSchoolName: isManagerRequest ? requestedSchoolName.trim() : undefined,
+        requestedAddressLine1: isManagerRequest ? requestedAddressLine1.trim() : undefined,
+        requestedAddressLine2: isManagerRequest ? requestedAddressLine2.trim() || undefined : undefined,
+        requestedCity: isManagerRequest ? requestedCity.trim() : undefined,
+        requestedStateProvince: isManagerRequest ? requestedStateProvince.trim() || undefined : undefined,
+        requestedPostalCode: isManagerRequest ? requestedPostalCode.trim() : undefined,
+        requestedCountry: isManagerRequest ? requestedCountry.trim().toUpperCase() : undefined,
+        requestedCurrency: isManagerRequest ? requestedCurrency.trim().toUpperCase() : undefined,
       });
       await refetch();
       toast({
