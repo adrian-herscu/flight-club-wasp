@@ -20,15 +20,32 @@ Next, Install the test dependencies:
 cd e2e-tests && npm install
 ```
 
-Start your Wasp DB and leave it running:
+Start the app server in another terminal:
 
 ```shell
-cd ../app && wasp db start
+cd app && wasp start
 ```
 
-### Skipping Email Verification in e2e Tests
+Then run the tests:
 
-Open another terminal and start the Wasp app with the environment variable set to skip email verification in development mode:
+```shell
+cd e2e-tests && npm run e2e:playwright
+```
+
+The test command fails fast if the app is not reachable at `http://127.0.0.1:3000`.
+
+### Optional UI Mode
+
+Run Playwright in interactive UI mode:
+
+```shell
+cd e2e-tests && npm run local:e2e:start
+```
+
+### About `SKIP_EMAIL_VERIFICATION_IN_DEV`
+
+`local:e2e:start` still sets `SKIP_EMAIL_VERIFICATION_IN_DEV=true` for compatibility with signup-style auth tests.
+Current active tests do not require signup, so this is mainly a guard for future/optional auth scenarios.
 
 > [!IMPORTANT]  
 > When using the email auth method, a verification link is typically sent when a user registers. If you're using the default Dummy provider, this link is logged in the console.
@@ -48,14 +65,6 @@ cd app && SKIP_EMAIL_VERIFICATION_IN_DEV=true wasp start
   env:
     SKIP_EMAIL_VERIFICATION_IN_DEV: "true"
   ```
-
-In another terminal, run the local e2e tests:
-
-```shell
-cd e2e-tests && npm run local:e2e:start
-```
-
-This will start the tests in Playwright's UI mode, which will allow you to see and run the tests in an interactive browser environment. You should also see the Stripe events being triggered in the terminal where the tests were started.
 
 To exit the local e2e tests, go back to the terminal were you started your tests and press `ctrl + c`.
 

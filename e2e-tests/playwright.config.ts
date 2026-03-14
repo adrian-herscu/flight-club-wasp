@@ -1,38 +1,18 @@
-import { defineConfig, devices } from "@playwright/test";
-
-const isCI = !!process.env.CI;
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: "./tests",
-  outputDir: "./test-results",
+  testDir: './tests',
+  outputDir: './test-results',
   fullyParallel: true,
-  forbidOnly: isCI,
-  retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
-
+  
   use: {
-    baseURL: "http://localhost:3000",
-    trace: "on-first-retry",
+    /* Wasp frontend defaults to port 3000 */
+    baseURL: 'http://127.0.0.1:3000',
+    trace: 'on-first-retry',
   },
 
+  /* Configure projects for major browsers */
   projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-
-  webServer: isCI
-    ? {
-        command: "npx run-wasp-app dev --path-to-app=../app --wasp-cli-cmd=wasp",
-        url: "http://localhost:3000",
-        reuseExistingServer: false,
-        timeout: 10 * 60 * 1000,
-      }
-    : {
-        command: "bash ./start-local-e2e.sh",
-        url: "http://localhost:3000",
-        reuseExistingServer: true,
-        timeout: 10 * 60 * 1000,
-      },
 });

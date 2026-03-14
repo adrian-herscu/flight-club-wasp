@@ -4,7 +4,6 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
 
 ## Current project baseline
 - Playwright config: `e2e-tests/playwright.config.ts`
-- Local startup script: `e2e-tests/start-local-e2e.sh`
 - Local app URL expected by tests: `http://localhost:3000`
 - Backend URL (Wasp server): `http://localhost:3001`
 - VS Code recommendations/settings under `e2e-tests/.vscode`
@@ -12,25 +11,20 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
 ## Run procedure (desktop)
 0. Provide a concise implementation plan and wait for explicit user approval before making any test/code/config changes.
 1. From `e2e-tests`, run Playwright (`npm run e2e:playwright`) or run from VS Code Testing panel.
-2. Let Playwright `webServer` manage startup:
-   - If app is already running, `reuseExistingServer: true` reuses it.
-   - If app is not running, Playwright runs `bash ./start-local-e2e.sh`.
-3. Wait until `http://localhost:3000` returns HTTP 200 before asserting test failures.
+2. Ensure app is already running (`cd app && wasp start`).
+3. `e2e:playwright` uses `wait-on` and fails fast if `http://127.0.0.1:3000` is unavailable.
 
 ## Startup behavior to preserve
-- Keep `baseURL` and `webServer.url` aligned to `http://localhost:3000`.
-- Keep local `webServer.reuseExistingServer: true`.
-- Keep CI and local startup separated (`isCI` branch).
-- Keep long startup timeout for first compile (`10 * 60 * 1000` currently).
+- Keep `baseURL` aligned to `http://127.0.0.1:3000`.
+- Keep startup orchestration outside Playwright config.
+- Keep fast precheck in `e2e-tests/package.json` via `wait-on`.
 
 ## Maintenance checklist
 1. Validate config after edits:
-   - `use.baseURL` is `http://localhost:3000`
-   - local `webServer.command` points to `start-local-e2e.sh`
-   - CI `webServer.command` uses `run-wasp-app`
-2. Keep startup script non-interactive:
-   - no prompts
-   - tolerate DB already running (`wasp db start` may fail on port 5432 already used)
+  - `use.baseURL` is `http://127.0.0.1:3000`
+  - no stale `webServer.command` references to deleted scripts
+  - `e2e:playwright` includes `wait-on` precheck
+2. Keep app startup command documented separately (`cd app && wasp start`).
 3. Verify with a fast smoke test first:
    - run only `landingPageTests.spec.ts` test `has title`
 4. Then run full suite.
@@ -40,11 +34,11 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
   - Cause: frontend not ready yet or wrong `webServer.url`
   - Fix: wait for startup; ensure URL is `3000`, not `3001`
 - `Process from config.webServer was not able to start. Exit code: 1`
-  - Cause: startup command failed
-  - Fix: run startup command manually and inspect logs
+  - Cause: stale Playwright `webServer` config was reintroduced
+  - Fix: remove/adjust `webServer` block to match fail-fast model
 - `Port 5432 already in use`
-  - Cause: existing local PostgreSQL instance
-  - Fix: allow fallback path in startup script and continue with existing DB
+  - Cause: existing local PostgreSQL instance while running `wasp start`
+  - Fix: stop conflicting DB or use the existing DB intentionally
 - title test passes but tests cannot find `Log in` or cookie-consent buttons
   - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or an `import` vs `importDefault` mismatch in `main.wasp.ts`
   - Fix: restart `wasp start`, inspect the browser console, and verify `main.wasp.ts` declaration import style matches component exports
@@ -143,4 +137,4 @@ Use all three for critical flows to reduce false positives.
 - Plan-first gate: do not edit files or run validation-changing actions before the user approves the plan.
 - Do not edit generated Wasp output (`app/.wasp/out/**`).
 - Prefer fixing source config/script in `e2e-tests`.
-- Keep desktop-first reliability; CI-specific behavior stays isolated behind `isCI`.
+- Keep the fail-fast contract explicit: app server must be started before e2e.

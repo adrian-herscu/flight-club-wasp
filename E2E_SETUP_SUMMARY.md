@@ -1,33 +1,31 @@
-# E2E Testing - Comprehensive Desktop Solution
+# E2E Testing - Simplified Fail-Fast Setup
 
 ## ✅ What Was Set Up
 
-A reliable end-to-end testing setup that handles **all database and server states** automatically on desktop:
+A simple end-to-end setup that requires an already running app server and fails fast otherwise.
 
 ### Problem Solved
-- ✅ Tests work whether DB is started or not
-- ✅ Tests work whether server is started or not  
-- ✅ Tests work whether migrations are applied or not
-- ✅ Tests handle stale Docker containers gracefully
-- ✅ Works from command line AND VS Code tests panel
-- ✅ Safe to run multiple times (idempotent)
-- ✅ Works in CI with different config
-- ✅ Comprehensive and production-ready
+- ✅ Clear contract: start app first, then run e2e
+- ✅ Fast feedback when app server is missing
+- ✅ Works from command line and VS Code tests panel
+- ✅ Reduced orchestration complexity
 
 ## 📁 Files Created/Modified
 
 | File | Purpose |
 |------|---------|
-| `e2e-tests/start-server.sh` | Bootstrap script that handles all prerequisites |
-| `e2e-tests/playwright.config.ts` | Updated with comprehensive config |
+| `e2e-tests/playwright.config.ts` | Lean Playwright config (no auto-start webServer command) |
+| `e2e-tests/package.json` | `wait-on` precheck + Playwright execution |
 | `e2e-tests/E2E_TESTING_GUIDE.md` | Complete user guide |
-| `.vscode/extensions.json` | Recommends Playwright extension |
-| `.vscode/settings.json` | VS Code Playwright settings |
 
 ## 🚀 Quick Start
 
 ### Option 1: Command Line (simplest)
 ```bash
+# Terminal 1
+cd app && wasp start
+
+# Terminal 2
 cd e2e-tests
 npm run e2e:playwright
 ```
@@ -37,48 +35,34 @@ npm run e2e:playwright
 2. Go to Testing view (Ctrl+Shift+X → Testing)
 3. Click play button ▶️
 
-### Option 3: Manual server
+### Option 3: Manual Playwright command
 ```bash
-# Terminal 1
-cd app && wasp start
-
-# Terminal 2  
-cd e2e-tests && npm run e2e:playwright
+cd e2e-tests && npx playwright test
 ```
 
 ## 🔧 How It Works
 
-### `start-server.sh` Flow
-1. Cleans up stale Docker containers
-2. Starts PostgreSQL (via Wasp)
-3. Wasp automatically handles migrations
-4. Wasp starts dev server on port 3000
+### Runtime Flow
+1. App is started externally (`cd app && wasp start`)
+2. `npm run e2e:playwright` checks `http://127.0.0.1:3000` via `wait-on`
+3. Playwright executes tests against the running app
 
 ### `playwright.config.ts` Logic
-- **Desktop mode** (default):
-  - Uses `start-server.sh`
-  - `reuseExistingServer: true` (idempotent)
-  - 10-minute timeout (for first-time builds)
-  
-- **CI mode** (when `CI=true`):
-  - Uses `run-wasp-app`
-  - Fresh isolated server each run
-  - 2-minute timeout
+- Single config with `baseURL` set to `http://127.0.0.1:3000`
+- No startup command in Playwright config
+- Startup responsibility is intentionally outside Playwright
 
 ## 📊 All Scenarios Covered
 
-| Initial State | Server Status | DB Status | Migration Status | Result |
-|---|---|---|---|---|
-| Fresh clone | ❌ | ❌ | ❌ | ✅ Auto-starts all |
-| Dev running | ✅ | ✅ | ✅ | ✅ Reuses everything |
-| Test crash left running | ✅ | ✅ | ✅ | ✅ Reuses existing |
-| Stale containers | ❌ | ❌ (stale) | ❌ | ✅ Cleans + restarts |
-| Any mixed state | Any | Any | Any | ✅ Handles gracefully |
+| Initial State | Result |
+|---|---|
+| App server running on 3000 | ✅ Tests run |
+| App server not running | ❌ Fails fast before tests |
 
 ## ⏱️ Performance
 
-- **First run**: 5-10 minutes (includes build)
-- **Subsequent runs**: 2-3 minutes (reuses server)
+- **App startup**: handled by `wasp start`
+- **E2E command**: quick fail if server is unavailable
 - **VS Code panel**: Same as command line
 
 ## 📖 Documentation
@@ -95,13 +79,12 @@ Topics covered:
 
 ## 🎯 Key Features
 
-✅ **Comprehensive**: Handles DB, migrations, server, containers  
-✅ **Reliable**: Works in all server states  
-✅ **Idempotent**: Safe to run repeatedly  
-✅ **Fast**: Reuses servers for subsequent runs  
+✅ **Predictable**: Explicit app-start then test-run flow  
+✅ **Reliable**: No hidden auto-start behavior  
+✅ **Simple**: Fewer moving parts  
+✅ **Fast failure**: Immediate feedback when server is missing  
 ✅ **IDE Integration**: Works in VS Code tests panel  
-✅ **CI Ready**: Different config for CI environments  
-✅ **Zero config**: Just run - no prerequisites to set up  
+✅ **CI Ready**: Works with explicit startup orchestration  
 ✅ **Documented**: Complete user guide included  
 
 ## 🔍 What Happens Behind the Scenes
@@ -109,32 +92,17 @@ Topics covered:
 ```
 npm run e2e:playwright
     ↓
+wait-on http://127.0.0.1:3000 -t 5000
+    ↓
 playwright test (reads config)
     ↓
-Desktop mode? Yes → Start start-server.sh
-    ↓
-start-server.sh
-    ├─ Cleanup stale containers
-    ├─ cd app && wasp start
-    │   ├─ Start PostgreSQL
-    │   ├─ Run migrations
-    │   └─ Start dev server (:3000)
-    └─ Exit (server keeps running)
-    ↓
-Playwright waits for http://localhost:3000
-    ↓
 Server responds → Run tests
-    ↓
-Tests complete → Server keeps running (for dev use)
 ```
 
 ## 🛠️ Customization
 
-### Increase timeout (for slow machines)
-Edit `e2e-tests/playwright.config.ts`:
-```typescript
-timeout: 900 * 1000, // 15 minutes instead of 10
-```
+### Increase fail-fast wait window
+Edit `e2e-tests/package.json` script `e2e:playwright` and increase `-t 5000`.
 
 ### Change database settings
 All DB settings are in `app/schema.prisma` and `app/main.wasp`
@@ -153,4 +121,4 @@ npm run e2e:playwright -- tests/pricingPageTests.spec.ts
 
 ---
 
-**Status**: ✅ Ready for production use
+**Status**: ✅ Simplified and consistent with current scripts
