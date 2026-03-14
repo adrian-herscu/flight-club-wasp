@@ -149,11 +149,11 @@ export const acceptAllCookies = async (page: Page) => {
   await page.click('button:has-text("Accept all")');
 };
 
-export type DetectedLanguage = "en" | "he" | "unknown";
+export type DetectedLanguage = "en" | "he" | "ro" | "unknown";
 
 /**
  * Lightweight language detector for E2E assertions.
- * It is intentionally simple and optimized for English/Hebrew UI text.
+ * It is intentionally simple and optimized for English/Hebrew/Romanian UI text.
  */
 export const detectLanguageFromText = (text: string): DetectedLanguage => {
   const sample = text
@@ -164,15 +164,18 @@ export const detectLanguageFromText = (text: string): DetectedLanguage => {
 
   const hebrewChars = (sample.match(/[\u0590-\u05FF]/g) ?? []).length;
   const latinChars = (sample.match(/[A-Za-z]/g) ?? []).length;
+  const romanianDiacritics = (sample.match(/[ăâîșțĂÂÎȘȚ]/g) ?? []).length;
 
   // Quick dominant-script decision first.
   if (hebrewChars > latinChars * 1.5 && hebrewChars > 10) return "he";
+  if (romanianDiacritics >= 2) return "ro";
   if (latinChars > hebrewChars * 1.5 && latinChars > 10) return "en";
 
   // Fallback with common stop-words.
   const lower = sample.toLowerCase();
   const englishHints = ["the", "and", "log in", "password", "email", "forgot"];
   const hebrewHints = ["התחבר", "כניסה", "סיסמה", "דוא", "הרשמה", "שכחת"];
+  const romanianHints = ["autentificare", "parolă", "email", "înregistrare", "reseteaz", "cont"];
 
   const enScore = englishHints.reduce(
     (score, token) => score + (lower.includes(token) ? 1 : 0),
@@ -182,9 +185,14 @@ export const detectLanguageFromText = (text: string): DetectedLanguage => {
     (score, token) => score + (sample.includes(token) ? 1 : 0),
     0,
   );
+  const roScore = romanianHints.reduce(
+    (score, token) => score + (lower.includes(token) ? 1 : 0),
+    0,
+  );
 
-  if (heScore > enScore) return "he";
-  if (enScore > heScore) return "en";
+  if (heScore > enScore && heScore > roScore) return "he";
+  if (roScore > enScore && roScore > heScore) return "ro";
+  if (enScore > heScore && enScore > roScore) return "en";
 
   return "unknown";
 };

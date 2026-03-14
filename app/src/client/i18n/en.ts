@@ -22,6 +22,7 @@ export const en = {
     language: "Language",
     english: "English",
     hebrew: "עברית",
+    romanian: "Română",
     unknown: "Unknown",
     user: "User",
   },

@@ -22,6 +22,7 @@ export function LanguageSelector() {
       <SelectContent>
         <SelectItem value="en">{t("common.english")}</SelectItem>
         <SelectItem value="he">{t("common.hebrew")}</SelectItem>
+        <SelectItem value="ro">{t("common.romanian")}</SelectItem>
       </SelectContent>
     </Select>
   );

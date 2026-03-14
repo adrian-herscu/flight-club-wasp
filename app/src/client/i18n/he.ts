@@ -22,6 +22,7 @@ export const he = {
     language: "שפה",
     english: "English",
     hebrew: "עברית",
+    romanian: "Română",
     unknown: "לא ידוע",
     user: "משתמש",
   },
