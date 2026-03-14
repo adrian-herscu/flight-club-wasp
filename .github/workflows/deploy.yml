@@ -37,15 +37,11 @@ jobs:
       - name: Build and Deploy
         run: |
           cd app
-          
-          # 1. Force SDK generation even if TS errors exist. 
-          # This creates the 'wasp-config' module the compiler is looking for.
-          wasp deps --skip-ts-check
-          
-          # 2. Now that the SDK exists, build will succeed.
+
+          # 1. Build the Wasp app for production.
           wasp build
-          
-          # 3. Deploy from the generated build folder
+
+          # 2. Deploy from the generated build folder.
           cd .wasp/build
           railway link $RAILWAY_PROJECT_ID
           railway up
