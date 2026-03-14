@@ -4,9 +4,6 @@
 - Consider a few viable solutions first, then choose the best one.
 - State concise rationale for key technical decisions.
 
-## Session start
-- At the very start of each new chat session, before anything else, run the VS Code task **"Open new chat git workspace"** (Command Palette → Run Task) so that work happens in a dedicated git worktree named after the chat title.
-- Do not proceed with any implementation or planning until the user confirms that the task has been run and the new workspace is ready.
 
 ## Execution gate (plan first)
 - Before implementing any code/config/test change, provide a concise step-by-step plan.
@@ -56,8 +53,9 @@
 - Check operation declarations, entity lists, path imports, server logs, and browser console.
 
 ## Testing workflow policy
-- Baseline MUST be green before changing or adding implementation: run the relevant E2E tests first.
-- If E2E is already green and you are fixing behavior, add/adjust a test first to prove the issue (make it fail), then apply the fix, then re-run until green.
+- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant E2E tests first.
+- For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant E2E tests to green.
+- For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
 - Scope by impact: for infrastructure/testing-framework changes, run the full E2E suite; otherwise prefer focused tests for the affected area first, then expand only as needed.
 
 ## Documentation preference
