@@ -33,7 +33,13 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy
-        run: wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -F
+          # Check for existing Railway link
+          [ -d .railway ] && echo ".railway folder exists" || echo ".railway folder MISSING"
+          wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
+
         env:
           # You must add RAILWAY_API_TOKEN to your Repository Secrets
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
