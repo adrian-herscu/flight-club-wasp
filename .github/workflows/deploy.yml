@@ -22,7 +22,6 @@ jobs:
         with:
           node-version: "22.12"
           cache: 'npm'
-          # Point to the lockfile at the root or in app depending on your structure
           cache-dependency-path: app/package-lock.json
 
       - name: Install dependencies
@@ -30,23 +29,23 @@ jobs:
           cd app
           npm ci
 
-      - name: Install Wasp & Railway
+      - name: Install CLIs
         run: |
           npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
           npm install -g @railway/cli
 
       - name: Build and Deploy
         run: |
-          # 1. Run from the 'app' directory where main.wasp.ts lives
           cd app
           
-          # 2. Generate SDK ignoring the initial missing 'wasp-config'
+          # 1. Force SDK generation even if TS errors exist. 
+          # This creates the 'wasp-config' module the compiler is looking for.
           wasp deps --skip-ts-check
           
-          # 3. Build the project
+          # 2. Now that the SDK exists, build will succeed.
           wasp build
           
-          # 4. Navigate to build output and deploy
+          # 3. Deploy from the generated build folder
           cd .wasp/build
           railway link $RAILWAY_PROJECT_ID
           railway up
