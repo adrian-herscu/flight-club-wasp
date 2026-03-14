@@ -22,9 +22,14 @@ export const en = {
     language: "Language",
     english: "English",
     hebrew: "עברית",
+    unknown: "Unknown",
+    user: "User",
   },
 
   nav: {
+    appName: "Your SaaS",
+    openMainMenu: "Open main menu",
+    logIn: "Log in",
     home: "Home",
     about: "About",
     features: "Features",
@@ -169,6 +174,8 @@ export const en = {
     svgPngJpgOrGif: "SVG, PNG, JPG or GIF",
     maxFileSize: "(max, 800 X 800px)",
     notYetImplemented: "Not yet implemented",
+    notSet: "Not set",
+    writeBioHere: "Write your bio here",
     weekdays: {
       sunday: "Sunday",
       sundayShort: "Sun",
@@ -363,6 +370,20 @@ export const en = {
     defaultLessonPriceLabel: "Default lesson price (minor units, optional)",
     createCourseButton: "Create course",
     creatingCourse: "Creating...",
+    loadingCatalog: "Loading syllabus catalog...",
+    system: "System",
+    selectCourseBeforeAssigning: "Select a course before assigning an instructor.",
+    selectedVersionDetails: "Selected Syllabus Version Details",
+    loadingVersionDetails: "Loading selected version details...",
+    selectVersionFromCatalog: "Select a syllabus version from Catalog first.",
+    saving: "Saving...",
+    saveAsNewDraftRevision: "Save as new draft revision",
+    publishing: "Publishing...",
+    publishAsFinalVersion: "Publish as FINAL version",
+    lessonEditor: "Lesson Editor",
+    selectSyllabusToEdit: "Select a syllabus in Catalog, open Details, and load lessons into editor.",
+    student: "Student",
+    instructor: "Instructor",
   },
 
   school: {
@@ -405,6 +426,10 @@ export const en = {
   },
 
   user: {
+    accountSettings: "Account Settings",
+    mySchool: "My School",
+    syllabuses: "Syllabuses",
+    adminDashboard: "Admin Dashboard",
     accountInformation: "Account Information",
     emailAddress: "Email address",
     fullName: "Full name",

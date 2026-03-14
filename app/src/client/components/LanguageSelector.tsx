@@ -8,7 +8,7 @@ import {
 } from "./ui/select";
 
 export function LanguageSelector() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const handleLanguageChange = (language: string) => {
     i18n.changeLanguage(language);
@@ -17,11 +17,11 @@ export function LanguageSelector() {
   return (
     <Select value={i18n.language} onValueChange={handleLanguageChange}>
       <SelectTrigger className="w-30">
-        <SelectValue placeholder="Language" />
+        <SelectValue placeholder={t("common.language")} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="en">English</SelectItem>
-        <SelectItem value="he">עברית</SelectItem>
+        <SelectItem value="en">{t("common.english")}</SelectItem>
+        <SelectItem value="he">{t("common.hebrew")}</SelectItem>
       </SelectContent>
     </Select>
   );

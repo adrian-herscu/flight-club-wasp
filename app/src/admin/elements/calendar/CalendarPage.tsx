@@ -1,42 +1,45 @@
 import { type AuthUser } from "wasp/auth";
+import { useTranslation } from "react-i18next";
 import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
 
 const Calendar = ({ user }: { user: AuthUser }) => {
+  const { t } = useTranslation();
+
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName="Calendar" />
+      <Breadcrumb pageName={t("admin.calendar")} />
       <div className="border-border bg-card shadow-default w-full max-w-full rounded-sm border">
         <table className="w-full">
           <thead>
             <tr className="bg-primary text-primary-foreground grid grid-cols-7 rounded-t-sm">
               <th className="h-15 flex items-center justify-center rounded-tl-sm p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Sunday </span>
-                <span className="block lg:hidden"> Sun </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.sunday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.sundayShort")} </span>
               </th>
               <th className="h-15 flex items-center justify-center p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Monday </span>
-                <span className="block lg:hidden"> Mon </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.monday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.mondayShort")} </span>
               </th>
               <th className="h-15 flex items-center justify-center p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Tuesday </span>
-                <span className="block lg:hidden"> Tue </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.tuesday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.tuesdayShort")} </span>
               </th>
               <th className="h-15 flex items-center justify-center p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Wednesday </span>
-                <span className="block lg:hidden"> Wed </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.wednesday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.wednesdayShort")} </span>
               </th>
               <th className="h-15 flex items-center justify-center p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Thursday </span>
-                <span className="block lg:hidden"> Thur </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.thursday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.thursdayShort")} </span>
               </th>
               <th className="h-15 flex items-center justify-center p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Friday </span>
-                <span className="block lg:hidden"> Fri </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.friday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.fridayShort")} </span>
               </th>
               <th className="h-15 flex items-center justify-center rounded-tr-sm p-1 text-xs font-semibold sm:text-base xl:p-5">
-                <span className="hidden lg:block"> Saturday </span>
-                <span className="block lg:hidden"> Sat </span>
+                <span className="hidden lg:block"> {t("admin.weekdays.saturday")} </span>
+                <span className="block lg:hidden"> {t("admin.weekdays.saturdayShort")} </span>
               </th>
             </tr>
           </thead>
@@ -47,14 +50,14 @@ const Calendar = ({ user }: { user: AuthUser }) => {
                 <span className="font-medium">1</span>
                 <div className="md:h-30 group h-16 w-full grow cursor-pointer py-1">
                   <span className="group-hover:text-primary md:hidden">
-                    More
+                    {t("common.more")}
                   </span>
                   <div className="event z-99 border-primary bg-muted invisible absolute left-2 mb-1 flex w-[200%] flex-col rounded-sm border-l-[3px] px-3 py-1 text-left opacity-0 group-hover:visible group-hover:opacity-100 md:visible md:w-[190%] md:opacity-100">
                     <span className="event-name text-foreground text-sm font-semibold">
-                      Redesign Website
+                      {t("admin.redesignWebsite")}
                     </span>
                     <span className="time text-foreground text-sm font-medium">
-                      1 Dec - 2 Dec
+                      {t("admin.redesignDates")}
                     </span>
                   </div>
                 </div>

@@ -1,18 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { logUserIn } from "./utils";
 
 test.describe("manager workflow A", () => {
-  test.beforeEach(async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
-    });
-  });
-
   test.skip("manager can view school profile", async ({ page }) => {
     await page.goto("/admin/school");
     await page.waitForURL("**/admin/school");
@@ -109,5 +97,26 @@ test.describe("manager workflow A", () => {
 
     expect(Math.abs((geometry as any).asideRight - (geometry as any).viewportWidth)).toBeLessThanOrEqual(2);
     expect((geometry as any).mainLeft).toBeGreaterThanOrEqual(0);
+  });
+
+  test("hebrew locale: syllabuses catalog labels are translated", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
+    await page.fill('input[name="password"]', "12345678");
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState("networkidle");
+
+    await page.addInitScript(() => {
+      localStorage.setItem("locale", "he");
+      document.documentElement.lang = "he";
+      document.documentElement.dir = "rtl";
+    });
+
+    await page.goto("/admin/syllabuses?section=catalog");
+    await page.waitForURL("**/admin/syllabuses?section=catalog");
+    await page.waitForLoadState("networkidle");
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
+    await expect(page).toHaveURL(/\/admin\/syllabuses\?section=catalog/);
+    await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
   });
 });

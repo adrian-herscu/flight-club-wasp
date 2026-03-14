@@ -140,7 +140,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                     <div>
                       <p className="text-xs uppercase text-muted-foreground">{t("admin.requester")}</p>
                       <p className="text-sm font-medium">
-                        {request.requester.fullName ?? request.requester.email ?? "Unknown"}
+                        {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
                       </p>
                       <p className="text-sm text-muted-foreground">{request.requester.email ?? "-"}</p>
                       <p className="text-sm text-muted-foreground">{request.requester.phone ?? "-"}</p>
@@ -152,7 +152,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                   </div>
 
                   <div>
-                    <p className="text-xs uppercase text-muted-foreground">Requested school</p>
+                    <p className="text-xs uppercase text-muted-foreground">{t("admin.requestedSchool")}</p>
                     <p className="text-sm font-medium">{request.requestedSchoolName ?? "-"}</p>
                     <p className="text-sm text-muted-foreground">
                       {[
@@ -167,12 +167,12 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                         .join(", ")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Currency: {request.requestedCurrency ?? "-"}
+                      {t("admin.currency")}: {request.requestedCurrency ?? "-"}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`reason-${request.id}`}>Rejection reason (optional)</Label>
+                    <Label htmlFor={`reason-${request.id}`}>{t("admin.rejectionReason")}</Label>
                     <Textarea
                       id={`reason-${request.id}`}
                       value={rejectionReasons[request.id] ?? ""}
@@ -191,13 +191,13 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                       disabled={isRejectingId === request.id}
                       onClick={() => handleReject(request.id)}
                     >
-                      {isRejectingId === request.id ? "Rejecting..." : "Reject"}
+                      {isRejectingId === request.id ? t("admin.rejecting") : t("admin.reject")}
                     </Button>
                     <Button
                       disabled={isApprovingId === request.id}
                       onClick={() => handleApprove(request.id)}
                     >
-                      {isApprovingId === request.id ? "Approving..." : "Approve"}
+                      {isApprovingId === request.id ? t("admin.approving") : t("admin.approve")}
                     </Button>
                   </div>
                 </CardContent>

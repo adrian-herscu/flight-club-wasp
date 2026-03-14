@@ -1,5 +1,6 @@
 import { FileText, Mail, Upload, User } from "lucide-react";
 import { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import { Button } from "../../../client/components/ui/button";
 import {
@@ -15,6 +16,7 @@ import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
 
 const SettingsPage = ({ user }: { user: AuthUser }) => {
+  const { t } = useTranslation();
   const currentUser = user as AuthUser & {
     fullName?: string | null;
     phone?: string | null;
@@ -27,19 +29,19 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     // TODO implement
     event.preventDefault();
-    alert("Not yet implemented");
+    alert(t("admin.notYetImplemented"));
   };
 
   return (
     <DefaultLayout user={user}>
       <div className="max-w-270 mx-auto">
-        <Breadcrumb pageName="Settings" />
+        <Breadcrumb pageName={t("admin.settings")} />
 
         <div className="grid grid-cols-5 gap-8">
           <div className="col-span-5 xl:col-span-3">
             <Card>
               <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
+                <CardTitle>{t("admin.personalInformation")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit}>
@@ -49,7 +51,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         htmlFor="full-name"
                         className="text-foreground mb-3 block text-sm font-medium"
                       >
-                        Full Name
+                        {t("auth.fullName")}
                       </Label>
                       <div className="relative">
                         <User className="left-4.5 text-muted-foreground absolute top-2 h-5 w-5" />
@@ -58,7 +60,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                           type="text"
                           name="fullName"
                           id="full-name"
-                          placeholder="Not set"
+                          placeholder={t("admin.notSet")}
                           defaultValue={fullName}
                         />
                       </div>
@@ -69,13 +71,13 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         htmlFor="phone-number"
                         className="text-foreground mb-3 block text-sm font-medium"
                       >
-                        Phone Number
+                        {t("registration.phoneNumber")}
                       </Label>
                       <Input
                         type="tel"
                         name="phoneNumber"
                         id="phone-number"
-                        placeholder="Not set"
+                        placeholder={t("admin.notSet")}
                         defaultValue={phone}
                       />
                     </div>
@@ -86,7 +88,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                       htmlFor="email-address"
                       className="text-foreground mb-3 block text-sm font-medium"
                     >
-                      Email Address
+                      {t("user.emailAddress")}
                     </Label>
                     <div className="relative">
                       <Mail className="left-4.5 text-muted-foreground absolute top-2 h-5 w-5" />
@@ -95,7 +97,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         type="email"
                         name="emailAddress"
                         id="email-address"
-                        placeholder="Not set"
+                        placeholder={t("admin.notSet")}
                         defaultValue={email}
                       />
                     </div>
@@ -105,7 +107,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                       htmlFor="bio"
                       className="text-foreground mb-3 block text-sm font-medium"
                     >
-                      BIO
+                      {t("admin.bio")}
                     </Label>
                     <div className="relative">
                       <FileText className="left-4.5 text-muted-foreground absolute top-4 h-5 w-5" />
@@ -114,7 +116,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         name="bio"
                         id="bio"
                         rows={6}
-                        placeholder="Write your bio here"
+                        placeholder={t("admin.writeBioHere")}
                         defaultValue=""
                       ></Textarea>
                     </div>
@@ -122,9 +124,9 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
 
                   <div className="gap-4.5 flex justify-end">
                     <Button variant="outline" type="submit">
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
-                    <Button type="submit">Save</Button>
+                    <Button type="submit">{t("common.save")}</Button>
                   </div>
                 </form>
               </CardContent>
@@ -133,7 +135,7 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
           <div className="col-span-5 xl:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Your Photo</CardTitle>
+                <CardTitle>{t("admin.yourPhoto")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form action="#">
@@ -143,14 +145,14 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                     </div>
                     <div>
                       <span className="text-foreground mb-1.5">
-                        Edit your photo
+                        {t("admin.editYourPhoto")}
                       </span>
                       <span className="flex gap-2.5">
                         <button className="hover:text-primary text-sm">
-                          Delete
+                          {t("common.delete")}
                         </button>
                         <button className="hover:text-primary text-sm">
-                          Update
+                          {t("school.update")}
                         </button>
                       </span>
                     </div>
@@ -170,19 +172,19 @@ const SettingsPage = ({ user }: { user: AuthUser }) => {
                         <Upload className="text-primary h-4 w-4" />
                       </span>
                       <p>
-                        <span className="text-primary">Click to upload</span> or
-                        drag and drop
+                        <span className="text-primary">{t("admin.clickToUpload")}</span>
+                        {t("admin.orDragAndDrop")}
                       </p>
-                      <p className="mt-1.5">SVG, PNG, JPG or GIF</p>
-                      <p>(max, 800 X 800px)</p>
+                      <p className="mt-1.5">{t("admin.svgPngJpgOrGif")}</p>
+                      <p>{t("admin.maxFileSize")}</p>
                     </div>
                   </div>
 
                   <div className="gap-4.5 flex justify-end">
                     <Button variant="outline" type="submit">
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
-                    <Button type="submit">Save</Button>
+                    <Button type="submit">{t("common.save")}</Button>
                   </div>
                 </form>
               </CardContent>

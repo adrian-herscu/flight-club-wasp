@@ -18,9 +18,7 @@ export const logUserIn = async ({
   user: User;
   expectedRedirectPath?: string;
 }) => {
-  await page.goto("/");
-
-  await page.getByRole("link", { name: "Log in" }).click();
+  await page.goto("/login");
   await page.waitForURL("**/login", {
     waitUntil: "domcontentloaded",
   });
@@ -31,6 +29,11 @@ export const logUserIn = async ({
   // Wait for the form to be ready
   await page.waitForLoadState("networkidle");
 
+  const rejectAllButton = page.getByRole("button", { name: /reject all/i });
+  if (await rejectAllButton.count()) {
+    await rejectAllButton.first().click();
+  }
+
   // Find login button - it could be "Log in", "Login", "כניסה" (Hebrew), or any translation
   const loginButton = page.locator("button[type='submit']").first();
   await expect(loginButton).toBeVisible({ timeout: 5000 });
@@ -38,12 +41,9 @@ export const logUserIn = async ({
   // Click the login button
   await loginButton.click();
 
-  // Wait for the page to redirect - be generous with timeout
-  await page.waitForURL("**" + expectedRedirectPath, { 
-    timeout: 15000 
-  }).catch(() => {
-    // If redirect doesn't happen, that's okay - we'll check visibility instead
-  });
+  await page.waitForURL("**" + expectedRedirectPath, {
+    timeout: 15000,
+  }).catch(() => null);
 
   // Also wait a bit for any redirects
   await page.waitForLoadState("networkidle").catch(() => {});
@@ -56,7 +56,7 @@ export const signUserUp = async ({
   page: Page;
   user: User;
 }) => {
-  await page.goto("/");
+  await page.goto("/signup");
 
   await page.evaluate(() => {
     try {
@@ -71,10 +71,6 @@ export const signUserUp = async ({
   });
 
   await page.waitForLoadState("domcontentloaded");
-
-  await page.getByRole("link", { name: "Log in" }).click();
-
-  await page.click('text="go to signup"');
 
   await page.fill('input[name="email"]', user.email);
   await page.fill('input[name="password"]', DEFAULT_PASSWORD);

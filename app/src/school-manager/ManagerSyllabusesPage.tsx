@@ -536,8 +536,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const handleEnrollStudent = async () => {
     if (!selectedEnrollmentCourseId) {
       toast({
-        title: "No course selected",
-        description: "Select a course before enrolling a student.",
+        title: t("syllabus.noCoursSelected"),
+        description: t("syllabus.selectCourseBeforeEnrolling"),
         variant: "destructive",
       });
       return;
@@ -545,8 +545,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (!selectedStudentIdToEnroll) {
       toast({
-        title: "No student selected",
-        description: "Select a student to enroll.",
+        title: t("syllabus.noStudentSelected"),
+        description: t("syllabus.selectStudentToEnroll"),
         variant: "destructive",
       });
       return;
@@ -566,16 +566,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       ]);
 
       toast({
-        title: "Student enrolled",
-        description: "Enrollment was saved successfully.",
+        title: t("syllabus.studentEnrolled"),
+        description: t("syllabus.studentEnrolled_desc"),
       });
     } catch (enrollError: unknown) {
       toast({
-        title: "Enrollment failed",
+        title: t("syllabus.enrollmentFailed"),
         description:
           enrollError instanceof Error
             ? enrollError.message
-            : "Unable to enroll student in selected course.",
+            : t("syllabus.unableEnrollStudent"),
         variant: "destructive",
       });
     } finally {
@@ -586,8 +586,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const handleAssignInstructor = async () => {
     if (!selectedAssignmentCourseId) {
       toast({
-        title: "No course selected",
-        description: "Select a course before assigning an instructor.",
+        title: t("syllabus.noCoursSelected"),
+        description: t("syllabus.selectCourseBeforeAssigning"),
         variant: "destructive",
       });
       return;
@@ -595,8 +595,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (!selectedInstructorIdToAssign) {
       toast({
-        title: "No instructor selected",
-        description: "Select an instructor to assign.",
+        title: t("syllabus.noInstructorSelected"),
+        description: t("syllabus.selectInstructorToAssign"),
         variant: "destructive",
       });
       return;
@@ -616,16 +616,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       ]);
 
       toast({
-        title: "Instructor assigned",
-        description: "Instructor assignment was saved successfully.",
+        title: t("syllabus.instructorAssigned"),
+        description: t("syllabus.instructorAssigned_desc"),
       });
     } catch (assignError: unknown) {
       toast({
-        title: "Assignment failed",
+        title: t("syllabus.assignmentFailed"),
         description:
           assignError instanceof Error
             ? assignError.message
-            : "Unable to assign instructor to selected course.",
+            : t("syllabus.unableAssignInstructor"),
         variant: "destructive",
       });
     } finally {
@@ -638,8 +638,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (!newCourseTemplateVersionId) {
       toast({
-        title: "Missing template",
-        description: "Select a FINAL syllabus version for the new course.",
+        title: t("syllabus.missingTemplate"),
+        description: t("syllabus.selectFinalVersion"),
         variant: "destructive",
       });
       return;
@@ -654,8 +654,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (parsedMinCapacity != null && (!Number.isInteger(parsedMinCapacity) || parsedMinCapacity <= 0)) {
       toast({
-        title: "Invalid min capacity",
-        description: "Minimum capacity must be a positive integer.",
+        title: t("syllabus.invalidMinCapacity"),
+        description: t("syllabus.minCapacityPositiveInteger"),
         variant: "destructive",
       });
       return;
@@ -663,8 +663,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     if (parsedMaxCapacity != null && (!Number.isInteger(parsedMaxCapacity) || parsedMaxCapacity <= 0)) {
       toast({
-        title: "Invalid max capacity",
-        description: "Maximum capacity must be a positive integer.",
+        title: t("syllabus.invalidMaxCapacity"),
+        description: t("syllabus.maxCapacityPositiveInteger"),
         variant: "destructive",
       });
       return;
@@ -676,8 +676,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       parsedMinCapacity > parsedMaxCapacity
     ) {
       toast({
-        title: "Invalid capacity range",
-        description: "Minimum capacity cannot be greater than maximum capacity.",
+        title: t("syllabus.invalidCapacityRange"),
+        description: t("syllabus.minCannotGreaterThanMax"),
         variant: "destructive",
       });
       return;
@@ -688,8 +688,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       (!Number.isInteger(parsedDefaultPrice) || parsedDefaultPrice <= 0)
     ) {
       toast({
-        title: "Invalid lesson price",
-        description: "Default lesson price must be a positive integer in minor units.",
+        title: t("syllabus.invalidLessonPrice"),
+        description: t("syllabus.lessonPricePositiveInteger"),
         variant: "destructive",
       });
       return;
@@ -718,16 +718,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       setNewCourseDefaultPrice("");
 
       toast({
-        title: "Course created",
-        description: "A new course was opened from FINAL syllabus version.",
+        title: t("syllabus.courseCreated"),
+        description: t("syllabus.courseCreated_desc"),
       });
     } catch (createCourseError: unknown) {
       toast({
-        title: "Course creation failed",
+        title: t("syllabus.courseCreationFailed"),
         description:
           createCourseError instanceof Error
             ? createCourseError.message
-            : "Unable to create course from selected FINAL syllabus.",
+            : t("syllabus.unableCreateCourse"),
         variant: "destructive",
       });
     } finally {
@@ -756,9 +756,9 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName="Syllabuses" showTitle={false} />
+      <Breadcrumb pageName={t("syllabus.syllabuses")} showTitle={false} />
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading syllabus catalog...</p>}
+      {isLoading && <p className="text-muted-foreground text-sm">{t("syllabus.loadingCatalog")}</p>}
       {error && <p className="text-sm text-red-500">{error.message}</p>}
 
       <div className="sticky top-0 z-20 mb-2 backdrop-blur supports-backdrop-filter:bg-background/70">
@@ -781,7 +781,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
             variant={activeSection === "catalog" ? "secondary" : "outline"}
             onClick={() => goToSection("catalog")}
           >
-            Catalog
+            {t("syllabus.catalog")}
           </Button>
           <Button
             type="button"
@@ -789,7 +789,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
             variant={activeSection === "create" ? "secondary" : "outline"}
             onClick={() => goToSection("create")}
           >
-            Create
+            {t("syllabus.create")}
           </Button>
           <Button
             type="button"
@@ -797,7 +797,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
             variant={activeSection === "details" ? "secondary" : "outline"}
             onClick={() => goToSection("details")}
           >
-            Details
+            {t("syllabus.details")}
           </Button>
           <Button
             type="button"
@@ -805,7 +805,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
             variant={activeSection === "editor" ? "secondary" : "outline"}
             onClick={() => goToSection("editor")}
           >
-            Editor
+            {t("syllabus.editor")}
           </Button>
         </div>
       </div>
@@ -815,22 +815,22 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       {activeSection === "catalog" && (
         <div className="space-y-6">
           <div className="rounded-md border p-4 text-sm">
-            <p className="font-semibold">Visibility and usage policy</p>
+            <p className="font-semibold">{t("syllabus.visibilityAndUsagePolicy")}</p>
             <ul className="text-muted-foreground mt-2 list-disc space-y-1 ps-5">
-              <li>Course opening can use only FINAL syllabus versions.</li>
-              <li>Drafts are private to the manager&apos;s school.</li>
-              <li>Only school-local drafts can be edited and published.</li>
+              <li>{t("syllabus.courseOpeningCanUseOnlyFinal")}</li>
+              <li>{t("syllabus.draftsArePrivate")}</li>
+              <li>{t("syllabus.onlySchoolLocalDraftsCanBeEdited")}</li>
             </ul>
           </div>
 
           <div className="grid gap-6 2xl:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Available for Course Opening (FINAL)</CardTitle>
+              <CardTitle>{t("syllabus.availableForCourseOpening")}</CardTitle>
             </CardHeader>
             <CardContent>
               {finalCandidates.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No FINAL syllabuses are available.</p>
+                <p className="text-muted-foreground text-sm">{t("syllabus.noFinalSyllabuses")}</p>
               ) : (
                 <ul className="space-y-2">
                   {finalCandidates.map((item: CatalogItem) => (
@@ -845,7 +845,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                       >
                         <p className="text-sm font-medium">{item.syllabusName}</p>
                         <p className="text-muted-foreground text-xs">
-                          v{item.version} • {item.lessonCount} lessons • {item.schoolName ?? "System"}
+                          v{item.version} • {item.lessonCount} {t("syllabus.lessons").toLowerCase()} • {item.schoolName ?? t("syllabus.system")}
                         </p>
                       </button>
                     </li>
@@ -857,11 +857,11 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Editable School Drafts</CardTitle>
+              <CardTitle>{t("syllabus.editableSchoolDrafts")}</CardTitle>
             </CardHeader>
             <CardContent>
               {editableDrafts.length === 0 ? (
-                <p className="text-muted-foreground text-sm">You currently have no editable drafts.</p>
+                <p className="text-muted-foreground text-sm">{t("syllabus.noEditableDraftsAvailable")}</p>
               ) : (
                 <ul className="space-y-2">
                   {editableDrafts.map((item: CatalogItem) => (
@@ -889,19 +889,19 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Workflow 2 MVP: Single Student Enrollment</CardTitle>
+              <CardTitle>{t("syllabus.workflowSingleStudentEnrollment")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Course</label>
+                    <label className="text-xs font-medium">{t("syllabus.course")}</label>
                     <Select
                       value={selectedEnrollmentCourseId ?? ""}
                       onValueChange={(value) => setSelectedEnrollmentCourseId(value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select manager-owned course" />
+                        <SelectValue placeholder={t("syllabus.coursePlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {coursesForEnrollment.map((course) => (
@@ -914,13 +914,13 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Student</label>
+                    <label className="text-xs font-medium">{t("syllabus.student")}</label>
                     <Select
                       value={selectedStudentIdToEnroll}
                       onValueChange={setSelectedStudentIdToEnroll}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select student" />
+                        <SelectValue placeholder={t("syllabus.studentPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {studentsForEnrollment.map((student) => (
@@ -940,27 +940,29 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                       isEnrollingStudent || !selectedEnrollmentCourseId || !selectedStudentIdToEnroll
                     }
                   >
-                    {isEnrollingStudent ? "Enrolling..." : "Enroll student"}
+                    {isEnrollingStudent ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
                   </Button>
                 </div>
 
                 <div className="rounded-md border p-3">
                   {!selectedEnrollmentCourseId && (
-                    <p className="text-muted-foreground text-sm">Select a course to view enrolled students.</p>
+                    <p className="text-muted-foreground text-sm">{t("syllabus.selectCourseToViewEnrolled")}</p>
                   )}
 
                   {selectedEnrollmentCourseId && !courseEnrollmentDetails && (
-                    <p className="text-muted-foreground text-sm">No details available for selected course.</p>
+                    <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
                   )}
 
                   {courseEnrollmentDetails && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium">
-                        Enrolled students ({courseEnrollmentDetails.enrolledCount})
+                        {t("syllabus.enrolledStudents", {
+                          count: courseEnrollmentDetails.enrolledCount,
+                        })}
                       </p>
 
                       {courseEnrollmentDetails.enrolledStudents.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">No students are currently enrolled.</p>
+                        <p className="text-muted-foreground text-sm">{t("syllabus.noStudentsEnrolled")}</p>
                       ) : (
                         <ul className="space-y-1">
                           {courseEnrollmentDetails.enrolledStudents.map((student) => (
@@ -982,19 +984,19 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Workflow 2 MVP: Instructor Assignment</CardTitle>
+              <CardTitle>{t("syllabus.workflowInstructorAssignment")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Course</label>
+                    <label className="text-xs font-medium">{t("syllabus.course")}</label>
                     <Select
                       value={selectedAssignmentCourseId ?? ""}
                       onValueChange={(value) => setSelectedAssignmentCourseId(value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select manager-owned course" />
+                        <SelectValue placeholder={t("syllabus.coursePlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {coursesForEnrollment.map((course) => (
@@ -1007,13 +1009,13 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Instructor</label>
+                    <label className="text-xs font-medium">{t("syllabus.instructor")}</label>
                     <Select
                       value={selectedInstructorIdToAssign}
                       onValueChange={setSelectedInstructorIdToAssign}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select instructor" />
+                        <SelectValue placeholder={t("syllabus.instructorPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {instructorsForAssignment.map((instructor) => (
@@ -1033,27 +1035,29 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                       isAssigningInstructor || !selectedAssignmentCourseId || !selectedInstructorIdToAssign
                     }
                   >
-                    {isAssigningInstructor ? "Assigning..." : "Assign instructor"}
+                    {isAssigningInstructor ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
                   </Button>
                 </div>
 
                 <div className="rounded-md border p-3">
                   {!selectedAssignmentCourseId && (
-                    <p className="text-muted-foreground text-sm">Select a course to view assigned instructors.</p>
+                    <p className="text-muted-foreground text-sm">{t("syllabus.selectCourseToViewAssigned")}</p>
                   )}
 
                   {selectedAssignmentCourseId && !courseInstructorDetails && (
-                    <p className="text-muted-foreground text-sm">No details available for selected course.</p>
+                    <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
                   )}
 
                   {courseInstructorDetails && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium">
-                        Assigned instructors ({courseInstructorDetails.assignedCount})
+                        {t("syllabus.assignedInstructors", {
+                          count: courseInstructorDetails.assignedCount,
+                        })}
                       </p>
 
                       {courseInstructorDetails.assignedInstructors.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">No instructors are currently assigned.</p>
+                        <p className="text-muted-foreground text-sm">{t("syllabus.noInstructorsAssigned")}</p>
                       ) : (
                         <ul className="space-y-1">
                           {courseInstructorDetails.assignedInstructors.map((instructor) => (
@@ -1079,20 +1083,20 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
         <div className="grid gap-6 2xl:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Create School Draft from FINAL Template</CardTitle>
+              <CardTitle>{t("syllabus.createSchoolDraftFromTemplate")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateFromTemplate} className="space-y-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">FINAL template</label>
+                  <label className="text-xs font-medium">{t("syllabus.finalTemplate")}</label>
                   <Select value={templateVersionId} onValueChange={setTemplateVersionId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select FINAL syllabus version" />
+                      <SelectValue placeholder={t("syllabus.finalTemplatePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {finalCandidates.map((item: CatalogItem) => (
                         <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
-                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? "System"}
+                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1100,16 +1104,18 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">New syllabus name</label>
+                  <label className="text-xs font-medium">{t("syllabus.newSyllabusName")}</label>
                   <Input
                     value={newSyllabusName}
                     onChange={(event) => setNewSyllabusName(event.target.value)}
-                    placeholder="Cloudbase Tandem Advanced"
+                    placeholder={t("syllabus.newSyllabusNamePlaceholder")}
                   />
                 </div>
 
                 <Button type="submit" disabled={isCreatingFromTemplate}>
-                  {isCreatingFromTemplate ? "Creating..." : "Create from template"}
+                  {isCreatingFromTemplate
+                    ? t("syllabus.creatingFromTemplate")
+                    : t("syllabus.createFromTemplateButton")}
                 </Button>
               </form>
             </CardContent>
@@ -1117,44 +1123,46 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Create School Draft from Scratch</CardTitle>
+              <CardTitle>{t("syllabus.createSchoolDraftFromScratch")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateFromScratch} className="space-y-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">Syllabus name</label>
+                  <label className="text-xs font-medium">{t("syllabus.syllabusName")}</label>
                   <Input
                     value={scratchName}
                     onChange={(event) => setScratchName(event.target.value)}
-                    placeholder="Cloudbase Ground Handling"
+                    placeholder={t("syllabus.syllabusNamePlaceholder")}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-medium">Initial lessons</p>
+                  <p className="text-xs font-medium">{t("syllabus.initialLessons")}</p>
                   {lessonDrafts.map((lesson, index) => (
                     <div key={`scratch-${index}`} className="rounded-md border p-3">
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-xs font-semibold">Lesson {index + 1}</p>
+                        <p className="text-xs font-semibold">
+                          {t("syllabus.lessonNumberTitle", { number: index + 1 })}
+                        </p>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeLessonDraft(index)}
                         >
-                          Remove
+                          {t("syllabus.removeButton")}
                         </Button>
                       </div>
                       <div className="space-y-2">
                         <Input
-                          placeholder="Lesson name"
+                          placeholder={t("syllabus.lessonNamePlaceholder")}
                           value={lesson.name}
                           onChange={(event) =>
                             updateLessonDraft(index, { name: event.target.value })
                           }
                         />
                         <Textarea
-                          placeholder="Lesson description"
+                          placeholder={t("syllabus.lessonDescPlaceholder")}
                           value={lesson.description}
                           onChange={(event) =>
                             updateLessonDraft(index, { description: event.target.value })
@@ -1174,12 +1182,14 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                     </div>
                   ))}
                   <Button type="button" variant="outline" onClick={addLessonDraft}>
-                    Add lesson
+                    {t("syllabus.addLessonButton")}
                   </Button>
                 </div>
 
                 <Button type="submit" disabled={isCreatingFromScratch}>
-                  {isCreatingFromScratch ? "Creating..." : "Create from scratch"}
+                  {isCreatingFromScratch
+                    ? t("syllabus.creatingFromTemplate")
+                    : t("syllabus.createFromScratchButton")}
                 </Button>
               </form>
             </CardContent>
@@ -1187,23 +1197,23 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Open Course from FINAL Syllabus</CardTitle>
+              <CardTitle>{t("syllabus.openCourseFromFinalSyllabus")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateCourse} className="space-y-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">FINAL syllabus version</label>
+                  <label className="text-xs font-medium">{t("syllabus.selectFinalVersion")}</label>
                   <Select
                     value={newCourseTemplateVersionId}
                     onValueChange={setNewCourseTemplateVersionId}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select FINAL syllabus version" />
+                      <SelectValue placeholder={t("syllabus.finalTemplatePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {finalCandidates.map((item: CatalogItem) => (
                         <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
-                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? "System"}
+                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1211,7 +1221,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">Start date and time (optional)</label>
+                  <label className="text-xs font-medium">{t("syllabus.startDateLabel")}</label>
                   <Input
                     type="datetime-local"
                     value={newCourseStartDate}
@@ -1221,7 +1231,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Min capacity (optional)</label>
+                    <label className="text-xs font-medium">{t("syllabus.minCapacityLabel")}</label>
                     <Input
                       type="number"
                       min={1}
@@ -1230,7 +1240,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Max capacity (optional)</label>
+                    <label className="text-xs font-medium">{t("syllabus.maxCapacityLabel")}</label>
                     <Input
                       type="number"
                       min={1}
@@ -1242,7 +1252,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium">
-                    Default lesson price in minor units (optional)
+                    {t("syllabus.defaultLessonPriceLabel")}
                   </label>
                   <Input
                     type="number"
@@ -1253,7 +1263,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                 </div>
 
                 <Button type="submit" disabled={isCreatingCourse}>
-                  {isCreatingCourse ? "Creating course..." : "Open course"}
+                  {isCreatingCourse ? t("syllabus.creatingCourse") : t("syllabus.createCourseButton")}
                 </Button>
               </form>
             </CardContent>
@@ -1264,16 +1274,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       {activeSection === "details" && (
         <Card>
           <CardHeader>
-            <CardTitle>Selected Syllabus Version Details</CardTitle>
+            <CardTitle>{t("syllabus.selectedVersionDetails")}</CardTitle>
           </CardHeader>
           <CardContent>
             {isVersionLoading && (
-              <p className="text-muted-foreground text-sm">Loading selected version details...</p>
+              <p className="text-muted-foreground text-sm">{t("syllabus.loadingVersionDetails")}</p>
             )}
 
             {!isVersionLoading && !versionDetails && (
               <p className="text-muted-foreground text-sm">
-                Select a syllabus version from Catalog first.
+                {t("syllabus.selectVersionFromCatalog")}
               </p>
             )}
 
@@ -1283,20 +1293,20 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                   <p className="text-sm font-medium">{versionDetails.syllabusName}</p>
                   <p className="text-muted-foreground text-xs">
                     v{versionDetails.version} • {versionDetails.status} •{" "}
-                    {versionDetails.schoolName ?? "System"}
+                    {versionDetails.schoolName ?? t("syllabus.system")}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={loadLessonsIntoEditor}>
-                    Load lessons into editor
+                    {t("syllabus.loadLessonsIntoEditor")}
                   </Button>
                   <Button
                     type="button"
                     onClick={handleSaveRevision}
                     disabled={!selectedDraftId || isSavingRevision}
                   >
-                    {isSavingRevision ? "Saving..." : "Save as new draft revision"}
+                    {isSavingRevision ? t("syllabus.saving") : t("syllabus.saveAsNewDraftRevision")}
                   </Button>
                   <Button
                     type="button"
@@ -1304,7 +1314,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                     onClick={handlePublish}
                     disabled={!selectedDraftId || isPublishing}
                   >
-                    {isPublishing ? "Publishing..." : "Publish as FINAL version"}
+                    {isPublishing ? t("syllabus.publishing") : t("syllabus.publishAsFinalVersion")}
                   </Button>
                 </div>
               </div>
@@ -1316,12 +1326,12 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       {activeSection === "editor" && (
         <Card>
           <CardHeader>
-            <CardTitle>Lesson Editor</CardTitle>
+            <CardTitle>{t("syllabus.lessonEditor")}</CardTitle>
           </CardHeader>
           <CardContent>
             {!versionDetails && (
               <p className="text-muted-foreground text-sm">
-                Select a syllabus in Catalog, open Details, and load lessons into editor.
+                {t("syllabus.selectSyllabusToEdit")}
               </p>
             )}
 
@@ -1331,27 +1341,29 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                   {lessonDrafts.map((lesson, index) => (
                     <div key={`editor-${index}`} className="rounded-md border p-3">
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-xs font-semibold">Lesson {index + 1}</p>
+                        <p className="text-xs font-semibold">
+                          {t("syllabus.lessonNumberTitle", { number: index + 1 })}
+                        </p>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeLessonDraft(index)}
                         >
-                          Remove
+                          {t("syllabus.removeButton")}
                         </Button>
                       </div>
                       <div className="space-y-2">
                         <Input
                           value={lesson.name}
-                          placeholder="Lesson name"
+                          placeholder={t("syllabus.lessonNamePlaceholder")}
                           onChange={(event) =>
                             updateLessonDraft(index, { name: event.target.value })
                           }
                         />
                         <Textarea
                           value={lesson.description}
-                          placeholder="Lesson description"
+                          placeholder={t("syllabus.lessonDescPlaceholder")}
                           onChange={(event) =>
                             updateLessonDraft(index, { description: event.target.value })
                           }
@@ -1370,7 +1382,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                     </div>
                   ))}
                   <Button type="button" variant="outline" onClick={addLessonDraft}>
-                    Add lesson
+                    {t("syllabus.addLessonButton")}
                   </Button>
                 </div>
 
@@ -1380,7 +1392,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                     onClick={handleSaveRevision}
                     disabled={!selectedDraftId || isSavingRevision}
                   >
-                    {isSavingRevision ? "Saving..." : "Save as new draft revision"}
+                    {isSavingRevision ? t("syllabus.saving") : t("syllabus.saveAsNewDraftRevision")}
                   </Button>
                   <Button
                     type="button"
@@ -1388,7 +1400,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                     onClick={handlePublish}
                     disabled={!selectedDraftId || isPublishing}
                   >
-                    {isPublishing ? "Publishing..." : "Publish as FINAL version"}
+                    {isPublishing ? t("syllabus.publishing") : t("syllabus.publishAsFinalVersion")}
                   </Button>
                 </div>
               </div>

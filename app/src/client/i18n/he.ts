@@ -22,9 +22,14 @@ export const he = {
     language: "שפה",
     english: "English",
     hebrew: "עברית",
+    unknown: "לא ידוע",
+    user: "משתמש",
   },
 
   nav: {
+    appName: "האפליקציה שלך",
+    openMainMenu: "פתח תפריט ראשי",
+    logIn: "כניסה",
     home: "בית",
     about: "אודות",
     features: "תכונות",
@@ -169,6 +174,8 @@ export const he = {
     svgPngJpgOrGif: "SVG, PNG, JPG או GIF",
     maxFileSize: "(מקסימום 800 X 800px)",
     notYetImplemented: "עדיין לא מיושם",
+    notSet: "לא הוגדר",
+    writeBioHere: "כתוב כאן את הביוגרפיה שלך",
     weekdays: {
       sunday: "ראשון",
       sundayShort: "א׳",
@@ -363,6 +370,20 @@ export const he = {
     defaultLessonPriceLabel: "מחיר שיעור ברירת מחדל (יחידות קטנות, אופציונלי)",
     createCourseButton: "יצור קורס",
     creatingCourse: "יוצר...",
+    loadingCatalog: "טוען קטלוג תכניות לימודים...",
+    system: "מערכת",
+    selectCourseBeforeAssigning: "בחר קורס לפני הקצאת מדריך.",
+    selectedVersionDetails: "פרטי גרסת תכנית לימודים נבחרת",
+    loadingVersionDetails: "טוען פרטי גרסה נבחרת...",
+    selectVersionFromCatalog: "בחר תחילה גרסת תכנית לימודים מהקטלוג.",
+    saving: "שומר...",
+    saveAsNewDraftRevision: "שמור כגרסת טיוטה חדשה",
+    publishing: "מפרסם...",
+    publishAsFinalVersion: "פרסם כגרסת FINAL",
+    lessonEditor: "עורך שיעורים",
+    selectSyllabusToEdit: "בחר תכנית לימודים בקטלוג, פתח את פרטים וטען שיעורים לעורך.",
+    student: "סטודנט",
+    instructor: "מדריך",
   },
 
   school: {
@@ -405,6 +426,10 @@ export const he = {
   },
 
   user: {
+    accountSettings: "הגדרות חשבון",
+    mySchool: "בית הספר שלי",
+    syllabuses: "תכניות הלימודים",
+    adminDashboard: "לוח בקרה ניהולי",
     accountInformation: "מידע חשבון",
     emailAddress: "כתובת דוא״ל",
     fullName: "שם מלא",

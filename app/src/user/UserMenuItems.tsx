@@ -15,15 +15,6 @@ export const UserMenuItems = ({
 }) => {
   const { t } = useTranslation();
 
-  const getItemLabel = (itemName: string) => {
-    const labelMap: Record<string, string> = {
-      "Account Settings": t("user.accountInformation"),
-      "My School": t("admin.mySchool"),
-      "Syllabuses": t("admin.syllabuses"),
-      "Admin Dashboard": t("admin.dashboard"),
-    };
-    return labelMap[itemName] || itemName;
-  };
   return (
     <>
       {userMenuItems.map((item) => {
@@ -31,14 +22,14 @@ export const UserMenuItems = ({
         if (item.isAdminOnly && !isAdmin(user)) return null;
 
         return (
-          <li key={item.name}>
+          <li key={item.nameKey}>
             <WaspRouterLink
               to={item.to}
               onClick={onItemClick}
               className="text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium leading-7 transition-colors"
             >
               <item.icon size="1.1rem" />
-              {getItemLabel(item.name)}
+              {t(item.nameKey)}
             </WaspRouterLink>
           </li>
         );

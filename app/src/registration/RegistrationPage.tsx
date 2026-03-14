@@ -82,12 +82,12 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     if (isManagerRequest) {
       const missingFields: string[] = [];
 
-      if (!requestedSchoolName.trim()) missingFields.push("School name");
-      if (!requestedAddressLine1.trim()) missingFields.push("Address line 1");
-      if (!requestedCity.trim()) missingFields.push("City");
-      if (!requestedPostalCode.trim()) missingFields.push("Postal code");
-      if (!requestedCountry.trim()) missingFields.push("Country (ISO code)");
-      if (!requestedCurrency.trim()) missingFields.push("Currency (ISO code)");
+      if (!requestedSchoolName.trim()) missingFields.push(t("registration.schoolName"));
+      if (!requestedAddressLine1.trim()) missingFields.push(t("registration.addressLine1"));
+      if (!requestedCity.trim()) missingFields.push(t("registration.city"));
+      if (!requestedPostalCode.trim()) missingFields.push(t("registration.postalCode"));
+      if (!requestedCountry.trim()) missingFields.push(t("registration.countryCode"));
+      if (!requestedCurrency.trim()) missingFields.push(t("registration.currencyCode"));
 
       if (missingFields.length > 0) {
         toast({

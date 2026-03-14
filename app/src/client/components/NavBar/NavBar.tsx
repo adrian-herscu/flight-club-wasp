@@ -1,5 +1,6 @@
 import { LogIn, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 // import { Dispatch, SetStateAction } from "react";
 // import { Link as ReactRouterLink } from "react-router";
 import { useAuth } from "wasp/client/auth";
@@ -31,6 +32,7 @@ export default function NavBar({
 }: {
   navigationItems: NavigationItem[];
 }) {
+  const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   // const isLandingPage = useIsLandingPage();
 
@@ -89,7 +91,7 @@ export default function NavBar({
                     },
                   )}
                 >
-                  Your SaaS
+                  {t("nav.appName")}
                 </span>
               </WaspRouterLink>
 
@@ -112,6 +114,7 @@ export default function NavBar({
 }
 
 function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
+  const { t } = useTranslation();
   const { data: user, isLoading: isUserLoading } = useAuth();
 
   return (
@@ -132,7 +135,7 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
           )}
         >
           <div className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out">
-            Log in{" "}
+            {t("nav.logIn")} {" "}
             <LogIn
               size={isScrolled ? "1rem" : "1.1rem"}
               className={cn("transition-all duration-300", {
@@ -158,6 +161,7 @@ function NavBarMobileMenu({
   isScrolled: boolean;
   navigationItems: NavigationItem[];
 }) {
+  const { t } = useTranslation();
   const { data: user, isLoading: isUserLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isRTL = typeof document !== "undefined" && document.documentElement.dir === "rtl";
@@ -172,7 +176,7 @@ function NavBarMobileMenu({
               "text-muted-foreground hover:text-muted hover:bg-accent inline-flex items-center justify-center rounded-md transition-colors",
             )}
           >
-            <span className="sr-only">Open main menu</span>
+            <span className="sr-only">{t("nav.openMainMenu")}</span>
             <Menu
               className={cn("transition-all duration-300", {
                 "size-8 p-1": !isScrolled,
@@ -186,7 +190,7 @@ function NavBarMobileMenu({
           <SheetHeader>
             <SheetTitle className="flex items-center">
               <WaspRouterLink to={routes.LandingPageRoute.to}>
-                <span className="sr-only">Your SaaS</span>
+                <span className="sr-only">{t("nav.appName")}</span>
                 <NavLogo isScrolled={false} />
               </WaspRouterLink>
             </SheetTitle>
@@ -202,7 +206,7 @@ function NavBarMobileMenu({
                 {isUserLoading ? null : !user ? (
                   <WaspRouterLink to={routes.LoginRoute.to}>
                     <div className="text-foreground hover:text-primary flex items-center justify-end transition-colors duration-300 ease-in-out">
-                      Log in <LogIn size="1.1rem" className="ml-1" />
+                      {t("nav.logIn")} <LogIn size="1.1rem" className="ml-1" />
                     </div>
                   </WaspRouterLink>
                 ) : (

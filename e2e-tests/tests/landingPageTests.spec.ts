@@ -1,5 +1,4 @@
 import { Cookie, expect, test } from "@playwright/test";
-import { logUserIn } from "./utils";
 
 test.describe("general landing page tests", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,14 +10,11 @@ test.describe("general landing page tests", () => {
   });
 
   test("existing seeded user can log in through translated login form", async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
-    });
+    await page.goto("/login");
+    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
+    await page.fill('input[name="password"]', "12345678");
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState("networkidle");
 
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText("school_manager_01")).toBeVisible();

@@ -5,18 +5,55 @@ argument-hint: The target language/locale to add (e.g., "Romanian / ro", "French
 ---
 Add a complete translation for **[target language]** (locale code: `[locale code]`) to this project.
 
+## Goal
+Implement a new locale by extending the **existing i18n architecture only**.
+Do **not** create a parallel localization system.
+
 ## Steps
 
-1. **Discover the i18n setup** – locate existing locale files (e.g., `src/client/i18n/`, `public/locales/`, or similar) and identify the file format (JSON, YAML, PO, etc.) and directory convention.
-2. **Identify the source locale** – use the default/fallback locale (typically `en`) as the reference for all keys.
-3. **Create the new locale file(s)** – mirror the directory structure of the source locale, producing one file per namespace (if namespaced).
-4. **Translate all keys** – provide accurate, natural translations for every key in the source file. Do not leave any key untranslated or use machine-literal placeholders.
-5. **Register the locale** – add the new locale to the i18n configuration (e.g., `i18n.ts`, `i18next` config, framework config) so it is recognized at runtime.
-6. **Add a locale switcher entry** (if a language-selector UI exists) – add the new language option with its native name (e.g., "Română").
-7. **Verify completeness** – confirm no keys are missing compared to the source locale and that interpolation placeholders (`{{variable}}`, `%s`, etc.) are preserved exactly.
+1. **Discover the current i18n architecture (mandatory first)**
+	- Inspect existing i18n files and language switcher before making changes.
+	- Determine:
+	  - source locale file
+	  - locale registration location
+	  - language selector location
+	  - translation value format (TS object / JSON / etc.)
+
+2. **Identify the source locale**
+	- Use the app's default/fallback locale (typically `en`) as the single source of truth.
+	- Mirror the full key structure exactly (including nested objects and arrays).
+
+3. **Create the new locale file(s) in the same architecture**
+	- Use the same directory and file conventions as existing locales.
+	- For this repository's expected structure, prefer:
+	  - `app/src/client/i18n/<locale>.ts`
+
+4. **Translate all keys completely**
+	- Translate every source key with natural native phrasing.
+	- Do not leave keys in English.
+	- Do not add placeholder/literal "TODO" translations.
+
+5. **Register the locale in existing i18n config**
+	- Add the locale to the current i18n resource registration (do not replace existing locales).
+
+6. **Update language selector (if present)**
+	- Add the new locale option in the existing selector UI.
+	- Use the language's native display name (e.g., `Română`).
+
+7. **Verify completeness and correctness**
+	- Confirm no missing keys vs source locale.
+	- Confirm no extra accidental keys.
+	- Confirm interpolation tokens and formatting are preserved exactly (examples: `{{var}}`, `%s`, `{count}`, `{fields}`).
+	- Preserve any embedded HTML tags or markup exactly.
+
+8. **Run relevant tests/checks**
+	- Run baseline relevant i18n tests first.
+	- After changes, run relevant i18n tests again and confirm green.
 
 ## Constraints
-- Preserve all interpolation tokens and HTML tags inside translation values.
-- Follow the existing code style and import conventions of the project.
-- Do not remove or modify existing translations.
+- Follow existing project import and style conventions.
+- Do not modify unrelated files.
+- Do not remove or alter existing translations in other locales.
+- If prior wrong-path locale files were created, remove them and align with the current architecture.
+- Keep RTL/LTR behavior unchanged unless the new locale explicitly requires direction changes.
 - If a term has no direct equivalent, use the most natural phrasing for native speakers.
