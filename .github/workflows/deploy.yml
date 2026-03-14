@@ -33,7 +33,7 @@ jobs:
 
       - name: Deploy
         run: |
-          cd app
+          cd "$GITHUB_WORKSPACE/app"
           wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
         env:
           # You must add RAILWAY_API_TOKEN to your Repository Secrets
