@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { detectLanguageFromText } from "./utils";
 
 async function selectLanguage(page: Page, languageLabel: string) {
@@ -106,6 +106,56 @@ test.describe("Internationalization & Translation Tests", () => {
     for (const [label, lang] of sequence) {
       await selectLanguage(page, label);
       await expect.poll(async () => page.getAttribute("html", "lang")).toBe(lang);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Browser language auto-detection
+// Each test opens a FRESH context (no localStorage) with a specific browser
+// locale so that detectBrowserLanguage() is the sole deciding factor.
+// ---------------------------------------------------------------------------
+test.describe("Browser language auto-detection (no localStorage)", () => {
+  async function openFreshPage(browser: Browser, locale: string) {
+    const ctx = await browser.newContext({ locale });
+    const page = await ctx.newPage();
+    // Clear any stale locale that may have leaked from a previous context.
+    await page.addInitScript(() => localStorage.removeItem("locale"));
+    await page.goto("/login");
+    await page.waitForLoadState("domcontentloaded");
+    return { page, ctx };
+  }
+
+  test("opens in Hebrew when browser locale is he", async ({ browser }) => {
+    const { page, ctx } = await openFreshPage(browser, "he");
+    try {
+      await expect.poll(() => page.getAttribute("html", "lang")).toBe("he");
+      const text = (await page.locator("h2, label, button[type='submit']").allInnerTexts()).join(" ");
+      expect(detectLanguageFromText(text)).toBe("he");
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  test("opens in Romanian when browser locale is ro", async ({ browser }) => {
+    const { page, ctx } = await openFreshPage(browser, "ro");
+    try {
+      await expect.poll(() => page.getAttribute("html", "lang")).toBe("ro");
+      const text = (await page.locator("h2, label, button[type='submit']").allInnerTexts()).join(" ");
+      expect(detectLanguageFromText(text)).toBe("ro");
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  test("falls back to English for unsupported browser locale (fr)", async ({ browser }) => {
+    const { page, ctx } = await openFreshPage(browser, "fr");
+    try {
+      await expect.poll(() => page.getAttribute("html", "lang")).toBe("en");
+      const text = (await page.locator("h2, label, button[type='submit']").allInnerTexts()).join(" ");
+      expect(detectLanguageFromText(text)).toBe("en");
+    } finally {
+      await ctx.close();
     }
   });
 });

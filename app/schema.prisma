@@ -55,6 +55,7 @@ enum SubscriptionStatus {
 model School {
   id                        String          @id @default(uuid())
   name                      String
+  websiteUrl                String?
   addressLine1              String
   addressLine2              String?
   city                      String
@@ -120,6 +121,7 @@ model RegistrationRequest {
   targetSchoolId            String?
 
   requestedSchoolName       String?
+  requestedWebsiteUrl       String?
   requestedAddressLine1     String?
   requestedAddressLine2     String?
   requestedCity             String?

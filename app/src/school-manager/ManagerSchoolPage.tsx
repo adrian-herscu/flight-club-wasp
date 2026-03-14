@@ -14,6 +14,7 @@ const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as an
 
 type ManagedSchool = {
   name: string;
+  websiteUrl: string | null;
   addressLine1: string;
   addressLine2: string | null;
   city: string;
@@ -31,12 +32,36 @@ type ManagedSchool = {
 const labelClassName = "text-muted-foreground text-xs uppercase tracking-wide";
 const valueClassName = "text-foreground text-sm font-medium";
 
+function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed);
+  return hasScheme ? trimmed : `https://${trimmed}`;
+}
+
+function isValidOptionalWebsiteUrl(value: string): boolean {
+  if (!value.trim()) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(normalizeWebsiteUrl(value));
+    return Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
   const school = data as ManagedSchool | undefined;
 
   const [name, setName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -48,6 +73,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
     if (!school) return;
 
     setName(school.name);
+    setWebsiteUrl(school.websiteUrl ?? "");
     setAddressLine1(school.addressLine1);
     setAddressLine2(school.addressLine2 ?? "");
     setCity(school.city);
@@ -58,10 +84,20 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
 
+    if (!isValidOptionalWebsiteUrl(websiteUrl)) {
+      toast({
+        title: t("school.invalidWebsiteUrl"),
+        description: t("school.invalidWebsiteUrlError"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       await updateMyManagedSchool({
         name,
+        websiteUrl: websiteUrl.trim() || undefined,
         addressLine1,
         addressLine2,
         city,
@@ -117,6 +153,18 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
               <div className="rounded-md border p-4">
                 <p className={labelClassName}>{t("school.currentProfile")}</p>
                 <p className={valueClassName}>{school.name}</p>
+                {school.websiteUrl ? (
+                  <p className={valueClassName}>
+                    <a
+                      href={normalizeWebsiteUrl(school.websiteUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline underline-offset-2"
+                    >
+                      {school.websiteUrl}
+                    </a>
+                  </p>
+                ) : null}
                 <p className={valueClassName}>{school.addressLine1}</p>
                 {school.addressLine2 ? (
                   <p className={valueClassName}>{school.addressLine2}</p>
@@ -132,6 +180,16 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                     id="school-name"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-website-url">{t("school.websiteUrl")}</Label>
+                  <Input
+                    id="school-website-url"
+                    value={websiteUrl}
+                    onChange={(event) => setWebsiteUrl(event.target.value)}
+                    placeholder="https://example.com"
                   />
                 </div>
 

@@ -10,8 +10,34 @@ type RequestContext = {
   } | null;
 };
 
+function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed);
+  return hasScheme ? trimmed : `https://${trimmed}`;
+}
+
+function normalizeOptionalWebsiteUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = normalizeWebsiteUrl(trimmed);
+  const parsed = new URL(normalized);
+  if (!parsed.hostname) {
+    throw new HttpError(400, "Website URL must be a valid URL.");
+  }
+
+  return normalized;
+}
+
 const updateManagedSchoolSchema = z.object({
   name: z.string().trim().min(2),
+  websiteUrl: z.string().trim().max(2048).optional(),
   addressLine1: z.string().trim().min(2),
   addressLine2: z.string().trim().optional(),
   city: z.string().trim().min(2),
@@ -65,6 +91,7 @@ export const updateMyManagedSchool = async (
 
   const {
     name,
+    websiteUrl,
     addressLine1,
     addressLine2,
     city,
@@ -75,11 +102,14 @@ export const updateMyManagedSchool = async (
     rawArgs,
   ) as UpdateManagedSchoolInput;
 
+  const normalizedWebsiteUrl = normalizeOptionalWebsiteUrl(websiteUrl);
+
   try {
     return await prisma.school.update({
       where: { id: school.id },
       data: {
         name,
+        websiteUrl: normalizedWebsiteUrl,
         addressLine1,
         addressLine2: addressLine2 || null,
         city,

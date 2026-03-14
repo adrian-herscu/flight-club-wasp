@@ -23,6 +23,44 @@ function ensureAuthenticatedUser(context: RequestContext) {
   return context.user;
 }
 
+function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed);
+  return hasScheme ? trimmed : `https://${trimmed}`;
+}
+
+function normalizeOptionalWebsiteUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = normalizeWebsiteUrl(trimmed);
+  const parsed = new URL(normalized);
+  if (!parsed.hostname) {
+    throw new Error("Invalid website URL.");
+  }
+
+  return normalized;
+}
+
+function isValidOptionalWebsiteUrl(value: string | undefined): boolean {
+  if (!value?.trim()) {
+    return true;
+  }
+
+  try {
+    normalizeOptionalWebsiteUrl(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function ensureSystemAdmin(context: RequestContext) {
   const user = ensureAuthenticatedUser(context);
 
@@ -63,6 +101,7 @@ const submitRegistrationRequestSchema = z
     requestedRole: z.enum(["SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT"]),
     targetSchoolId: z.string().min(1).optional(),
     requestedSchoolName: z.string().trim().min(2).optional(),
+    requestedWebsiteUrl: z.string().trim().max(2048).optional(),
     requestedAddressLine1: z.string().trim().min(2).optional(),
     requestedAddressLine2: z.string().trim().optional(),
     requestedCity: z.string().trim().min(2).optional(),
@@ -113,6 +152,13 @@ const submitRegistrationRequestSchema = z
           code: z.ZodIssueCode.custom,
           path: ["requestedCurrency"],
           message: "Currency code is required.",
+        });
+      }
+      if (!isValidOptionalWebsiteUrl(value.requestedWebsiteUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["requestedWebsiteUrl"],
+          message: "Website URL must be a valid URL.",
         });
       }
       return;
@@ -174,6 +220,7 @@ type RegistrationRequestListItem = {
     name: string;
   } | null;
   requestedSchoolName: string | null;
+  requestedWebsiteUrl: string | null;
   requestedAddressLine1: string | null;
   requestedAddressLine2: string | null;
   requestedCity: string | null;
@@ -222,6 +269,7 @@ export const getRegistrationSchoolOptions = async (
       name: true,
       city: true,
       country: true,
+      websiteUrl: true,
     },
     orderBy: [{ name: "asc" }, { createdAt: "asc" }],
   });
@@ -258,6 +306,10 @@ export const submitRegistrationRequest = async (
 
   const fullName = args.fullName.trim();
   const phone = args.phone.trim();
+  const requestedWebsiteUrl =
+    args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      ? normalizeOptionalWebsiteUrl(args.requestedWebsiteUrl)
+      : null;
 
   const registrationRequestData = {
     requesterId: user.id,
@@ -270,6 +322,7 @@ export const submitRegistrationRequest = async (
       args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedSchoolName?.trim() ?? null
         : null,
+    requestedWebsiteUrl,
     requestedAddressLine1:
       args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedAddressLine1?.trim() ?? null
@@ -460,6 +513,7 @@ export const approveSchoolManagerRequest = async (
       const school = await tx.school.create({
         data: {
           name: requestedSchoolName,
+          websiteUrl: request.requestedWebsiteUrl,
           addressLine1: requestedAddressLine1,
           addressLine2: request.requestedAddressLine2,
           city: requestedCity,

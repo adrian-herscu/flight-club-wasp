@@ -6,7 +6,7 @@ declare global {
   }
 }
 
-const getConfig = () => {
+const getConfig = (locale: string = "en") => {
   // See https://cookieconsent.orestbida.com/reference/configuration-reference.html for configuration options.
   const config: CookieConsentConfig = {
     // Default configuration for the modal.
@@ -87,7 +87,7 @@ const getConfig = () => {
     },
 
     language: {
-      default: "en",
+      default: locale,
       translations: {
         en: {
           consentModal: {
@@ -104,6 +104,38 @@ const getConfig = () => {
                     `,
           },
           // The showPreferencesBtn activates this modal to manage individual preferences https://cookieconsent.orestbida.com/reference/configuration-reference.html#translation-preferencesmodal
+          preferencesModal: {
+            sections: [],
+          },
+        },
+        ro: {
+          consentModal: {
+            title: "Folosim cookie-uri",
+            description:
+              "Folosim cookie-uri în principal pentru analiză, pentru a-ți îmbunătăți experiența. Prin acceptare, ești de acord cu utilizarea acestor cookie-uri. Îți poți gestiona preferințele sau poți afla mai multe despre politica noastră de cookie-uri.",
+            acceptAllBtn: "Acceptă toate",
+            acceptNecessaryBtn: "Respinge toate",
+            footer: `
+            <a href="<your-url-here>" target="_blank">Politica de confidențialitate</a>
+            <a href="<your-url-here>" target="_blank">Termeni și condiții</a>
+                    `,
+          },
+          preferencesModal: {
+            sections: [],
+          },
+        },
+        he: {
+          consentModal: {
+            title: "אנו משתמשים בעוגיות",
+            description:
+              "אנו משתמשים בעוגיות בעיקר לניתוח כדי לשפר את חוויתך. על ידי קבלה, אתה מסכים לשימוש שלנו בעוגיות אלה. תוכל לנהל את העדפותיך או ללמוד עוד על מדיניות העוגיות שלנו.",
+            acceptAllBtn: "קבל הכל",
+            acceptNecessaryBtn: "דחה הכל",
+            footer: `
+            <a href="<your-url-here>" target="_blank">מדיניות פרטיות</a>
+            <a href="<your-url-here>" target="_blank">תנאים והגבלות</a>
+                    `,
+          },
           preferencesModal: {
             sections: [],
           },

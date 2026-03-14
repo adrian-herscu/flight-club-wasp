@@ -30,7 +30,31 @@ type SchoolOption = {
   name: string;
   city: string;
   country: string;
+  websiteUrl: string | null;
 };
+
+function normalizeWebsiteUrlForLink(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed);
+  return hasScheme ? trimmed : `https://${trimmed}`;
+}
+
+function isValidWebsiteUrl(value: string): boolean {
+  if (!value.trim()) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(normalizeWebsiteUrlForLink(value));
+    return Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
 
 export default function RegistrationPage({ user }: { user: AuthUser }) {
   const { t } = useTranslation();
@@ -53,6 +77,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const [requestedRole, setRequestedRole] = useState<RegistrationRole>("SCHOOL_MANAGER");
   const [targetSchoolId, setTargetSchoolId] = useState("");
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
+  const [requestedWebsiteUrl, setRequestedWebsiteUrl] = useState("");
   const [requestedAddressLine1, setRequestedAddressLine1] = useState("");
   const [requestedAddressLine2, setRequestedAddressLine2] = useState("");
   const [requestedCity, setRequestedCity] = useState("");
@@ -115,6 +140,15 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
         });
         return;
       }
+
+      if (!isValidWebsiteUrl(requestedWebsiteUrl)) {
+        toast({
+          title: t("registration.invalidWebsiteUrl"),
+          description: t("registration.invalidWebsiteUrlError"),
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (!isManagerRequest && !targetSchoolId) {
@@ -134,6 +168,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
         requestedRole,
         targetSchoolId: isManagerRequest ? undefined : targetSchoolId,
         requestedSchoolName: isManagerRequest ? requestedSchoolName.trim() : undefined,
+        requestedWebsiteUrl:
+          isManagerRequest ? requestedWebsiteUrl.trim() || undefined : undefined,
         requestedAddressLine1: isManagerRequest ? requestedAddressLine1.trim() : undefined,
         requestedAddressLine2: isManagerRequest ? requestedAddressLine2.trim() || undefined : undefined,
         requestedCity: isManagerRequest ? requestedCity.trim() : undefined,
@@ -264,6 +300,15 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="requestedWebsiteUrl">{t("registration.websiteUrl")}</Label>
+                <Input
+                  id="requestedWebsiteUrl"
+                  value={requestedWebsiteUrl}
+                  onChange={(event) => setRequestedWebsiteUrl(event.target.value)}
+                  placeholder="https://example.com"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="requestedAddressLine1">{t("registration.addressLine1")}</Label>
                 <Input
                   id="requestedAddressLine1"
@@ -343,6 +388,34 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
               </Select>
               {schoolOptions.length === 0 && (
                 <p className="text-muted-foreground text-sm">{t("registration.noSchoolsAvailable")}</p>
+              )}
+              {schoolOptions.some((school) => Boolean(school.websiteUrl)) && (
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">{t("registration.schoolWebsites")}</p>
+                  <ul className="space-y-1 text-sm">
+                    {schoolOptions.map((school) => {
+                      if (!school.websiteUrl) {
+                        return null;
+                      }
+
+                      const href = normalizeWebsiteUrlForLink(school.websiteUrl);
+
+                      return (
+                        <li key={`school-website-${school.id}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                          <span className="font-medium">{school.name}</span>
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline underline-offset-2"
+                          >
+                            {school.websiteUrl}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
             </div>
           )}

@@ -5,6 +5,20 @@ import { he } from "./he";
 import { ro } from "./ro";
 
 const rtlLanguages = new Set(["he"]);
+const supportedLanguages = new Set(["en", "he", "ro"]);
+
+/** Returns the first browser-preferred language that this app supports, or "en". */
+function detectBrowserLanguage(): string {
+  if (typeof navigator === "undefined") return "en";
+  const candidates = navigator.languages?.length
+    ? navigator.languages
+    : [navigator.language];
+  for (const lang of candidates) {
+    const base = lang.split("-")[0].toLowerCase();
+    if (supportedLanguages.has(base)) return base;
+  }
+  return "en";
+}
 
 // i18next configuration
 i18next
@@ -15,8 +29,8 @@ i18next
       he: { translation: he },
       ro: { translation: ro },
     },
-    lng: typeof window !== "undefined" ? 
-      (localStorage.getItem("locale") || document.documentElement.lang || "en") 
+    lng: typeof window !== "undefined"
+      ? (localStorage.getItem("locale") || detectBrowserLanguage())
       : "en",
     fallbackLng: "en",
     interpolation: {
