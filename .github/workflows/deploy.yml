@@ -12,10 +12,7 @@ jobs:
       WASP_VERSION: "0.21.1"
       RAILWAY_PROJECT_NAME: flight-club-wasp
       RAILWAY_PROJECT_ID: d5b510d7-cad3-4b81-b785-f5ec6f8b3ddb
-
-    defaults:
-      run:
-        working-directory: app
+      WASP_TELEMETRY_DISABLE: 1
 
     steps:
       - uses: actions/checkout@v6
@@ -25,29 +22,32 @@ jobs:
         with:
           node-version: "22.12"
           cache: 'npm'
+          # Point to the lockfile at the root or in app depending on your structure
           cache-dependency-path: app/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd app
+          npm ci
 
-      - name: Install Wasp
-        run: npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
+      - name: Install Wasp & Railway
+        run: |
+          npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
+          npm install -g @railway/cli
 
       - name: Build and Deploy
         run: |
-          # 1. Generate internal SDK so TypeScript can find 'wasp-config'
+          # 1. Run from the 'app' directory where main.wasp.ts lives
+          cd app
+          
+          # 2. Generate SDK ignoring the initial missing 'wasp-config'
           wasp deps --skip-ts-check
           
-          # 2. Build the project
+          # 3. Build the project
           wasp build
           
-          # 3. Navigate to the build output
+          # 4. Navigate to build output and deploy
           cd .wasp/build
-          
-          # 4. Link and Deploy
           railway link $RAILWAY_PROJECT_ID
           railway up
         env:
