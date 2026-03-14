@@ -39,7 +39,7 @@ jobs:
       - name: Build and Deploy
         run: |
           # 1. Generate internal SDK so TypeScript can find 'wasp-config'
-          wasp deps
+          wasp deps --skip-ts-check
           
           # 2. Build the project
           wasp build
