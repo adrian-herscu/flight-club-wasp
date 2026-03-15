@@ -9,9 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      WASP_VERSION: "0.21"
-      RAILWAY_PROJECT_NAME: flight-club-wasp
+      WASP_VERSION: "0.21.1"
       RAILWAY_PROJECT_ID: d5b510d7-cad3-4b81-b785-f5ec6f8b3ddb
+      WASP_TELEMETRY_DISABLE: 1
 
     defaults:
       run:
@@ -24,18 +24,37 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "22.12"
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
 
-      - name: Install Wasp
-        # We pin the Wasp CLI version to avoid issues when a new Wasp version is released.
-        run: npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy
+      - name: Install CLIs
         run: |
-          pwd
-          wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
+          npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
+          npm i -g @railway/cli
+
+      - name: Build Wasp App
+        run: |
+          # 1. Generate internal SDK
+          wasp deps --skip-ts-check
+          # 2. Create production build in .wasp/out
+          wasp build
+
+      - name: Deploy to Railway
+        run: |
+          # Link the project for the CLI
+          railway link $RAILWAY_PROJECT_ID
+          
+          # --- Deploy Server ---
+          # We deploy from the .wasp/out directory which contains the Node.js server
+          cd .wasp/out
+          railway up --service flight-club-wasp-server --no-gitignore --path-as-root --ci
+          
+          # --- Deploy Client ---
+          # The static web-app is inside the build output
+          cd web-app
+          railway up --service flight-club-wasp-client --no-gitignore --path-as-root --ci
         env:
-          # You must add RAILWAY_API_TOKEN to your Repository Secrets
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
