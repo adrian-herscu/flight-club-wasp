@@ -35,13 +35,5 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: npm install
-        run: npm install
-
-      - name: wasp build
-        run: |
-          wasp deps --skip-ts-check
-          wasp build
-
       - name: Deploy
         run: wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
