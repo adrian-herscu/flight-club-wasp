@@ -16,7 +16,7 @@
 - Every implementation plan must explicitly include test-first workflow steps from `## Testing workflow policy` (baseline check, failing test for behavior fixes, then fix and re-run to green).
 
 ## Source of truth
-- Treat `main.wasp` (or `main.wasp.ts`) as the source of truth for app structure and Wasp declarations.
+- Treat `main.wasp` as the source of truth for app structure and Wasp declarations.
 - Treat `schema.prisma` as the source of truth for data models and relationships.
 
 ## Project conventions

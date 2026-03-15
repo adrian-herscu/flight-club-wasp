@@ -40,8 +40,8 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
   - Cause: existing local PostgreSQL instance while running `wasp start`
   - Fix: stop conflicting DB or use the existing DB intentionally
 - title test passes but tests cannot find `Log in` or cookie-consent buttons
-  - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or an `import` vs `importDefault` mismatch in `main.wasp.ts`
-  - Fix: restart `wasp start`, inspect the browser console, and verify `main.wasp.ts` declaration import style matches component exports
+  - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or a declaration import/export mismatch in `main.wasp`
+  - Fix: restart `wasp start`, inspect the browser console, and verify `main.wasp` declaration imports align with component exports
 - tests pass in CLI but fail in VS Code panel
   - Cause: extension/config mismatch
   - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `e2e-tests`

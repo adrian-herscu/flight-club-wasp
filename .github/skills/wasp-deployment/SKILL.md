@@ -62,6 +62,9 @@ These must be set on the `flight-club-wasp-server` service in Railway. Wasp auto
 	- Client ID/secret mismatch between local/prod, or production callback URI missing from Google Cloud OAuth client.
 - **Build fails after feature removal**:
 	- Leftover files under `src/` still typechecked; remove or fix orphan imports/usages.
+- **Config declaration drift (`main.wasp`)**:
+	- This repo uses `app/main.wasp` as source of truth.
+	- If deployment/dev behavior is inconsistent after config changes, verify `app/main.wasp` declarations and restart `wasp start` before re-checking.
 - **Railway upload timeout / connection reset**:
 	- Usually platform/network-side. Retry deployment later or use CI redeploy.
 
