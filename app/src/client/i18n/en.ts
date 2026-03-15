@@ -28,7 +28,7 @@ export const en = {
   },
 
   nav: {
-    appName: "Your SaaS",
+    appName: "Flight Club",
     openMainMenu: "Open main menu",
     logIn: "Log in",
     home: "Home",

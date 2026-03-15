@@ -28,7 +28,7 @@ export const he = {
   },
 
   nav: {
-    appName: "האפליקציה שלך",
+    appName: "מועדון המעופפים",
     openMainMenu: "פתח תפריט ראשי",
     logIn: "כניסה",
     home: "בית",

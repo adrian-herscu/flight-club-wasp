@@ -28,7 +28,7 @@ export const ro = {
   },
 
   nav: {
-    appName: "SaaS-ul tău",
+    appName: "Zburătorii",
     openMainMenu: "Deschide meniul principal",
     logIn: "Autentificare",
     home: "Acasă",
