@@ -16,7 +16,7 @@ test.describe("general landing page tests", () => {
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/admin$/);
     await expect(page.getByText("school_manager_01")).toBeVisible();
   });
 

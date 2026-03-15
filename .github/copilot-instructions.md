@@ -1,8 +1,13 @@
 # Copilot Instructions for this Wasp app
 
+## NEVER
+- Start the database unless asked to do so for a specific task.
+- Start the dev server unless asked to do so for a specific task.
+
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
 - State concise rationale for key technical decisions.
+- If a simple task becomes unexpectedly complex, consider reverting local changes and restarting from a smaller, cleaner plan; ask for approval first.
 
 
 ## Execution gate (plan first)
@@ -57,6 +62,7 @@
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant E2E tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
 - Scope by impact: for infrastructure/testing-framework changes, run the full E2E suite; otherwise prefer focused tests for the affected area first, then expand only as needed.
+- For GUI/navigation changes, add or update a dedicated E2E flow that covers login and opening each visible sidebar menu item per affected user role; this flow must fail before the fix and pass after.
 
 ## Documentation preference
 - Prefer Wasp docs for final behavioral confirmation:

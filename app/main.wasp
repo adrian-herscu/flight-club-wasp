@@ -274,11 +274,16 @@ action updateMyManagedSchool {
 //#endregion
 
 //#region Admin Dashboard
+page AdminDashboardPage {
+  authRequired: true,
+  component: import AdminDashboard from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
+}
+route AdminRoute { path: "/admin", to: AdminDashboardPage }
+
 page AdminUsersPage {
   authRequired: true,
   component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage"
 }
-route AdminRoute { path: "/admin", to: AdminUsersPage }
 route AdminUsersRoute { path: "/admin/users", to: AdminUsersPage }
 
 page AdminSettingsPage {

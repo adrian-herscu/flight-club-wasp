@@ -6,6 +6,7 @@ import UsersTable from "./UsersTable";
 
 const Users = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
+
   return (
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.usersPageTitle")} />

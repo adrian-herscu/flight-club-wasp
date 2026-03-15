@@ -26,7 +26,7 @@
       "args": [
         "@playwright/mcp@latest",
         "--browser",
-        "chrome",
+        "chromium",
         "--config",
         ".vscode/playwright-mcp.config.json"
       ]

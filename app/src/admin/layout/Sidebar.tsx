@@ -78,7 +78,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
         "bg-muted absolute top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden duration-300 ease-linear lg:static lg:translate-x-0",
         {
           "ltr:left-0 rtl:right-0 border-e ltr:translate-x-0 rtl:translate-x-0": sidebarOpen,
-          "ltr:left-0 ltr:-translate-x-full ltr:border-e rtl:right-0 rtl:translate-x-full rtl:border-s lg:translate-x-0!": !sidebarOpen,
+          "ltr:left-0 rtl:right-0 ltr:border-e rtl:border-s max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full": !sidebarOpen,
         },
       )}
     >
@@ -282,9 +282,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                         )}
                         onClick={(e) => {
                           e.preventDefault();
-                          sidebarExpanded
-                            ? handleClick()
-                            : setSidebarExpanded(true);
+                          if (!sidebarExpanded) {
+                            setSidebarExpanded(true);
+                          }
+                          handleClick();
                         }}
                       >
                         <LayoutTemplate />

@@ -13,6 +13,8 @@ test.describe("admin users", () => {
     });
 
     await expect(page).toHaveURL(/\/admin\/?(?:[?#].*)?$/);
+    await expect(page.getByTestId("admin-dashboard-placeholder")).toHaveText("Under construction");
+    await expect(page.getByRole("heading", { name: "Users" })).toBeHidden();
   });
 
   test("system admin sees seeded users without applying status filter", async ({ page }) => {
