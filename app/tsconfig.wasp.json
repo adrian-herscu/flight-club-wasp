@@ -9,11 +9,7 @@
     "noUnusedParameters": true,
     "module": "NodeNext",
     "noEmit": true,
-    "lib": ["ES2023"],
-    "baseUrl": ".",
-    "paths": {
-      "wasp-config": [".wasp/out/sdk/wasp/wasp-config.js"]
-    }
+    "lib": ["ES2023"]
   },
-  "include": ["main.wasp.ts", ".wasp/out/sdk/wasp/**/*"]
+  "include": ["main.wasp.ts", "main.wasp.d.ts"]
 }

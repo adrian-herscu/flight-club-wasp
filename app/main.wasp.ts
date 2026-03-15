@@ -1,3 +1,4 @@
+/// <reference path="./main.wasp.d.ts" />
 import { App } from 'wasp-config'
 
 const app = new App('OpenSaaS', {
