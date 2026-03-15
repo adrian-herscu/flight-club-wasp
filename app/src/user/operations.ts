@@ -108,8 +108,33 @@ export const getPaginatedUsers: GetPaginatedUsers<
   const desiredSubscriptionStatuses = (subscriptionStatus?.filter(
     (status) => status !== null,
   ) || []) as SubscriptionStatus[];
+  const hasSubscriptionFilter = !!subscriptionStatus?.length;
 
   const pageSize = 10;
+
+  const subscriptionStatusWhere: Prisma.UserWhereInput | undefined =
+    hasSubscriptionFilter
+      ? {
+          OR: [
+            ...(desiredSubscriptionStatuses.length > 0
+              ? [
+                  {
+                    subscriptionStatus: {
+                      in: desiredSubscriptionStatuses,
+                    },
+                  },
+                ]
+              : []),
+            ...(includeUnsubscribedUsers
+              ? [
+                  {
+                    subscriptionStatus: null,
+                  },
+                ]
+              : []),
+          ],
+        }
+      : undefined;
 
   const userPageQuery: Prisma.UserFindManyArgs = {
     skip: skipPages * pageSize,
@@ -125,18 +150,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
             role: { in: roleIn as UserRole[] },
           }),
         },
-        {
-          OR: [
-            {
-              subscriptionStatus: {
-                in: desiredSubscriptionStatuses,
-              },
-            },
-            {
-              subscriptionStatus: includeUnsubscribedUsers ? null : undefined,
-            },
-          ],
-        },
+        ...(subscriptionStatusWhere ? [subscriptionStatusWhere] : []),
       ],
     },
     select: {
