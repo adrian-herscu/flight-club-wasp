@@ -30,11 +30,7 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy
-        run: |
-          pwd
-          wasp version
-          cd app
-          wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
+        run: wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
         env:
           # You must add RAILWAY_API_TOKEN to your Repository Secrets
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
