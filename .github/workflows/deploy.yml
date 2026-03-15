@@ -28,7 +28,10 @@ jobs:
           cache-dependency-path: app/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          # Use 'npm install' instead of 'npm ci' to allow the 
+          # local resolution of the generated wasp-config
+          npm install
 
       - name: Install CLIs
         run: |
