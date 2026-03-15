@@ -16,6 +16,10 @@ jobs:
       RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       WASP_TELEMETRY_DISABLE: 1
 
+    defaults:
+      run:
+        working-directory: app
+
     steps:
       - uses: actions/checkout@v6
 
@@ -31,7 +35,11 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: npm install
+        run: npm install
+
+      - name: wasp build
+        run: wasp build
+
       - name: Deploy
-        run: |
-          cd app
-          wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
+        run: wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
