@@ -46,7 +46,7 @@ app OpenSaaS {
       }
     },
     onAuthFailedRedirectTo: "/login",
-    onAuthSucceededRedirectTo: "/"
+    onAuthSucceededRedirectTo: "/admin"
   },
 
   emailSender: {

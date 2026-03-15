@@ -2,6 +2,19 @@ import { expect, test } from "@playwright/test";
 import { logUserIn } from "./utils";
 
 test.describe("admin users", () => {
+  test("system admin login redirects to dashboard", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+system_admin.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/admin",
+    });
+
+    await expect(page).toHaveURL(/\/admin\/?(?:[?#].*)?$/);
+  });
+
   test("system admin sees seeded users without applying status filter", async ({ page }) => {
     await logUserIn({
       page,
