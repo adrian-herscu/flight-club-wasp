@@ -24,7 +24,7 @@ export function TranslatedLoginForm() {
     try {
       const response = await api.post("/auth/email/login", { email, password });
       await initSession(response.data.sessionId);
-      navigate("/admin");
+      navigate("/");
     } catch (err) {
       const error = handleApiError(err as Parameters<typeof handleApiError>[0]);
       const message =

@@ -41,9 +41,20 @@ export const logUserIn = async ({
   // Click the login button
   await loginButton.click();
 
-  await page.waitForURL("**" + expectedRedirectPath, {
-    timeout: 15000,
-  }).catch(() => null);
+  await page
+    .waitForURL(
+      (url) => {
+        if (expectedRedirectPath === "/") {
+          return url.pathname === "/";
+        }
+
+        return url.pathname === expectedRedirectPath;
+      },
+      {
+        timeout: 15000,
+      },
+    )
+    .catch(() => null);
 
   // Also wait a bit for any redirects
   await page.waitForLoadState("networkidle").catch(() => {});

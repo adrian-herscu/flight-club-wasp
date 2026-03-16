@@ -9,7 +9,7 @@ test.describe("account menu dashboard link", () => {
         email: "seed+system_admin.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     // Navigate to account settings page (outside admin layout)
@@ -37,7 +37,7 @@ test.describe("account menu dashboard link", () => {
         email: "seed+school_manager.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     await page.goto("/account");
@@ -61,7 +61,7 @@ test.describe("account menu dashboard link", () => {
         email: "seed+school_manager.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     await page.goto("/account");

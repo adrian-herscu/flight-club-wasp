@@ -37,8 +37,11 @@ test.describe("role menu navigation flows", () => {
         email: "seed+system_admin.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
+
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
 
     await expectSidebarOnScreen(page);
 
@@ -68,8 +71,11 @@ test.describe("role menu navigation flows", () => {
         email: "seed+school_manager.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
+
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
 
     await expectSidebarOnScreen(page);
 

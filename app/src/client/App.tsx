@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Navigate, Outlet, useLocation } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { useAuth } from "wasp/client/auth";
 import { routes } from "wasp/client/router";
 import { Toaster } from "../client/components/ui/toaster";
@@ -23,11 +23,6 @@ export default function App() {
   // Determine RTL mode from document
   const isRTL = typeof document !== "undefined" && document.documentElement.dir === "rtl";
   const toasterPosition = (isRTL ? "bottom-left" : "bottom-right") as "bottom-left" | "bottom-right";
-
-  const shouldRedirectToRegistration =
-    !isUserLoading &&
-    user?.role === "USER" &&
-    location.pathname !== routes.RegistrationRoute.build();
 
   const isMarketingPage = useMemo(() => {
     return (
@@ -58,10 +53,6 @@ export default function App() {
       }
     }
   }, [location]);
-
-  if (shouldRedirectToRegistration) {
-    return <Navigate to={routes.RegistrationRoute.build()} replace />;
-  }
 
   return (
     <>

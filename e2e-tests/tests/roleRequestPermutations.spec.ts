@@ -35,7 +35,7 @@ test.describe("registration role permutations", () => {
         email: "seed+student.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     await page.goto(
@@ -60,7 +60,7 @@ test.describe("registration role permutations", () => {
         email: "seed+instructor.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     await page.goto("/registration?role=SCHOOL_MANAGER");
@@ -91,7 +91,7 @@ test.describe("registration role permutations", () => {
         email: "seed+school_manager.02@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     await page.goto(

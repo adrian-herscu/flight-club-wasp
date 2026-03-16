@@ -9,8 +9,11 @@ test.describe("admin users", () => {
         email: "seed+system_admin.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
+
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
 
     await expect(page).toHaveURL(/\/admin\/?(?:[?#].*)?$/);
     await expect(page.getByTestId("admin-dashboard-placeholder")).toHaveText("Under construction");
@@ -24,7 +27,7 @@ test.describe("admin users", () => {
         email: "seed+system_admin.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
 
     await page.goto("/admin/users");
@@ -42,8 +45,11 @@ test.describe("admin users", () => {
         email: "seed+system_admin.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
+
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
 
     await expect(
       page.getByRole("link", {
@@ -95,8 +101,11 @@ test.describe("admin users", () => {
         email: "seed+system_admin.01@example.test",
         password: "12345678",
       },
-      expectedRedirectPath: "/admin",
+      expectedRedirectPath: "/",
     });
+
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
 
     await expect(page.getByRole("link", { name: "Schools" })).toBeVisible();
     await page.goto("/admin/school-requests");

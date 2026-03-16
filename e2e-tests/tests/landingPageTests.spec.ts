@@ -16,8 +16,85 @@ test.describe("general landing page tests", () => {
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
 
-    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText("school_manager_01")).toBeVisible();
+  });
+
+  test("anonymous users can see schools and courses on landing", async ({ page }) => {
+    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+    await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
+  });
+
+  test("logged in users can see schools and courses on landing", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
+    await page.fill('input[name="password"]', "12345678");
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState("networkidle");
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+    await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
+  });
+
+  test("course name filter shows only matching courses", async ({ page }) => {
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    const filterInput = page.getByTestId("filter-course-name");
+    await expect(filterInput).toBeVisible();
+
+    await filterInput.fill("Tandem");
+    await page.waitForTimeout(200);
+
+    // "Tandem Flights" course should be visible
+    const courseItems = page.getByTestId("landing-course-item");
+    const visibleItems = await courseItems.all();
+    for (const item of visibleItems) {
+      await expect(item).toContainText("Tandem");
+    }
+
+    // At least one result, and "Paragliding Intro" should not appear
+    await expect(courseItems.first()).toBeVisible();
+    await expect(page.getByText("Paragliding Intro v1")).not.toBeVisible();
+  });
+
+  test("country dropdown filters schools by country", async ({ page }) => {
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    const dropdown = page.getByTestId("filter-country");
+    await expect(dropdown).toBeVisible();
+
+    // Default "all" shows cards
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    // Selecting the seeded country "US" still shows the card
+    await dropdown.selectOption("US");
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    // Selecting a country that has no schools hides all cards
+    await dropdown.selectOption("__none__");
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
+  });
+
+  test("location filter shows only matching schools", async ({ page }) => {
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    const filterInput = page.getByTestId("filter-location");
+    await expect(filterInput).toBeVisible();
+
+    // Filtering by seeded school's city: Boulder
+    await filterInput.fill("Boulder");
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    // Filtering by nonsense hides all schools
+    await filterInput.fill("XYZNonExistentCity99");
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
   });
 
   test.skip("get started link", async ({ page }) => {

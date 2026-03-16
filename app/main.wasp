@@ -46,7 +46,7 @@ app OpenSaaS {
       }
     },
     onAuthFailedRedirectTo: "/login",
-    onAuthSucceededRedirectTo: "/admin"
+    onAuthSucceededRedirectTo: "/"
   },
 
   emailSender: {
@@ -69,6 +69,11 @@ page LandingPage {
   component: import LandingPage from "@src/landing-page/LandingPage"
 }
 route LandingPageRoute { path: "/", to: LandingPage }
+
+query getLandingSchoolsWithCourses {
+  fn: import { getLandingSchoolsWithCourses } from "@src/landing-page/operations",
+  entities: [School, Syllabus, SyllabusVersion]
+}
 
 page LoginPage {
   component: import Login from "@src/auth/LoginPage"
