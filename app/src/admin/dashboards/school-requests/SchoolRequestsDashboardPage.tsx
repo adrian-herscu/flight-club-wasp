@@ -138,7 +138,11 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName={t("admin.schoolsPageTitle")} />
+      <Breadcrumb
+        pageName={t("admin.schoolsPageTitle")}
+        showTitle={false}
+        showNavigation={false}
+      />
 
       <Card>
         <CardHeader>

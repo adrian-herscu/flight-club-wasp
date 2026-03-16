@@ -103,6 +103,10 @@ test.describe("admin users", () => {
     await page.waitForURL("**/admin/school-requests");
     await page.waitForLoadState("networkidle");
 
+    const main = page.locator("main");
+    await expect(main.getByRole("heading", { level: 2, name: "Schools" })).toHaveCount(0);
+    await expect(main.getByRole("navigation")).toHaveCount(0);
+
     const pendingCard = page.locator("[data-testid='schools-panel-pending-section']").getByText(uniqueSchoolName).first();
     await expect(pendingCard).toBeVisible();
 
