@@ -446,6 +446,7 @@ export const en = {
     countryLabel: "Country",
     schoolCurrency: "School Currency",
     loadingSchoolDetails: "Loading school details...",
+    noManagedSchools: "No schools are registered for this manager yet.",
     noAccountLinked: "No account is currently linked to this school manager.",
     saveDetailsButton: "Save details",
     savingButton: "Saving...",

@@ -1,16 +1,12 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
-import { Button } from "../client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
-import { Input } from "../client/components/ui/input";
-import { Label } from "../client/components/ui/label";
-import { toast } from "../client/hooks/use-toast";
 
-const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as any;
+const { getMyManagedSchool, useQuery } = operations as any;
 
 type ManagedSchool = {
   name: string;
@@ -44,121 +40,14 @@ function normalizeWebsiteUrl(value: string): string {
   return hasScheme ? trimmed : `https://${trimmed}`;
 }
 
-function isValidOptionalWebsiteUrl(value: string): boolean {
-  if (!value.trim()) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(normalizeWebsiteUrl(value));
-    return Boolean(parsed.hostname);
-  } catch {
-    return false;
-  }
-}
-
-function isValidOptionalLogoUrl(value: string): boolean {
-  if (!value.trim()) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(normalizeWebsiteUrl(value));
-    return (
-      Boolean(parsed.hostname) &&
-      (parsed.protocol === "https:" || parsed.protocol === "http:")
-    );
-  } catch {
-    return false;
-  }
-}
-
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
-  const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
-  const school = data as ManagedSchool | undefined;
-
-  const [name, setName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [phone, setPhone] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [addressLine1, setAddressLine1] = useState("");
-  const [addressLine2, setAddressLine2] = useState("");
-  const [city, setCity] = useState("");
-  const [stateProvince, setStateProvince] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (!school) return;
-
-    setName(school.name);
-    setWebsiteUrl(school.websiteUrl ?? "");
-    setPhone(school.phone ?? "");
-    setLogoUrl(school.logoUrl ?? "");
-    setAddressLine1(school.addressLine1);
-    setAddressLine2(school.addressLine2 ?? "");
-    setCity(school.city);
-    setStateProvince(school.stateProvince ?? "");
-    setPostalCode(school.postalCode);
-  }, [school]);
-
-  const handleSave = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!isValidOptionalWebsiteUrl(websiteUrl)) {
-      toast({
-        title: t("school.invalidWebsiteUrl"),
-        description: t("school.invalidWebsiteUrlError"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isValidOptionalLogoUrl(logoUrl)) {
-      toast({
-        title: t("school.invalidLogoUrl"),
-        description: t("school.invalidLogoUrlError"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await updateMyManagedSchool({
-        name,
-        websiteUrl: websiteUrl.trim() || undefined,
-        phone: phone.trim() || undefined,
-        logoUrl: logoUrl.trim() || undefined,
-        addressLine1,
-        addressLine2,
-        city,
-        stateProvince,
-        postalCode,
-      });
-      await refetch();
-      toast({
-        title: t("school.updatedSuccess"),
-        description: t("school.updateSuccessMessage"),
-      });
-    } catch (saveError: unknown) {
-      toast({
-        title: t("school.updateFailedMessage"),
-        description:
-          saveError instanceof Error
-            ? saveError.message
-            : t("school.updateErrorMessage"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const { data, isLoading, error } = useQuery(getMyManagedSchool);
+  const schools = useMemo(() => (data as ManagedSchool[] | undefined) ?? [], [data]);
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName={t("school.mySchool")} />
+      <Breadcrumb pageName={t("admin.schools")} />
 
       {isLoading && (
         <Card>
@@ -176,8 +65,24 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
         </Card>
       )}
 
-      {school && (
-        <div className="grid gap-6 xl:grid-cols-2">
+      {!isLoading && !error && schools.length === 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground text-sm">{t("school.noManagedSchools")}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {schools.length > 0 && (
+        <div className="grid gap-6" data-testid="manager-schools-list">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("admin.schools")}</CardTitle>
+            </CardHeader>
+          </Card>
+
+          {schools.map((school) => (
+          <div key={`${school.name}-${school.country}-${school.postalCode}`} className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>{t("school.schoolProfile")}</CardTitle>
@@ -207,8 +112,8 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                       src={school.logoUrl}
                       alt={school.name}
                       className="h-12 w-12 rounded object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
+                      onError={(event) => {
+                        (event.target as HTMLImageElement).style.display = "none";
                       }}
                     />
                   </div>
@@ -221,110 +126,16 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                 <p className={valueClassName}>{school.currency}</p>
               </div>
 
-              <form onSubmit={handleSave} className="grid gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-name">{t("school.name")}</Label>
-                  <Input
-                    id="school-name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className={labelClassName}>{t("school.countryLabel")}</p>
+                  <p className={valueClassName}>{school.country}</p>
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-website-url">{t("school.websiteUrl")}</Label>
-                  <Input
-                    id="school-website-url"
-                    value={websiteUrl}
-                    onChange={(event) => setWebsiteUrl(event.target.value)}
-                    placeholder="https://example.com"
-                  />
+                <div>
+                  <p className={labelClassName}>{t("school.schoolCurrency")}</p>
+                  <p className={valueClassName}>{school.currency}</p>
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-phone">{t("school.phone")}</Label>
-                  <Input
-                    id="school-phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="+1 555 0100"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-logo-url">{t("school.logoUrl")}</Label>
-                  <Input
-                    id="school-logo-url"
-                    value={logoUrl}
-                    onChange={(event) => setLogoUrl(event.target.value)}
-                    placeholder="https://example.com/logo.png"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-address-line1">{t("school.addressLine1")}</Label>
-                  <Input
-                    id="school-address-line1"
-                    value={addressLine1}
-                    onChange={(event) => setAddressLine1(event.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-address-line2">{t("school.addressLine2")}</Label>
-                  <Input
-                    id="school-address-line2"
-                    value={addressLine2}
-                    onChange={(event) => setAddressLine2(event.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="school-city">{t("school.cityLabel")}</Label>
-                    <Input
-                      id="school-city"
-                      value={city}
-                      onChange={(event) => setCity(event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="school-state">{t("school.stateProvinceLabel")}</Label>
-                    <Input
-                      id="school-state"
-                      value={stateProvince}
-                      onChange={(event) => setStateProvince(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="school-postal-code">{t("school.postalCodeLabel")}</Label>
-                  <Input
-                    id="school-postal-code"
-                    value={postalCode}
-                    onChange={(event) => setPostalCode(event.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className={labelClassName}>{t("school.countryLabel")}</p>
-                    <p className={valueClassName}>{school.country}</p>
-                  </div>
-                  <div>
-                    <p className={labelClassName}>{t("school.schoolCurrency")}</p>
-                    <p className={valueClassName}>{school.currency}</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? t("school.savingButton") : t("school.saveDetailsButton")}
-                  </Button>
-                </div>
-              </form>
+              </div>
             </CardContent>
           </Card>
 
@@ -359,6 +170,8 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
               )}
             </CardContent>
           </Card>
+        </div>
+          ))}
         </div>
       )}
     </DefaultLayout>

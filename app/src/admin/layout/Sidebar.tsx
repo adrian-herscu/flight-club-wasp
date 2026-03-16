@@ -227,7 +227,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                     }
                   >
                     <School />
-                    {t("admin.mySchool")}
+                    {t("admin.schools")}
                   </NavLink>
                 </li>
               )}

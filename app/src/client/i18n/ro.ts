@@ -446,6 +446,7 @@ export const ro = {
     countryLabel: "Țară",
     schoolCurrency: "Moneda școlii",
     loadingSchoolDetails: "Se încarcă detaliile școlii...",
+    noManagedSchools: "Nu există încă școli înregistrate pentru acest manager.",
     noAccountLinked: "Momentan nu este asociat niciun cont acestui manager de școală.",
     saveDetailsButton: "Salvează detaliile",
     savingButton: "Se salvează...",

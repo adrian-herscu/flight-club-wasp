@@ -446,6 +446,7 @@ export const he = {
     countryLabel: "מדינה",
     schoolCurrency: "מטבע בית הספר",
     loadingSchoolDetails: "טוען פרטי בית הספר...",
+    noManagedSchools: "עדיין לא נרשמו בתי ספר עבור מנהל זה.",
     noAccountLinked: "אין חשבון מקושר כרגע למנהל בית ספר זה.",
     saveDetailsButton: "שמור פרטים",
     savingButton: "שומר...",

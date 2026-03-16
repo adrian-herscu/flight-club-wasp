@@ -208,7 +208,21 @@ export const getMyManagedSchool = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ) => {
   const user = ensureSchoolManager(context);
-  return getManagedSchoolForUserId(user.id);
+  return prisma.school.findMany({
+    where: { adminId: user.id },
+    include: {
+      accounts: {
+        where: { userId: user.id },
+        select: {
+          id: true,
+          currency: true,
+          balanceMinor: true,
+          createdAt: true,
+        },
+      },
+    },
+    orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+  });
 };
 
 export const getManagerSyllabusCatalog = async (
