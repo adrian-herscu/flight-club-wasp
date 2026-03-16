@@ -1,75 +1,74 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { logUserIn } from "./utils";
 
-test.describe("account menu dashboard link", () => {
-  test("admin user menu shows Admin Dashboard link that navigates to /admin", async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+system_admin.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
-    });
+type DashboardUserScenario = {
+  testName: string;
+  email: string;
+  triggerName: RegExp;
+};
 
-    // Navigate to account settings page (outside admin layout)
-    await page.goto("/account");
-    await expect(page).toHaveURL(/\/account/);
+const dashboardUserScenarios: DashboardUserScenario[] = [
+  {
+    testName: "admin user menu shows Admin Dashboard link that navigates to /admin",
+    email: "seed+system_admin.01@example.test",
+    triggerName: /system_admin_01/i,
+  },
+  {
+    testName: "school manager user menu shows Admin Dashboard link that navigates to /admin",
+    email: "seed+school_manager.01@example.test",
+    triggerName: /school_manager_01/i,
+  },
+];
 
-    // Open user dropdown - trigger button shows fullName ("system_admin_01")
-    const dropdownTrigger = page.getByRole("button", { name: /system_admin_01/i });
-    await expect(dropdownTrigger).toBeVisible();
-    await dropdownTrigger.click();
-
-    // Assert "Admin Dashboard" link is visible in the dropdown
-    const dashboardLink = page.getByRole("menuitem").filter({ hasText: /admin dashboard/i });
-    await expect(dashboardLink).toBeVisible();
-
-    // Click it and expect navigation to /admin
-    await dashboardLink.click();
-    await expect(page).toHaveURL(/\/admin\/?$/);
+const openAccountUserMenu = async ({
+  page,
+  email,
+  triggerName,
+}: {
+  page: Page;
+  email: string;
+  triggerName: RegExp;
+}) => {
+  await logUserIn({
+    page,
+    user: {
+      email,
+      password: "12345678",
+    },
+    expectedRedirectPath: "/",
   });
 
-  test("school manager user menu shows Admin Dashboard link that navigates to /admin", async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
+  await page.goto("/account");
+  await expect(page).toHaveURL(/\/account/);
+
+  const dropdownTrigger = page.getByRole("button", { name: triggerName });
+  await expect(dropdownTrigger).toBeVisible();
+  await dropdownTrigger.click();
+};
+
+test.describe("account menu dashboard link", () => {
+  dashboardUserScenarios.forEach((scenario) => {
+    test(scenario.testName, async ({ page }) => {
+      await openAccountUserMenu({
+        page,
+        email: scenario.email,
+        triggerName: scenario.triggerName,
+      });
+
+      const dashboardLink = page.getByRole("menuitem").filter({ hasText: /admin dashboard/i });
+      await expect(dashboardLink).toBeVisible();
+
+      await dashboardLink.click();
+      await expect(page).toHaveURL(/\/admin\/?$/);
     });
-
-    await page.goto("/account");
-    await expect(page).toHaveURL(/\/account/);
-
-    const dropdownTrigger = page.getByRole("button", { name: /school_manager_01/i });
-    await expect(dropdownTrigger).toBeVisible();
-    await dropdownTrigger.click();
-
-    const dashboardLink = page.getByRole("menuitem").filter({ hasText: /admin dashboard/i });
-    await expect(dashboardLink).toBeVisible();
-
-    await dashboardLink.click();
-    await expect(page).toHaveURL(/\/admin\/?$/);
   });
 
   test("registered users can open Request Roles from user menu", async ({ page }) => {
-    await logUserIn({
+    await openAccountUserMenu({
       page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
+      email: "seed+school_manager.01@example.test",
+      triggerName: /school_manager_01/i,
     });
-
-    await page.goto("/account");
-    await expect(page).toHaveURL(/\/account/);
-
-    const dropdownTrigger = page.getByRole("button", { name: /school_manager_01/i });
-    await expect(dropdownTrigger).toBeVisible();
-    await dropdownTrigger.click();
 
     const requestRolesLink = page.getByRole("menuitem").filter({ hasText: /request roles/i });
     await expect(requestRolesLink).toBeVisible();

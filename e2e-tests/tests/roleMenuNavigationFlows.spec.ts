@@ -29,78 +29,114 @@ const clickSidebarLinkAndExpectUrl = async (
   await expect(page).toHaveURL(expectedUrl);
 };
 
+type VisibilityRule = {
+  name: string;
+  visible: boolean;
+};
+
+type NavStep = {
+  linkName: string;
+  expectedUrl: RegExp;
+  additionalAssertions?: (page: Page) => Promise<void>;
+};
+
+type RoleScenario = {
+  testName: string;
+  email: string;
+  visibilityRules: VisibilityRule[];
+  navSteps: NavStep[];
+};
+
+const roleScenarios: RoleScenario[] = [
+  {
+    testName: "system admin can open each visible sidebar menu route",
+    email: "seed+system_admin.01@example.test",
+    visibilityRules: [
+      { name: "Schools", visible: true },
+      { name: "Member Requests", visible: false },
+      { name: "My School", visible: false },
+      { name: "Syllabuses", visible: true },
+    ],
+    navSteps: [
+      { linkName: "Dashboard", expectedUrl: /\/admin\/?$/ },
+      { linkName: "Users", expectedUrl: /\/admin\/users\/?$/ },
+      { linkName: "Schools", expectedUrl: /\/admin\/school-requests\/?$/ },
+      { linkName: "Syllabuses", expectedUrl: /\/admin\/syllabuses\?section=catalog$/ },
+      { linkName: "Calendar", expectedUrl: /\/admin\/calendar\/?$/ },
+    ],
+  },
+  {
+    testName: "school manager can open each visible sidebar menu route",
+    email: "seed+school_manager.01@example.test",
+    visibilityRules: [
+      { name: "Schools", visible: true },
+      { name: "Member Requests", visible: false },
+      { name: "Instructors", visible: true },
+      { name: "Students", visible: true },
+      { name: "My School", visible: false },
+      { name: "Syllabuses", visible: true },
+    ],
+    navSteps: [
+      { linkName: "Dashboard", expectedUrl: /\/admin\/?$/ },
+      {
+        linkName: "Instructors",
+        expectedUrl: /\/admin\/member-requests\/instructors\/?$/,
+      },
+      {
+        linkName: "Students",
+        expectedUrl: /\/admin\/member-requests\/students\/?$/,
+      },
+      {
+        linkName: "Schools",
+        expectedUrl: /\/admin\/school\/?$/,
+        additionalAssertions: async (page) => {
+          await expect(page.getByRole("heading", { name: "Schools" }).first()).toBeVisible();
+          await expect(page.getByTestId("manager-schools-list")).toBeVisible();
+        },
+      },
+      { linkName: "Syllabuses", expectedUrl: /\/admin\/syllabuses\?section=catalog$/ },
+      { linkName: "Calendar", expectedUrl: /\/admin\/calendar\/?$/ },
+    ],
+  },
+];
+
 test.describe("role menu navigation flows", () => {
-  test("system admin can open each visible sidebar menu route", async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+system_admin.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
+  roleScenarios.forEach((scenario) => {
+    test(scenario.testName, async ({ page }) => {
+      await logUserIn({
+        page,
+        user: {
+          email: scenario.email,
+          password: "12345678",
+        },
+        expectedRedirectPath: "/",
+      });
+
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+
+      await expectSidebarOnScreen(page);
+
+      const sidebar = page.locator("aside");
+      for (const rule of scenario.visibilityRules) {
+        const link = sidebar.getByRole("link", { name: rule.name });
+        if (rule.visible) {
+          await expect(link).toBeVisible();
+        } else {
+          await expect(link).toHaveCount(0);
+        }
+      }
+
+      for (const step of scenario.navSteps) {
+        await clickSidebarLinkAndExpectUrl(page, step.linkName, step.expectedUrl);
+        await step.additionalAssertions?.(page);
+      }
+
+      const uiElementsLink = sidebar.getByRole("link", { name: "UI Elements" }).first();
+      await expect(uiElementsLink).toBeVisible();
+      await uiElementsLink.click();
+      await expect(sidebar.getByRole("link", { name: "Buttons" }).first()).toBeVisible();
+      await clickSidebarLinkAndExpectUrl(page, "Buttons", /\/admin\/ui\/buttons\/?$/);
     });
-
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-
-    await expectSidebarOnScreen(page);
-
-    const sidebar = page.locator("aside");
-    await expect(sidebar.getByRole("link", { name: "Schools" })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: "Member Requests" })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: "My School" })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: "Syllabuses" })).toBeVisible();
-
-    await clickSidebarLinkAndExpectUrl(page, "Dashboard", /\/admin\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Users", /\/admin\/users\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Schools", /\/admin\/school-requests\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Syllabuses", /\/admin\/syllabuses\?section=catalog$/);
-    await clickSidebarLinkAndExpectUrl(page, "Calendar", /\/admin\/calendar\/?$/);
-
-    const uiElementsLink = sidebar.getByRole("link", { name: "UI Elements" }).first();
-    await expect(uiElementsLink).toBeVisible();
-    await uiElementsLink.click();
-    await expect(sidebar.getByRole("link", { name: "Buttons" }).first()).toBeVisible();
-    await clickSidebarLinkAndExpectUrl(page, "Buttons", /\/admin\/ui\/buttons\/?$/);
-  });
-
-  test("school manager can open each visible sidebar menu route", async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
-    });
-
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-
-    await expectSidebarOnScreen(page);
-
-    const sidebar = page.locator("aside");
-    await expect(sidebar.getByRole("link", { name: "Schools" })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: "Member Requests" })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: "Instructors" })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: "Students" })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: "Schools" })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: "My School" })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: "Syllabuses" })).toBeVisible();
-
-    await clickSidebarLinkAndExpectUrl(page, "Dashboard", /\/admin\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Instructors", /\/admin\/member-requests\/instructors\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Students", /\/admin\/member-requests\/students\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Schools", /\/admin\/school\/?$/);
-    await expect(page.getByRole("heading", { name: "Schools" }).first()).toBeVisible();
-    await expect(page.getByTestId("manager-schools-list")).toBeVisible();
-    await clickSidebarLinkAndExpectUrl(page, "Syllabuses", /\/admin\/syllabuses\?section=catalog$/);
-    await clickSidebarLinkAndExpectUrl(page, "Calendar", /\/admin\/calendar\/?$/);
-
-    const uiElementsLink = sidebar.getByRole("link", { name: "UI Elements" }).first();
-    await expect(uiElementsLink).toBeVisible();
-    await uiElementsLink.click();
-    await expect(sidebar.getByRole("link", { name: "Buttons" }).first()).toBeVisible();
-    await clickSidebarLinkAndExpectUrl(page, "Buttons", /\/admin\/ui\/buttons\/?$/);
   });
 });

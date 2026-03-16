@@ -35,6 +35,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   const [sidebarExpanded, setSidebarExpanded] = useState(
     storedSidebarExpanded === null ? false : storedSidebarExpanded === "true",
   );
+  const navItemBaseClass =
+    "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out";
+  const navItemClassName = ({ isActive }: { isActive: boolean }) =>
+    cn(navItemBaseClass, {
+      "bg-accent text-accent-foreground": isActive,
+    });
 
   // close on click outside
   useEffect(() => {
@@ -114,14 +120,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
               <NavLink
                 to="/admin"
                 end
-                className={({ isActive }) =>
-                  cn(
-                    "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                    {
-                      "bg-accent text-accent-foreground": isActive,
-                    },
-                  )
-                }
+                className={navItemClassName}
               >
                 <LayoutDashboard />
                 {t("admin.dashboard")}
@@ -135,14 +134,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   <NavLink
                     to="/admin/users"
                     end
-                    className={({ isActive }) =>
-                      cn(
-                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                        {
-                          "bg-accent text-accent-foreground": isActive,
-                        },
-                      )
-                    }
+                    className={navItemClassName}
                   >
                     <Sheet />
                     {t("admin.users")}
@@ -156,14 +148,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   <NavLink
                     to="/admin/school-requests"
                     end
-                    className={({ isActive }) =>
-                      cn(
-                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                        {
-                          "bg-accent text-accent-foreground": isActive,
-                        },
-                      )
-                    }
+                    className={navItemClassName}
                   >
                     <ClipboardList />
                     {t("admin.schools")}
@@ -176,14 +161,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   <NavLink
                     to="/admin/member-requests/instructors"
                     end
-                    className={({ isActive }) =>
-                      cn(
-                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                        {
-                          "bg-accent text-accent-foreground": isActive,
-                        },
-                      )
-                    }
+                    className={navItemClassName}
                   >
                     <ClipboardList />
                     {t("admin.filterInstructors")}
@@ -196,14 +174,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   <NavLink
                     to="/admin/member-requests/students"
                     end
-                    className={({ isActive }) =>
-                      cn(
-                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                        {
-                          "bg-accent text-accent-foreground": isActive,
-                        },
-                      )
-                    }
+                    className={navItemClassName}
                   >
                     <ClipboardList />
                     {t("admin.filterStudents")}
@@ -217,14 +188,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                   <NavLink
                     to="/admin/school"
                     end
-                    className={({ isActive }) =>
-                      cn(
-                        "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                        {
-                          "bg-accent text-accent-foreground": isActive,
-                        },
-                      )
-                    }
+                    className={navItemClassName}
                   >
                     <School />
                     {t("admin.schools")}
@@ -239,14 +203,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                 <NavLink
                   to="/admin/syllabuses?section=catalog"
                   className={() =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground":
-                          pathname === "/admin/syllabuses" ||
-                          pathname.startsWith("/admin/syllabuses/"),
-                      },
-                    )
+                    cn(navItemBaseClass, {
+                      "bg-accent text-accent-foreground":
+                        pathname === "/admin/syllabuses" ||
+                        pathname.startsWith("/admin/syllabuses/"),
+                    })
                   }
                 >
                   <GraduationCap />
@@ -271,14 +232,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                 <NavLink
                   to="/admin/calendar"
                   end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                      {
-                        "bg-accent text-accent-foreground": isActive,
-                      },
-                    )
-                  }
+                  className={navItemClassName}
                 >
                   <Calendar />
                   {t("admin.calendar")}
@@ -295,13 +249,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                     <React.Fragment>
                       <NavLink
                         to="#"
-                        className={cn(
-                          "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out",
-                          {
-                            "bg-accent text-accent-foreground":
-                              pathname.includes("ui"),
-                          },
-                        )}
+                        className={cn(navItemBaseClass, {
+                          "bg-accent text-accent-foreground": pathname.includes("ui"),
+                        })}
                         onClick={(e) => {
                           e.preventDefault();
                           if (!sidebarExpanded) {

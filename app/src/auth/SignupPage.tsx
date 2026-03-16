@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { SignupForm } from "wasp/client/auth";
-import { Link as WaspRouterLink, routes } from "wasp/client/router";
+import { routes } from "wasp/client/router";
 import { AuthPageLayout } from "./AuthPageLayout";
+import { AuthInlineLink } from "./AuthInlineLink";
 
 export function Signup() {
   const { t } = useTranslation();
@@ -10,13 +11,12 @@ export function Signup() {
     <AuthPageLayout>
       <SignupForm />
       <br />
-      <span className="text-sm font-medium text-gray-900">
-        {t("auth.alreadyHaveAccount")} (
-        <WaspRouterLink to={routes.LoginRoute.to} className="underline">
-          {t("auth.goToLogin")}
-        </WaspRouterLink>
-        ).
-      </span>
+      <AuthInlineLink
+        prefix={`${t("auth.alreadyHaveAccount")} (`}
+        to={routes.LoginRoute.to}
+        linkText={t("auth.goToLogin")}
+        suffix=")."
+      />
       <br />
     </AuthPageLayout>
   );

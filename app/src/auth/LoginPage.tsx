@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { TranslatedLoginForm } from "./TranslatedLoginForm";
-import { Link as WaspRouterLink, routes } from "wasp/client/router";
+import { routes } from "wasp/client/router";
 import { AuthPageLayout } from "./AuthPageLayout";
 import { useEffect, useState } from "react";
+import { AuthInlineLink } from "./AuthInlineLink";
 
 export default function Login() {
   const { t, i18n } = useTranslation();
@@ -29,19 +30,17 @@ export default function Login() {
       </div>
       <TranslatedLoginForm key={key} />
       <br />
-      <span className="text-sm font-medium text-gray-900">
-        {t("auth.dontHaveAccount")}{" "}
-        <WaspRouterLink to={routes.SignupRoute.to} className="underline">
-          {t("auth.signup")}
-        </WaspRouterLink>
-      </span>
+      <AuthInlineLink
+        prefix={t("auth.dontHaveAccount")}
+        to={routes.SignupRoute.to}
+        linkText={t("auth.signup")}
+      />
       <br />
-      <span className="text-sm font-medium text-gray-900">
-        {t("auth.forgotPassword")}{" "}
-        <WaspRouterLink to={routes.RequestPasswordResetRoute.to} className="underline">
-          {t("auth.resetIt")}
-        </WaspRouterLink>
-      </span>
+      <AuthInlineLink
+        prefix={t("auth.forgotPassword")}
+        to={routes.RequestPasswordResetRoute.to}
+        linkText={t("auth.resetIt")}
+      />
     </AuthPageLayout>
   );
 }
