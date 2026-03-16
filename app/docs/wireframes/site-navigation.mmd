@@ -1,265 +1,101 @@
 %% Flight Club – Site Navigation & GUI Wireframe
-%% Each node = page  |  node label = name + key fields/content
-%% Arrows = navigation actions (links, buttons, form submissions)
-%% Role gates show which pages are visible per user role
+%% Simplified view: public flow + registration + separate admin sections per role
 
 flowchart TD
 
-    %% ──────────────────────────────────────────────
-    %% PUBLIC PAGES
-    %% ──────────────────────────────────────────────
+    LANDING["/** Landing Page<br/>Menu: Login, Sign Up<br/>Content: marketing shell, currently empty"]
+    LOGIN["/login Login<br/>Fields: email, password<br/>Actions: Sign In, Google sign-in<br/>Links: Sign Up, Forgot password"]
+    SIGNUP["/signup Sign Up<br/>Fields: email, password<br/>Action: Create account<br/>Link: Log In"]
+    VERIFY["/email-verification Verify Email<br/>Field: verification code<br/>Action: Verify"]
+    REQ_RESET["/request-password-reset Forgot Password<br/>Field: email<br/>Action: Send reset link"]
+    RESET["/password-reset Reset Password<br/>Fields: new password, confirm password<br/>Action: Reset Password"]
+    ROLE_GATE{{"Post-login role check<br/>USER → /registration<br/>All other roles → /admin"}}
 
-    LANDING["`**/** Landing Page**
-    ─────────────────
-    *(empty shell – under construction)*
-    NavBar: \[Login\] \[Sign Up\]`"]
+    REG["/registration Registration Request<br/>Fields: full name, phone, requested role<br/>Manager flow: school details form<br/>Instructor/Student flow: school selector<br/>Action: Submit Request"]
+    REG_PENDING["Registration Pending<br/>Read-only submitted details<br/>Status: PENDING"]
 
-    LOGIN["`**/login** Login
-    ─────────────────
-    Title: Sign in to your account
-    • Email field
-    • Password field
-    • \[Sign In\] button
-    • Google sign-in button
-    ─────────────────
-    Links: \[Sign Up\] · \[Forgot password?\]`"]
+    AUTH_DASH["/admin Dashboard<br/>Menu: sidebar by role<br/>Content: under construction"]
+    AUTH_USERS["/admin/users Users<br/>Menu: Dashboard, Users, Calendar, UI Buttons<br/>Info: paginated users, role/admin toggle"]
+    AUTH_CALENDAR["/admin/calendar Calendar<br/>Menu: shared sidebar items<br/>Info: calendar component"]
+    AUTH_MESSAGES["/admin/messages Messages<br/>Menu: shared sidebar items<br/>Info: contact form messages"]
+    AUTH_SETTINGS["/admin/settings Settings<br/>Menu: shared sidebar items<br/>Info: stub settings page"]
+    AUTH_UI["/admin/ui/buttons UI Buttons<br/>Menu: UI Elements > Buttons<br/>Info: button showcase"]
+    ACCOUNT["/account Account<br/>Access: header/avatar menu<br/>Info: email, full name, about"]
 
-    SIGNUP["`**/signup** Sign Up
-    ─────────────────
-    • Email field
-    • Password field
-    • \[Create account\] button
-    ─────────────────
-    Link: \[Log In\]`"]
+    SYS_DASH["SYSTEM_ADMIN Admin Home<br/>Menu: Dashboard, Users, School Requests, Syllabuses, Calendar, UI Buttons"]
+    SCH_REQ["/admin/school-requests School Requests<br/>Info: pending school-manager requests<br/>Fields per card: requester, school details, rejection reason<br/>Actions: Approve, Reject"]
+    SYS_SYLLABUSES["/admin/syllabuses Syllabuses<br/>Info: catalog, drafts, course opening, enrollment tools<br/>Actions: create draft, publish, create course"]
 
-    VERIFY["`**/email-verification** Verify Email
-    ─────────────────
-    • Verification code input
-    • \[Verify\] button`"]
+    MGR_DASH["SCHOOL_MANAGER Admin Home<br/>Menu: Dashboard, Users, Member Requests, My School, Syllabuses, Calendar, UI Buttons"]
+    MBR_REQ["/admin/member-requests Member Requests<br/>Info: pending instructor/student requests<br/>Fields per card: requester, role, school, rejection reason<br/>Actions: Approve, Reject"]
+    MY_SCHOOL["/admin/school My School<br/>Fields: school name, website, address, city, state, postal code<br/>Info: account balances (read-only)<br/>Action: Save"]
+    MGR_SYLLABUSES["/admin/syllabuses Syllabuses<br/>Info: catalog, draft editor, courses, enrollment, instructor assignment<br/>Actions: save draft, publish, enroll, assign"]
 
-    REQ_RESET["`**/request-password-reset** Forgot Password
-    ─────────────────
-    • Email field
-    • \[Send reset link\] button`"]
+    BASIC_DASH["INSTRUCTOR / STUDENT Admin Home<br/>Menu: Dashboard, Users, Calendar, UI Buttons<br/>Info: no dedicated workflow pages yet"]
 
-    RESET["`**/password-reset** Reset Password
-    ─────────────────
-    • New password field
-    • Confirm password field
-    • \[Reset Password\] button`"]
+    NOT_FOUND["* Not Found<br/>Info: missing route page<br/>Action: return home"]
 
-    %% ──────────────────────────────────────────────
-    %% ROLE GATE (post-login redirect logic)
-    %% ──────────────────────────────────────────────
+    LANDING -->|Login| LOGIN
+    LANDING -->|Sign Up| SIGNUP
+    LOGIN -->|Sign Up link| SIGNUP
+    LOGIN -->|Forgot password| REQ_RESET
+    SIGNUP -->|Create account| VERIFY
+    VERIFY -->|Verified| LOGIN
+    REQ_RESET -->|Reset link flow| RESET
+    RESET -->|Password reset complete| LOGIN
+    LOGIN -->|Sign In success| ROLE_GATE
 
-    ROLE_GATE{{"`**Role check**
-    role = USER → /registration
-    role = SYSTEM_ADMIN → /admin
-    role = SCHOOL_MANAGER → /admin
-    role = INSTRUCTOR → /admin
-    role = STUDENT → /admin`"}}
+    ROLE_GATE -->|role USER| REG
+    ROLE_GATE -->|role SYSTEM_ADMIN| SYS_DASH
+    ROLE_GATE -->|role SCHOOL_MANAGER| MGR_DASH
+    ROLE_GATE -->|role INSTRUCTOR/STUDENT| BASIC_DASH
 
-    %% ──────────────────────────────────────────────
-    %% REGISTRATION FLOW  (role = USER only)
-    %% ──────────────────────────────────────────────
+    REG -->|Submit Request| REG_PENDING
+    REG_PENDING -->|Approved later| BASIC_DASH
 
-    REG["`**/registration** Registration Request
-    ─────────────────
-    Personal: Full name · Phone
-    Role selector:
-      • SCHOOL_MANAGER → show school fields
-        - School name, Website URL
-        - Address line 1 & 2
-        - City, State/Province
-        - Postal code, Country (2-letter)
-        - Currency (3-letter)
-      • INSTRUCTOR / STUDENT → select school from list
-    ─────────────────
-    \[Submit Request\]`"]
+    AUTH_DASH --> AUTH_USERS
+    AUTH_DASH --> AUTH_CALENDAR
+    AUTH_DASH --> AUTH_MESSAGES
+    AUTH_DASH --> AUTH_SETTINGS
+    AUTH_DASH --> AUTH_UI
+    AUTH_DASH --> ACCOUNT
 
-    REG_PENDING["`**Registration Request – Pending**
-    ─────────────────
-    Status card: PENDING
-    Submitted details (read-only)
-    Awaiting admin/manager approval`"]
+    SYS_DASH -->|Dashboard| AUTH_DASH
+    SYS_DASH -->|Users| AUTH_USERS
+    SYS_DASH -->|Calendar| AUTH_CALENDAR
+    SYS_DASH -->|Messages| AUTH_MESSAGES
+    SYS_DASH -->|Settings| AUTH_SETTINGS
+    SYS_DASH -->|UI Buttons| AUTH_UI
+    SYS_DASH -->|Account menu| ACCOUNT
+    SYS_DASH -->|School Requests| SCH_REQ
+    SYS_DASH -->|Syllabuses| SYS_SYLLABUSES
 
-    %% ──────────────────────────────────────────────
-    %% ADMIN SHELL  (shared sidebar + header)
-    %% ──────────────────────────────────────────────
+    MGR_DASH -->|Dashboard| AUTH_DASH
+    MGR_DASH -->|Users| AUTH_USERS
+    MGR_DASH -->|Calendar| AUTH_CALENDAR
+    MGR_DASH -->|Messages| AUTH_MESSAGES
+    MGR_DASH -->|Settings| AUTH_SETTINGS
+    MGR_DASH -->|UI Buttons| AUTH_UI
+    MGR_DASH -->|Account menu| ACCOUNT
+    MGR_DASH -->|Member Requests| MBR_REQ
+    MGR_DASH -->|My School| MY_SCHOOL
+    MGR_DASH -->|Syllabuses| MGR_SYLLABUSES
 
-    DASH["`**/admin** Dashboard
-    ─────────────────
-    Sidebar: role-filtered nav
-    Content: *Under construction*`"]
+    BASIC_DASH -->|Dashboard| AUTH_DASH
+    BASIC_DASH -->|Users| AUTH_USERS
+    BASIC_DASH -->|Calendar| AUTH_CALENDAR
+    BASIC_DASH -->|UI Buttons| AUTH_UI
+    BASIC_DASH -->|Account menu| ACCOUNT
 
-    USERS["`**/admin/users** Users
-    ─────────────────
-    • Search / filter
-    • Paginated user list
-      - Email, name, role
-      - Toggle admin status checkbox
-    ─────────────────
-    Sidebar: all authenticated roles`"]
+    SCH_REQ -->|Approve/Reject refresh| SCH_REQ
+    MBR_REQ -->|Approve/Reject refresh| MBR_REQ
+    MY_SCHOOL -->|Save refresh| MY_SCHOOL
+    SYS_SYLLABUSES -->|Edit workflow stays here| SYS_SYLLABUSES
+    MGR_SYLLABUSES -->|Edit workflow stays here| MGR_SYLLABUSES
 
-    ACCOUNT["`**/account** Account
-    ─────────────────
-    • Email address
-    • Full name
-    • About (placeholder)
-    ─────────────────
-    Accessible via header avatar`"]
+    NOT_FOUND -.->|Go home| LANDING
 
-    CALENDAR["`**/admin/calendar** Calendar
-    ─────────────────
-    • Calendar view component
-    ─────────────────
-    Sidebar: all authenticated roles`"]
-
-    SETTINGS["`**/admin/settings** Settings
-    ─────────────────
-    *(stub page)*
-    ─────────────────
-    Sidebar: all authenticated roles`"]
-
-    MESSAGES["`**/admin/messages** Messages
-    ─────────────────
-    • Contact form message list
-    ─────────────────
-    Sidebar: all authenticated roles`"]
-
-    UI_BTN["`**/admin/ui/buttons** UI Elements › Buttons
-    ─────────────────
-    • Button variant showcase
-    ─────────────────
-    Sidebar: UI Elements (expandable)`"]
-
-    NOT_FOUND["`**\*** 404 Not Found
-    ─────────────────
-    Page not found message`"]
-
-    %% ──────────────────────────────────────────────
-    %% SYSTEM_ADMIN only
-    %% ──────────────────────────────────────────────
-
-    SCH_REQ["`**/admin/school-requests** School Requests
-    ─────────────────
-    🔒 SYSTEM_ADMIN only
-    • Search by name/phone
-    • List per request:
-      - Requester: name, email, phone
-      - School: name, address, city
-        country, currency
-      - Rejection reason textarea
-    • \[Approve\] button
-    • \[Reject\] button`"]
-
-    %% ──────────────────────────────────────────────
-    %% SCHOOL_MANAGER only
-    %% ──────────────────────────────────────────────
-
-    MBR_REQ["`**/admin/member-requests** Member Requests
-    ─────────────────
-    🔒 SCHOOL_MANAGER only
-    • Search by name/phone
-    • List per request:
-      - Requester: name, email, phone
-      - Role: INSTRUCTOR / STUDENT
-      - Target school
-      - Rejection reason textarea
-    • \[Approve\] button
-    • \[Reject\] button`"]
-
-    MY_SCHOOL["`**/admin/school** My School
-    ─────────────────
-    🔒 SCHOOL_MANAGER only
-    Fields (editable):
-    • School name
-    • Website URL
-    • Address line 1 & 2
-    • City, State/Province
-    • Postal code, Country
-    Account balances (read-only)
-    ─────────────────
-    \[Save\] button`"]
-
-    SYLLABUSES["`**/admin/syllabuses** Syllabuses
-    ─────────────────
-    🔒 SCHOOL_MANAGER + SYSTEM_ADMIN
-    ─── Section: Catalog ───
-    • Editable drafts list
-    • Course-opening candidates list
-    \[Create from scratch\] \[Create from template\]
-    ─── Section: Draft Editor ───
-    • Syllabus name
-    • Lessons: position, name,
-      description, duration (min)
-    \[Save draft\] \[Publish version\]
-    ─── Section: Courses ───
-    • Course list: name, version, date,
-      enrolled count
-    \[Create course from syllabus\]
-    ─── Section: Enrollment ───
-    • Select course → student/instructor list
-    \[Enroll student\] \[Assign instructor\]`"]
-
-    %% ──────────────────────────────────────────────
-    %% NAVIGATION EDGES
-    %% ──────────────────────────────────────────────
-
-    %% Public navigation
-    LANDING -->|"NavBar · [Login]"| LOGIN
-    LANDING -->|"NavBar · [Sign Up]"| SIGNUP
-    LOGIN   -->|"[Sign Up] link"| SIGNUP
-    LOGIN   -->|"[Forgot password?] link"| REQ_RESET
-    SIGNUP  -->|"[Create account] success"| VERIFY
-    VERIFY  -->|"Code verified"| LOGIN
-    REQ_RESET -->|"Email sent → link clicked"| RESET
-    RESET   -->|"[Reset Password] success"| LOGIN
-
-    %% Auth success → role gate
-    LOGIN   -->|"[Sign In] success"| ROLE_GATE
-
-    %% Role gate routing
-    ROLE_GATE -->|"role = USER"| REG
-    ROLE_GATE -->|"role ≠ USER"| DASH
-
-    %% Registration flow
-    REG         -->|"[Submit Request]"| REG_PENDING
-    REG_PENDING -->|"Approved: role upgraded → refresh"| DASH
-
-    %% Admin sidebar – all authenticated roles
-    DASH <-->|"Sidebar"| USERS
-    DASH <-->|"Sidebar"| CALENDAR
-    DASH <-->|"Sidebar"| SETTINGS
-    DASH <-->|"Sidebar"| MESSAGES
-    DASH <-->|"Sidebar · UI Elements"| UI_BTN
-    DASH <-->|"Header avatar"| ACCOUNT
-
-    %% Admin sidebar – SYSTEM_ADMIN extras
-    DASH <-->|"Sidebar [SYSTEM_ADMIN]"| SCH_REQ
-    DASH <-->|"Sidebar [SYSTEM_ADMIN]"| SYLLABUSES
-
-    %% Admin sidebar – SCHOOL_MANAGER extras
-    DASH <-->|"Sidebar [SCHOOL_MANAGER]"| MBR_REQ
-    DASH <-->|"Sidebar [SCHOOL_MANAGER]"| MY_SCHOOL
-    DASH <-->|"Sidebar [SCHOOL_MANAGER]"| SYLLABUSES
-
-    %% In-page actions (self-loops = stays on same page after action)
-    SCH_REQ -->|"[Approve] → toast + list refresh"| SCH_REQ
-    SCH_REQ -->|"[Reject] → toast + list refresh"| SCH_REQ
-    MBR_REQ -->|"[Approve] → toast + list refresh"| MBR_REQ
-    MBR_REQ -->|"[Reject] → toast + list refresh"| MBR_REQ
-    MY_SCHOOL -->|"[Save] → toast + data refresh"| MY_SCHOOL
-    SYLLABUSES -->|"[Save draft] / [Publish] → toast"| SYLLABUSES
-
-    %% Catch-all
-    NOT_FOUND -.->|"[Go home]"| LANDING
-
-    %% ──────────────────────────────────────────────
-    %% VISUAL GROUPING
-    %% ──────────────────────────────────────────────
-
-    subgraph PUBLIC["Public (unauthenticated)"]
+    subgraph PUBLIC["Public"]
         LANDING
         LOGIN
         SIGNUP
@@ -268,30 +104,34 @@ flowchart TD
         RESET
     end
 
-    subgraph REGISTRATION_FLOW["Registration (role = USER)"]
+    subgraph REGISTRATION["Registration"]
         REG
         REG_PENDING
     end
 
-    subgraph ADMIN["Admin Shell (authenticated)"]
-        DASH
-        USERS
+    subgraph AUTH_SHARED["Shared authenticated pages"]
+        AUTH_DASH
+        AUTH_USERS
+        AUTH_CALENDAR
+        AUTH_MESSAGES
+        AUTH_SETTINGS
+        AUTH_UI
         ACCOUNT
-        CALENDAR
-        SETTINGS
-        MESSAGES
-        UI_BTN
     end
 
-    subgraph SYSADMIN_ONLY["System Admin only"]
+    subgraph SYSTEM_ADMIN["SYSTEM_ADMIN pages"]
+        SYS_DASH
         SCH_REQ
+        SYS_SYLLABUSES
     end
 
-    subgraph MANAGER_ONLY["School Manager only"]
+    subgraph SCHOOL_MANAGER["SCHOOL_MANAGER pages"]
+        MGR_DASH
         MBR_REQ
         MY_SCHOOL
+        MGR_SYLLABUSES
     end
 
-    subgraph SHARED_MGMT["Manager + System Admin"]
-        SYLLABUSES
+    subgraph BASIC_ROLES["INSTRUCTOR / STUDENT pages"]
+        BASIC_DASH
     end
