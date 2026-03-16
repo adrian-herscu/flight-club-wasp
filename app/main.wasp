@@ -139,11 +139,17 @@ action rejectSchoolManagerRequest {
   entities: [User, RegistrationRequest, RegistrationRequestDecision]
 }
 
-page ManagerRequestsPage {
+page ManagerInstructorRequestsPage {
   authRequired: true,
   component: import ManagerRequestsPage from "@src/school-manager/ManagerRequestsDashboardPage"
 }
-route ManagerRequestsRoute { path: "/admin/member-requests", to: ManagerRequestsPage }
+route ManagerInstructorRequestsRoute { path: "/admin/member-requests/instructors", to: ManagerInstructorRequestsPage }
+
+page ManagerStudentRequestsPage {
+  authRequired: true,
+  component: import ManagerRequestsPage from "@src/school-manager/ManagerRequestsDashboardPage"
+}
+route ManagerStudentRequestsRoute { path: "/admin/member-requests/students", to: ManagerStudentRequestsPage }
 
 query getPendingSchoolMemberRequests {
   fn: import { getPendingSchoolMemberRequests } from "@src/registration/operations",

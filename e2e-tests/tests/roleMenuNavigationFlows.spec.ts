@@ -75,12 +75,15 @@ test.describe("role menu navigation flows", () => {
 
     const sidebar = page.locator("aside");
     await expect(sidebar.getByRole("link", { name: "Schools" })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: "Member Requests" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "Member Requests" })).toHaveCount(0);
+    await expect(sidebar.getByRole("link", { name: "Instructors" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "Students" })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "My School" })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "Syllabuses" })).toBeVisible();
 
     await clickSidebarLinkAndExpectUrl(page, "Dashboard", /\/admin\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Member Requests", /\/admin\/member-requests\/?$/);
+    await clickSidebarLinkAndExpectUrl(page, "Instructors", /\/admin\/member-requests\/instructors\/?$/);
+    await clickSidebarLinkAndExpectUrl(page, "Students", /\/admin\/member-requests\/students\/?$/);
     await clickSidebarLinkAndExpectUrl(page, "My School", /\/admin\/school\/?$/);
     await clickSidebarLinkAndExpectUrl(page, "Syllabuses", /\/admin\/syllabuses\?section=catalog$/);
     await clickSidebarLinkAndExpectUrl(page, "Calendar", /\/admin\/calendar\/?$/);

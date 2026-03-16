@@ -561,7 +561,9 @@ export const getPendingSchoolMemberRequests = async (
       requestedRole: {
         in: [RegistrationRequestRole.INSTRUCTOR, RegistrationRequestRole.STUDENT],
       },
-      status: RegistrationRequestStatus.PENDING,
+      status: {
+        in: [RegistrationRequestStatus.PENDING, RegistrationRequestStatus.APPROVED],
+      },
     },
     include: {
       requester: {
@@ -579,9 +581,7 @@ export const getPendingSchoolMemberRequests = async (
         },
       },
     },
-    orderBy: {
-      createdAt: "asc",
-    },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
 };
 

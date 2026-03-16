@@ -119,4 +119,115 @@ test.describe("manager workflow A", () => {
     await expect(page).toHaveURL(/\/admin\/syllabuses\?section=catalog/);
     await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
   });
+
+  test("manager member requests panel is split by instructors/students and supports pending/approved filtering", async ({ page }) => {
+    const seedEmail = "seed+user.02@example.test";
+
+    const dismissCookieBanner = async () => {
+      const cookieAcceptButton = page.getByRole("button", { name: /Accept all/i });
+      if (await cookieAcceptButton.count()) {
+        await cookieAcceptButton.first().click();
+      }
+    };
+
+    const submitMemberRequest = async (role: "INSTRUCTOR" | "STUDENT") => {
+      await page.goto(`/registration?role=${role}&schoolId=seed-school-cloudbase-paragliding`);
+      await page.waitForLoadState("networkidle");
+      await dismissCookieBanner();
+      await page.locator("#fullName").fill("Seed User 02");
+      await page.locator("#phone").fill("+1 555 0171");
+      await page.locator(".flex.justify-end button").click();
+      await page.waitForLoadState("networkidle");
+    };
+
+    const clearAuthState = async () => {
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+      await page.context().clearCookies();
+      await page.goto("about:blank");
+    };
+
+    await page.goto("/login");
+    await page.fill('input[name="email"]', seedEmail);
+    await page.fill('input[name="password"]', "12345678");
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState("networkidle");
+    await expect(page).not.toHaveURL(/\/login$/, { timeout: 10000 });
+
+    await submitMemberRequest("INSTRUCTOR");
+    await submitMemberRequest("STUDENT");
+
+    await clearAuthState();
+    await page.goto("/login");
+    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
+    await page.fill('input[name="password"]', "12345678");
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState("networkidle");
+    await expect(page).not.toHaveURL(/\/login$/, { timeout: 10000 });
+
+    await page.goto("/admin/member-requests/instructors");
+    await page.waitForURL("**/admin/member-requests/instructors");
+    await page.waitForLoadState("networkidle");
+
+    const instructorPendingSection = page.locator(
+      "[data-testid='manager-requests-instructors-pending-section']",
+    );
+    const studentPendingSection = page.locator(
+      "[data-testid='manager-requests-students-pending-section']",
+    );
+    const instructorApprovedSection = page.locator(
+      "[data-testid='manager-requests-instructors-approved-section']",
+    );
+    const studentApprovedSection = page.locator(
+      "[data-testid='manager-requests-students-approved-section']",
+    );
+
+    await expect(studentPendingSection).toHaveCount(0);
+    await expect(studentApprovedSection).toHaveCount(0);
+
+    await expect(
+      page.locator("[data-testid='manager-member-request-card']").filter({ hasText: seedEmail }).first(),
+    ).toBeVisible();
+
+    const instructorPendingCard = instructorPendingSection
+      .locator("[data-testid='manager-member-request-card']")
+      .filter({ hasText: seedEmail })
+      .first();
+    const instructorApprovedCard = instructorApprovedSection
+      .locator("[data-testid='manager-member-request-card']")
+      .filter({ hasText: seedEmail })
+      .first();
+    if (await instructorPendingCard.count()) {
+      await instructorPendingCard.getByRole("button", { name: /approve/i }).click();
+      await expect(instructorApprovedCard).toBeVisible();
+    } else {
+      await expect(instructorApprovedCard).toBeVisible();
+    }
+
+    await page.getByTestId("manager-requests-status-filter-pending").click();
+    await expect(instructorApprovedSection).toHaveCount(0);
+    await expect(studentApprovedSection).toHaveCount(0);
+
+    await page.getByTestId("manager-requests-status-filter-approved").click();
+    await expect(instructorPendingSection).toHaveCount(0);
+
+    await page.goto("/admin/member-requests/students");
+    await page.waitForURL("**/admin/member-requests/students");
+    await page.waitForLoadState("networkidle");
+
+    const mainArea = page.locator("main");
+    await expect(mainArea.locator("h2", { hasText: "Students" })).toHaveCount(0);
+    await expect(mainArea.getByRole("navigation")).toHaveCount(0);
+
+    await expect(instructorPendingSection).toHaveCount(0);
+    await expect(instructorApprovedSection).toHaveCount(0);
+    await expect(
+      page
+        .locator("[data-testid='manager-member-request-card']")
+        .filter({ hasText: seedEmail })
+        .first(),
+    ).toBeVisible();
+  });
 });
