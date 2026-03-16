@@ -27,8 +27,19 @@ enum RegistrationRequestRole {
   STUDENT
 }
 
+enum SchoolRole {
+  SCHOOL_MANAGER
+  INSTRUCTOR
+  STUDENT
+}
+
 enum RegistrationRequestStatus {
   PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RegistrationRequestDecisionType {
   APPROVED
   REJECTED
 }
@@ -71,6 +82,8 @@ model School {
   accounts                  Account[]
   memberRegistrationRequests RegistrationRequest[] @relation("RegistrationTargetSchool")
   approvedManagerRequests   RegistrationRequest[] @relation("RegistrationApprovedSchool")
+  schoolRoles               UserSchoolRole[] @relation("SchoolRoleMembership")
+  approvedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionApprovedSchool")
   
   @@unique([name, country])
 }
@@ -102,8 +115,11 @@ model User {
   studentProfile            Student?
   courseInterests           CourseInterest[]
   accounts                  Account[]
-  registrationRequest       RegistrationRequest?  @relation("RegistrationRequester")
+  registrationRequests      RegistrationRequest[] @relation("RegistrationRequester")
   reviewedRegistrationRequests RegistrationRequest[] @relation("RegistrationReviewer")
+  schoolRoles               UserSchoolRole[]      @relation("UserSchoolRoleMembership")
+  grantedSchoolRoles        UserSchoolRole[]      @relation("UserSchoolRoleGrantedBy")
+  reviewedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionReviewer")
 }
 
 model RegistrationRequest {
@@ -112,7 +128,7 @@ model RegistrationRequest {
   updatedAt                 DateTime                 @updatedAt
 
   requester                 User                     @relation("RegistrationRequester", fields: [requesterId], references: [id])
-  requesterId               String                   @unique
+  requesterId               String
 
   requestedRole             RegistrationRequestRole
   status                    RegistrationRequestStatus @default(PENDING)
@@ -137,9 +153,56 @@ model RegistrationRequest {
 
   approvedSchool            School?                  @relation("RegistrationApprovedSchool", fields: [approvedSchoolId], references: [id])
   approvedSchoolId          String?
+  decisions                 RegistrationRequestDecision[]
+  grantedSchoolRoles        UserSchoolRole[]
 
   @@index([status, requestedRole, createdAt])
+  @@index([requesterId, createdAt])
   @@index([targetSchoolId, status, createdAt])
+}
+
+model UserSchoolRole {
+  id                        String               @id @default(uuid())
+  createdAt                 DateTime             @default(now())
+  grantedAt                 DateTime             @default(now())
+  revokedAt                 DateTime?
+
+  user                      User                 @relation("UserSchoolRoleMembership", fields: [userId], references: [id])
+  userId                    String
+
+  school                    School               @relation("SchoolRoleMembership", fields: [schoolId], references: [id])
+  schoolId                  String
+
+  role                      SchoolRole
+
+  grantedByUser             User?                @relation("UserSchoolRoleGrantedBy", fields: [grantedByUserId], references: [id])
+  grantedByUserId           String?
+
+  sourceRegistrationRequest RegistrationRequest? @relation(fields: [sourceRegistrationRequestId], references: [id])
+  sourceRegistrationRequestId String?
+
+  @@unique([userId, schoolId, role])
+  @@index([schoolId, role])
+  @@index([userId, role])
+}
+
+model RegistrationRequestDecision {
+  id                        String                          @id @default(uuid())
+  createdAt                 DateTime                        @default(now())
+  decisionType              RegistrationRequestDecisionType
+  reason                    String?
+
+  request                   RegistrationRequest             @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId                 String                          @unique
+
+  reviewer                  User?                           @relation("RegistrationDecisionReviewer", fields: [reviewerId], references: [id])
+  reviewerId                String?
+
+  approvedSchool            School?                         @relation("RegistrationDecisionApprovedSchool", fields: [approvedSchoolId], references: [id])
+  approvedSchoolId          String?
+
+  @@index([createdAt])
+  @@index([reviewerId, createdAt])
 }
 
 model Instructor {

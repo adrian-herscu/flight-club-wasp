@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Navigate } from "react-router";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -17,7 +17,7 @@ import {
 import { toast } from "../client/hooks/use-toast";
 
 const {
-  getMyRegistrationRequest,
+  getMyRegistrationRequests,
   getRegistrationSchoolOptions,
   submitRegistrationRequest,
   useQuery,
@@ -58,24 +58,34 @@ function isValidWebsiteUrl(value: string): boolean {
 
 export default function RegistrationPage({ user }: { user: AuthUser }) {
   const { t } = useTranslation();
-  
-  if (user.role && user.role !== "USER") {
-    return <Navigate to="/" replace />;
-  }
+  const [searchParams] = useSearchParams();
 
   const currentUser = user as AuthUser & { fullName?: string | null; phone?: string | null };
   const initialFullName = typeof currentUser.fullName === "string" ? currentUser.fullName : "";
   const initialPhone = typeof user.phone === "string" ? user.phone : "";
+  const requestedRoleParam = searchParams.get("role");
+  const targetSchoolIdParam = searchParams.get("schoolId") ?? "";
+  const initialRequestedRole: RegistrationRole =
+    requestedRoleParam === "INSTRUCTOR" ||
+    requestedRoleParam === "STUDENT" ||
+    requestedRoleParam === "SCHOOL_MANAGER"
+      ? requestedRoleParam
+      : "SCHOOL_MANAGER";
 
-  const { data: existingRequest, isLoading, refetch } = useQuery(getMyRegistrationRequest);
+  const { data: existingRequestsData, isLoading, refetch } = useQuery(getMyRegistrationRequests);
   const { data: schoolOptionsData } = useQuery(getRegistrationSchoolOptions);
 
+  const existingRequests = (existingRequestsData as any[] | undefined) ?? [];
   const schoolOptions = (schoolOptionsData as SchoolOption[] | undefined) ?? [];
+  const schoolOptionsById = useMemo(
+    () => new Map(schoolOptions.map((school) => [school.id, school])),
+    [schoolOptions],
+  );
 
   const [fullName, setFullName] = useState(initialFullName);
   const [phone, setPhone] = useState(initialPhone);
-  const [requestedRole, setRequestedRole] = useState<RegistrationRole>("SCHOOL_MANAGER");
-  const [targetSchoolId, setTargetSchoolId] = useState("");
+  const [requestedRole, setRequestedRole] = useState<RegistrationRole>(initialRequestedRole);
+  const [targetSchoolId, setTargetSchoolId] = useState(targetSchoolIdParam);
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
   const [requestedWebsiteUrl, setRequestedWebsiteUrl] = useState("");
   const [requestedAddressLine1, setRequestedAddressLine1] = useState("");
@@ -88,11 +98,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isManagerRequest = requestedRole === "SCHOOL_MANAGER";
-
-  const selectedSchool = useMemo(() => {
-    if (!existingRequest?.targetSchoolId) return null;
-    return schoolOptions.find((school) => school.id === existingRequest.targetSchoolId) ?? null;
-  }, [existingRequest?.targetSchoolId, schoolOptions]);
 
   const handleSubmit = async () => {
     if (!fullName.trim() || !phone.trim()) {
@@ -204,47 +209,50 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     );
   }
 
-  if (existingRequest) {
-    return (
-      <div className="mx-auto mt-10 max-w-3xl px-6">
-        <Card>
+  return (
+    <div className="mx-auto mt-10 max-w-3xl px-6 pb-10">
+      {existingRequests.length > 0 && (
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>{t("registration.registration")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <p>
-              {t("registration.requestTypeLabel")} <strong>{existingRequest.requestedRole}</strong>
-            </p>
-            <p>
-              {t("registration.statusLabel")} <strong>{existingRequest.status}</strong>
-            </p>
-            {existingRequest.requestedRole === "SCHOOL_MANAGER" && (
-              <p>
-                {t("registration.schoolLabel")} <strong>{existingRequest.requestedSchoolName ?? "-"}</strong>
-              </p>
-            )}
-            {existingRequest.requestedRole !== "SCHOOL_MANAGER" && (
-              <p>
-                {t("registration.schoolLabel")} <strong>{selectedSchool?.name ?? existingRequest.targetSchool?.name ?? "-"}</strong>
-              </p>
-            )}
-            {existingRequest.rejectionReason && (
-              <div>
-                <p className="font-medium">{t("registration.reasonLabel")}</p>
-                <p className="text-muted-foreground">{existingRequest.rejectionReason}</p>
-              </div>
-            )}
-            <p className="text-muted-foreground">
-              {t("registration.refreshMessage")}
-            </p>
+            {existingRequests.map((request) => {
+              const resolvedSchool = request.targetSchoolId
+                ? schoolOptionsById.get(request.targetSchoolId)
+                : null;
+
+              return (
+                <div key={request.id} className="space-y-2 rounded-md border p-4">
+                  <p>
+                    {t("registration.requestTypeLabel")} <strong>{request.requestedRole}</strong>
+                  </p>
+                  <p>
+                    {t("registration.statusLabel")} <strong>{request.status}</strong>
+                  </p>
+                  {request.requestedRole === "SCHOOL_MANAGER" ? (
+                    <p>
+                      {t("registration.schoolLabel")} <strong>{request.requestedSchoolName ?? "-"}</strong>
+                    </p>
+                  ) : (
+                    <p>
+                      {t("registration.schoolLabel")} <strong>{resolvedSchool?.name ?? request.targetSchool?.name ?? "-"}</strong>
+                    </p>
+                  )}
+                  {request.rejectionReason && (
+                    <div>
+                      <p className="font-medium">{t("registration.reasonLabel")}</p>
+                      <p className="text-muted-foreground">{request.rejectionReason}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <p className="text-muted-foreground">{t("registration.refreshMessage")}</p>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="mx-auto mt-10 max-w-3xl px-6 pb-10">
       <Card>
         <CardHeader>
           <CardTitle>{t("registration.registration")}</CardTitle>

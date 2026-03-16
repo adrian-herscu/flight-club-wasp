@@ -43,14 +43,15 @@ test.describe("role menu navigation flows", () => {
     await expectSidebarOnScreen(page);
 
     const sidebar = page.locator("aside");
-    await expect(sidebar.getByRole("link", { name: "School Requests" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "Schools" })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "Member Requests" })).toHaveCount(0);
     await expect(sidebar.getByRole("link", { name: "My School" })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: "Syllabuses" })).toHaveCount(0);
+    await expect(sidebar.getByRole("link", { name: "Syllabuses" })).toBeVisible();
 
     await clickSidebarLinkAndExpectUrl(page, "Dashboard", /\/admin\/?$/);
     await clickSidebarLinkAndExpectUrl(page, "Users", /\/admin\/users\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "School Requests", /\/admin\/school-requests\/?$/);
+    await clickSidebarLinkAndExpectUrl(page, "Schools", /\/admin\/school-requests\/?$/);
+    await clickSidebarLinkAndExpectUrl(page, "Syllabuses", /\/admin\/syllabuses\?section=catalog$/);
     await clickSidebarLinkAndExpectUrl(page, "Calendar", /\/admin\/calendar\/?$/);
 
     const uiElementsLink = sidebar.getByRole("link", { name: "UI Elements" }).first();
@@ -73,13 +74,12 @@ test.describe("role menu navigation flows", () => {
     await expectSidebarOnScreen(page);
 
     const sidebar = page.locator("aside");
-    await expect(sidebar.getByRole("link", { name: "School Requests" })).toHaveCount(0);
+    await expect(sidebar.getByRole("link", { name: "Schools" })).toHaveCount(0);
     await expect(sidebar.getByRole("link", { name: "Member Requests" })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "My School" })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "Syllabuses" })).toBeVisible();
 
     await clickSidebarLinkAndExpectUrl(page, "Dashboard", /\/admin\/?$/);
-    await clickSidebarLinkAndExpectUrl(page, "Users", /\/admin\/users\/?$/);
     await clickSidebarLinkAndExpectUrl(page, "Member Requests", /\/admin\/member-requests\/?$/);
     await clickSidebarLinkAndExpectUrl(page, "My School", /\/admin\/school\/?$/);
     await clickSidebarLinkAndExpectUrl(page, "Syllabuses", /\/admin\/syllabuses\?section=catalog$/);

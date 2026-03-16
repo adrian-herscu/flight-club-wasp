@@ -103,9 +103,9 @@ page RegistrationPage {
 }
 route RegistrationRoute { path: "/registration", to: RegistrationPage }
 
-query getMyRegistrationRequest {
-  fn: import { getMyRegistrationRequest } from "@src/registration/operations",
-  entities: [User, School, RegistrationRequest]
+query getMyRegistrationRequests {
+  fn: import { getMyRegistrationRequests } from "@src/registration/operations",
+  entities: [User, School, RegistrationRequest, RegistrationRequestDecision]
 }
 
 query getRegistrationSchoolOptions {
@@ -131,12 +131,12 @@ query getPendingSchoolManagerRequests {
 
 action approveSchoolManagerRequest {
   fn: import { approveSchoolManagerRequest } from "@src/registration/operations",
-  entities: [User, School, RegistrationRequest, Account]
+  entities: [User, School, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Account]
 }
 
 action rejectSchoolManagerRequest {
   fn: import { rejectSchoolManagerRequest } from "@src/registration/operations",
-  entities: [User, RegistrationRequest]
+  entities: [User, RegistrationRequest, RegistrationRequestDecision]
 }
 
 page ManagerRequestsPage {
@@ -152,12 +152,12 @@ query getPendingSchoolMemberRequests {
 
 action approveSchoolMemberRequest {
   fn: import { approveSchoolMemberRequest } from "@src/registration/operations",
-  entities: [User, School, RegistrationRequest, Instructor, Student, Account]
+  entities: [User, School, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Instructor, Student, Account]
 }
 
 action rejectSchoolMemberRequest {
   fn: import { rejectSchoolMemberRequest } from "@src/registration/operations",
-  entities: [User, School, RegistrationRequest]
+  entities: [User, School, RegistrationRequest, RegistrationRequestDecision]
 }
 //#endregion
 

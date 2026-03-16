@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings } from "lucide-react";
+import { LayoutDashboard, Settings, UserPlus } from "lucide-react";
 import { routes } from "wasp/client/router";
 
 export const userMenuItems = [
@@ -8,6 +8,13 @@ export const userMenuItems = [
     icon: LayoutDashboard,
     isAuthRequired: true,
     isAdminOnly: true,
+  },
+  {
+    nameKey: "user.requestRoles",
+    to: routes.RegistrationRoute.to,
+    icon: UserPlus,
+    isAuthRequired: true,
+    isAdminOnly: false,
   },
   {
     nameKey: "user.accountSettings",

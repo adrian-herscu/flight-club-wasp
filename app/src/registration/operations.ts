@@ -1,7 +1,9 @@
 import {
   Prisma,
   RegistrationRequestRole,
+  RegistrationRequestDecisionType,
   RegistrationRequestStatus,
+  SchoolRole,
   UserRole,
 } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
@@ -14,6 +16,48 @@ type RequestContext = {
     role?: UserRole | null;
   } | null;
 };
+
+const userRolePrecedence: Record<UserRole, number> = {
+  [UserRole.USER]: 0,
+  [UserRole.STUDENT]: 1,
+  [UserRole.INSTRUCTOR]: 2,
+  [UserRole.SCHOOL_MANAGER]: 3,
+  [UserRole.SYSTEM_ADMIN]: 4,
+};
+
+function schoolRequestRoleToUserRole(role: RegistrationRequestRole): UserRole {
+  switch (role) {
+    case RegistrationRequestRole.SCHOOL_MANAGER:
+      return UserRole.SCHOOL_MANAGER;
+    case RegistrationRequestRole.INSTRUCTOR:
+      return UserRole.INSTRUCTOR;
+    case RegistrationRequestRole.STUDENT:
+      return UserRole.STUDENT;
+  }
+}
+
+function schoolRequestRoleToSchoolRole(role: RegistrationRequestRole): SchoolRole {
+  switch (role) {
+    case RegistrationRequestRole.SCHOOL_MANAGER:
+      return SchoolRole.SCHOOL_MANAGER;
+    case RegistrationRequestRole.INSTRUCTOR:
+      return SchoolRole.INSTRUCTOR;
+    case RegistrationRequestRole.STUDENT:
+      return SchoolRole.STUDENT;
+  }
+}
+
+function getEffectiveUserRole(
+  currentRole: UserRole | null | undefined,
+  approvedRole: RegistrationRequestRole,
+): UserRole {
+  const normalizedCurrentRole = currentRole ?? UserRole.USER;
+  const approvedUserRole = schoolRequestRoleToUserRole(approvedRole);
+
+  return userRolePrecedence[approvedUserRole] > userRolePrecedence[normalizedCurrentRole]
+    ? approvedUserRole
+    : normalizedCurrentRole;
+}
 
 function ensureAuthenticatedUser(context: RequestContext) {
   if (!context.user) {
@@ -228,15 +272,28 @@ type RegistrationRequestListItem = {
   requestedPostalCode: string | null;
   requestedCountry: string | null;
   requestedCurrency: string | null;
+  rejectionReason?: string | null;
+  approvedSchool?: {
+    id: string;
+    name: string;
+    websiteUrl: string | null;
+    addressLine1: string;
+    addressLine2: string | null;
+    city: string;
+    stateProvince: string | null;
+    postalCode: string;
+    country: string;
+    currency: string;
+  } | null;
 };
 
-export const getMyRegistrationRequest = async (
+export const getMyRegistrationRequests = async (
   _args: unknown,
   context: RequestContext,
 ) => {
   const user = ensureAuthenticatedUser(context);
 
-  return prisma.registrationRequest.findUnique({
+  return prisma.registrationRequest.findMany({
     where: { requesterId: user.id },
     include: {
       targetSchool: {
@@ -255,7 +312,17 @@ export const getMyRegistrationRequest = async (
           country: true,
         },
       },
+      decisions: {
+        select: {
+          id: true,
+          createdAt: true,
+          decisionType: true,
+          reason: true,
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
 };
 
@@ -281,13 +348,6 @@ export const submitRegistrationRequest = async (
 ) => {
   const user = ensureAuthenticatedUser(context);
 
-  if (user.role !== UserRole.USER) {
-    throw new HttpError(
-      409,
-      "Only users with USER role can submit a registration request.",
-    );
-  }
-
   const args = ensureArgsSchemaOrThrowHttpError(
     submitRegistrationRequestSchema,
     rawArgs,
@@ -306,49 +366,93 @@ export const submitRegistrationRequest = async (
 
   const fullName = args.fullName.trim();
   const phone = args.phone.trim();
+  const normalizedRequestedRole = args.requestedRole as RegistrationRequestRole;
   const requestedWebsiteUrl =
-    args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+    normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
       ? normalizeOptionalWebsiteUrl(args.requestedWebsiteUrl)
       : null;
 
+  const requestedSchoolName =
+    normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      ? args.requestedSchoolName?.trim() ?? null
+      : null;
+  const requestedCountry =
+    normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      ? args.requestedCountry?.trim().toUpperCase() ?? null
+      : null;
+
+  if (normalizedRequestedRole !== RegistrationRequestRole.SCHOOL_MANAGER) {
+    const existingRole = await prisma.userSchoolRole.findUnique({
+      where: {
+        userId_schoolId_role: {
+          userId: user.id,
+          schoolId: args.targetSchoolId!,
+          role: schoolRequestRoleToSchoolRole(normalizedRequestedRole),
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existingRole) {
+      throw new HttpError(409, "You already hold this role for the selected school.");
+    }
+  }
+
+  const duplicatePendingRequest = await prisma.registrationRequest.findFirst({
+    where:
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+        ? {
+            requesterId: user.id,
+            requestedRole: normalizedRequestedRole,
+            status: RegistrationRequestStatus.PENDING,
+            requestedSchoolName: requestedSchoolName,
+            requestedCountry: requestedCountry,
+          }
+        : {
+            requesterId: user.id,
+            requestedRole: normalizedRequestedRole,
+            targetSchoolId: args.targetSchoolId,
+            status: RegistrationRequestStatus.PENDING,
+          },
+    select: { id: true },
+  });
+
+  if (duplicatePendingRequest) {
+    throw new HttpError(409, "You already have a pending request for this role.");
+  }
+
   const registrationRequestData = {
     requesterId: user.id,
-    requestedRole: args.requestedRole,
+    requestedRole: normalizedRequestedRole,
     targetSchoolId:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? null
         : args.targetSchoolId,
-    requestedSchoolName:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-        ? args.requestedSchoolName?.trim() ?? null
-        : null,
+    requestedSchoolName,
     requestedWebsiteUrl,
     requestedAddressLine1:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedAddressLine1?.trim() ?? null
         : null,
     requestedAddressLine2:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedAddressLine2?.trim() ?? null
         : null,
     requestedCity:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedCity?.trim() ?? null
         : null,
     requestedStateProvince:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedStateProvince?.trim() ?? null
         : null,
     requestedPostalCode:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedPostalCode?.trim() ?? null
         : null,
-    requestedCountry:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-        ? args.requestedCountry?.trim().toUpperCase() ?? null
-        : null,
+    requestedCountry,
     requestedCurrency:
-      args.requestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedCurrency?.trim().toUpperCase() ?? null
         : null,
   } satisfies Prisma.RegistrationRequestUncheckedCreateInput;
@@ -381,8 +485,8 @@ export const submitRegistrationRequest = async (
           target.includes("RegistrationRequest_requesterId"),
       );
 
-      if (isRequesterDuplicate) {
-        throw new HttpError(409, "You already submitted a registration request.");
+      if (isRequesterDuplicate || targets.some((target) => target.includes("pending_role_request"))) {
+        throw new HttpError(409, "You already have a pending request for this role.");
       }
 
       throw new HttpError(
@@ -404,7 +508,12 @@ export const getPendingSchoolManagerRequests = async (
   return prisma.registrationRequest.findMany({
     where: {
       requestedRole: RegistrationRequestRole.SCHOOL_MANAGER,
-      status: RegistrationRequestStatus.PENDING,
+      status: {
+        in: [
+          RegistrationRequestStatus.PENDING,
+          RegistrationRequestStatus.APPROVED,
+        ],
+      },
     },
     include: {
       requester: {
@@ -421,10 +530,22 @@ export const getPendingSchoolManagerRequests = async (
           name: true,
         },
       },
+      approvedSchool: {
+        select: {
+          id: true,
+          name: true,
+          websiteUrl: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          stateProvince: true,
+          postalCode: true,
+          country: true,
+          currency: true,
+        },
+      },
     },
-    orderBy: {
-      createdAt: "asc",
-    },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
 };
 
@@ -486,6 +607,10 @@ export const approveSchoolManagerRequest = async (
     throw new HttpError(409, "Only pending requests can be approved.");
   }
 
+  if (request.requesterId === reviewer.id) {
+    throw new HttpError(403, "You cannot approve your own registration request.");
+  }
+
   if (request.requestedRole !== RegistrationRequestRole.SCHOOL_MANAGER) {
     throw new HttpError(400, "This request is not a school manager request.");
   }
@@ -545,7 +670,48 @@ export const approveSchoolManagerRequest = async (
 
       await tx.user.update({
         where: { id: request.requesterId },
-        data: { role: UserRole.SCHOOL_MANAGER },
+        data: {
+          role: getEffectiveUserRole(
+            (
+              await tx.user.findUnique({
+                where: { id: request.requesterId },
+                select: { role: true },
+              })
+            )?.role,
+            request.requestedRole,
+          ),
+        },
+      });
+
+      await tx.userSchoolRole.upsert({
+        where: {
+          userId_schoolId_role: {
+            userId: request.requesterId,
+            schoolId: school.id,
+            role: SchoolRole.SCHOOL_MANAGER,
+          },
+        },
+        update: {
+          revokedAt: null,
+          grantedByUserId: reviewer.id,
+          sourceRegistrationRequestId: request.id,
+        },
+        create: {
+          userId: request.requesterId,
+          schoolId: school.id,
+          role: SchoolRole.SCHOOL_MANAGER,
+          grantedByUserId: reviewer.id,
+          sourceRegistrationRequestId: request.id,
+        },
+      });
+
+      await tx.registrationRequestDecision.create({
+        data: {
+          requestId: request.id,
+          decisionType: RegistrationRequestDecisionType.APPROVED,
+          reviewerId: reviewer.id,
+          approvedSchoolId: school.id,
+        },
       });
 
       await tx.registrationRequest.update({
@@ -605,18 +771,38 @@ export const rejectSchoolManagerRequest = async (
     throw new HttpError(409, "Only pending requests can be rejected.");
   }
 
+  const fullRequest = await prisma.registrationRequest.findUnique({
+    where: { id: request.id },
+    select: { requesterId: true },
+  });
+
+  if (fullRequest?.requesterId === reviewer.id) {
+    throw new HttpError(403, "You cannot reject your own registration request.");
+  }
+
   if (request.requestedRole !== RegistrationRequestRole.SCHOOL_MANAGER) {
     throw new HttpError(400, "This request is not a school manager request.");
   }
 
-  return prisma.registrationRequest.update({
-    where: { id: request.id },
-    data: {
-      status: RegistrationRequestStatus.REJECTED,
-      reviewerId: reviewer.id,
-      reviewedAt: new Date(),
-      rejectionReason: rejectionReason?.trim() || null,
-    },
+  return prisma.$transaction(async (tx) => {
+    await tx.registrationRequestDecision.create({
+      data: {
+        requestId: request.id,
+        decisionType: RegistrationRequestDecisionType.REJECTED,
+        reviewerId: reviewer.id,
+        reason: rejectionReason?.trim() || null,
+      },
+    });
+
+    return tx.registrationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: RegistrationRequestStatus.REJECTED,
+        reviewerId: reviewer.id,
+        reviewedAt: new Date(),
+        rejectionReason: rejectionReason?.trim() || null,
+      },
+    });
   });
 };
 
@@ -638,6 +824,11 @@ export const approveSchoolMemberRequest = async (
       requestedRole: true,
       targetSchoolId: true,
       status: true,
+      requester: {
+        select: {
+          role: true,
+        },
+      },
     },
   });
 
@@ -658,6 +849,10 @@ export const approveSchoolMemberRequest = async (
 
   if (!request.targetSchoolId || request.targetSchoolId !== school.id) {
     throw new HttpError(403, "You can approve only requests for your own school.");
+  }
+
+  if (request.requesterId === reviewer.id) {
+    throw new HttpError(403, "You cannot approve your own registration request.");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -707,13 +902,40 @@ export const approveSchoolMemberRequest = async (
       });
     }
 
+    await tx.userSchoolRole.upsert({
+      where: {
+        userId_schoolId_role: {
+          userId: request.requesterId,
+          schoolId: school.id,
+          role: schoolRequestRoleToSchoolRole(request.requestedRole),
+        },
+      },
+      update: {
+        revokedAt: null,
+        grantedByUserId: reviewer.id,
+        sourceRegistrationRequestId: request.id,
+      },
+      create: {
+        userId: request.requesterId,
+        schoolId: school.id,
+        role: schoolRequestRoleToSchoolRole(request.requestedRole),
+        grantedByUserId: reviewer.id,
+        sourceRegistrationRequestId: request.id,
+      },
+    });
+
     await tx.user.update({
       where: { id: request.requesterId },
       data: {
-        role:
-          request.requestedRole === RegistrationRequestRole.INSTRUCTOR
-            ? UserRole.INSTRUCTOR
-            : UserRole.STUDENT,
+        role: getEffectiveUserRole(request.requester.role, request.requestedRole),
+      },
+    });
+
+    await tx.registrationRequestDecision.create({
+      data: {
+        requestId: request.id,
+        decisionType: RegistrationRequestDecisionType.APPROVED,
+        reviewerId: reviewer.id,
       },
     });
 
@@ -772,13 +994,33 @@ export const rejectSchoolMemberRequest = async (
     throw new HttpError(403, "You can reject only requests for your own school.");
   }
 
-  return prisma.registrationRequest.update({
+  const fullRequest = await prisma.registrationRequest.findUnique({
     where: { id: request.id },
-    data: {
-      status: RegistrationRequestStatus.REJECTED,
-      reviewerId: reviewer.id,
-      reviewedAt: new Date(),
-      rejectionReason: rejectionReason?.trim() || null,
-    },
+    select: { requesterId: true },
+  });
+
+  if (fullRequest?.requesterId === reviewer.id) {
+    throw new HttpError(403, "You cannot reject your own registration request.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.registrationRequestDecision.create({
+      data: {
+        requestId: request.id,
+        decisionType: RegistrationRequestDecisionType.REJECTED,
+        reviewerId: reviewer.id,
+        reason: rejectionReason?.trim() || null,
+      },
+    });
+
+    return tx.registrationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: RegistrationRequestStatus.REJECTED,
+        reviewerId: reviewer.id,
+        reviewedAt: new Date(),
+        rejectionReason: rejectionReason?.trim() || null,
+      },
+    });
   });
 };

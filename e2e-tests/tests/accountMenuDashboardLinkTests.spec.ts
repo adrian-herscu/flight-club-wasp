@@ -53,4 +53,28 @@ test.describe("account menu dashboard link", () => {
     await dashboardLink.click();
     await expect(page).toHaveURL(/\/admin\/?$/);
   });
+
+  test("registered users can open Request Roles from user menu", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+school_manager.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/admin",
+    });
+
+    await page.goto("/account");
+    await expect(page).toHaveURL(/\/account/);
+
+    const dropdownTrigger = page.getByRole("button", { name: /school_manager_01/i });
+    await expect(dropdownTrigger).toBeVisible();
+    await dropdownTrigger.click();
+
+    const requestRolesLink = page.getByRole("menuitem").filter({ hasText: /request roles/i });
+    await expect(requestRolesLink).toBeVisible();
+
+    await requestRolesLink.click();
+    await expect(page).toHaveURL(/\/registration/);
+  });
 });
