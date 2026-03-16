@@ -56,8 +56,10 @@
 ## Troubleshooting defaults
 - If Wasp types/imports are stale after config/schema changes, restart dev server before deep debugging.
 - Check operation declarations, entity lists, path imports, server logs, and browser console.
+- After any state-changing code/config/schema edit, use diagnostics integration (Problems diagnostics) and fix compilation/schema errors before finishing.
 
 ## Testing workflow policy
+- Use the `runTests` tool to run tests instead of CLI commands (e.g., `npm test` or `npx playwright test`); this provides structured output, better VS Code integration, and precise error locations.
 - Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant E2E tests first.
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant E2E tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.

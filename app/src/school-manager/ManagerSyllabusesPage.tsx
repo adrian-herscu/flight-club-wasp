@@ -1,4 +1,4 @@
-import { SyllabusVersionStatus } from "@prisma/client";
+import { SyllabusVersionStatus, UserRole } from "@prisma/client";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
@@ -329,8 +329,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     if (!versionDetails) return null;
     if (versionDetails.status !== SyllabusVersionStatus.DRAFT) return null;
 
+    if (user.role === UserRole.SYSTEM_ADMIN && versionDetails.schoolId !== null) {
+      return null;
+    }
+
+    if (user.role === UserRole.SCHOOL_MANAGER && versionDetails.schoolId === null) {
+      return null;
+    }
+
     return versionDetails.syllabusVersionId;
-  }, [versionDetails]);
+  }, [user.role, versionDetails]);
 
   const handleCreateFromTemplate = async (event: FormEvent) => {
     event.preventDefault();

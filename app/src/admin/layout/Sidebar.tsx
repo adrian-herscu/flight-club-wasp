@@ -212,7 +212,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
               {/* <!-- Menu Item School --> */}
 
               {/* <!-- Menu Item Syllabuses --> */}
-              {userRole === "SCHOOL_MANAGER" && (
+              {(userRole === "SCHOOL_MANAGER" || userRole === "SYSTEM_ADMIN") && (
                 <li>
                 <NavLink
                   to="/admin/syllabuses?section=catalog"

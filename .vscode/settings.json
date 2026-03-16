@@ -1,0 +1,12 @@
+{
+  "prisma.fileWatcher.enable": true,
+  "prisma.schemaPath": "app/schema.prisma",
+  "files.exclude": {
+    "app/.wasp/out/**/schema.prisma": true,
+    "app/node_modules/**/.prisma/client/schema.prisma": true
+  },
+  "search.exclude": {
+    "app/.wasp/**": true,
+    "app/node_modules/**": true
+  }
+}

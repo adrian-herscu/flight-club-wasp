@@ -186,6 +186,23 @@ function ensureSchoolManager(context: { user?: { id: string; role?: UserRole | n
   return context.user;
 }
 
+function ensureSyllabusOperator(context: {
+  user?: { id: string; role?: UserRole | null } | null;
+}) {
+  if (!context.user) {
+    throw new HttpError(401, "Only authenticated users can access manager features.");
+  }
+
+  if (
+    context.user.role !== UserRole.SCHOOL_MANAGER &&
+    context.user.role !== UserRole.SYSTEM_ADMIN
+  ) {
+    throw new HttpError(403, "Only school managers and system admins can access this resource.");
+  }
+
+  return context.user as { id: string; role: Extract<UserRole, "SCHOOL_MANAGER" | "SYSTEM_ADMIN"> };
+}
+
 export const getMyManagedSchool = async (
   _args: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
@@ -201,23 +218,37 @@ export const getManagerSyllabusCatalog = async (
   courseOpeningCandidates: SyllabusCatalogItem[];
   editableDrafts: SyllabusCatalogItem[];
 }> => {
-  const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const user = ensureSyllabusOperator(context);
+  const school =
+    user.role === UserRole.SCHOOL_MANAGER
+      ? await getManagedSchoolForUserId(user.id)
+      : null;
 
   const versions = await prisma.syllabusVersion.findMany({
     where: {
-      OR: [
-        {
-          status: SyllabusVersionStatus.FINAL,
-          syllabus: {
-            OR: [{ schoolId: null }, { schoolId: school.id }],
-          },
-        },
-        {
-          status: SyllabusVersionStatus.DRAFT,
-          syllabus: { schoolId: school.id },
-        },
-      ],
+      OR:
+        user.role === UserRole.SYSTEM_ADMIN
+          ? [
+              {
+                status: SyllabusVersionStatus.FINAL,
+              },
+              {
+                status: SyllabusVersionStatus.DRAFT,
+                syllabus: { schoolId: null },
+              },
+            ]
+          : [
+              {
+                status: SyllabusVersionStatus.FINAL,
+                syllabus: {
+                  OR: [{ schoolId: null }, { schoolId: school?.id ?? null }],
+                },
+              },
+              {
+                status: SyllabusVersionStatus.DRAFT,
+                syllabus: { schoolId: school?.id ?? "" },
+              },
+            ],
     },
     include: {
       syllabus: {
@@ -254,7 +285,10 @@ export const getManagerSyllabusCatalog = async (
     ),
     editableDrafts: mapped.filter(
       (item) =>
-        item.status === SyllabusVersionStatus.DRAFT && item.schoolId === school.id,
+        item.status === SyllabusVersionStatus.DRAFT &&
+        (user.role === UserRole.SYSTEM_ADMIN
+          ? item.schoolId === null
+          : item.schoolId === school?.id),
     ),
   };
 };
@@ -263,8 +297,11 @@ export const getSyllabusVersionDetails = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<SyllabusVersionDetails> => {
-  const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const user = ensureSyllabusOperator(context);
+  const school =
+    user.role === UserRole.SCHOOL_MANAGER
+      ? await getManagedSchoolForUserId(user.id)
+      : null;
   const { syllabusVersionId } = ensureArgsSchemaOrThrowHttpError(
     syllabusVersionDetailsSchema,
     rawArgs,
@@ -294,13 +331,17 @@ export const getSyllabusVersionDetails = async (
     throw new HttpError(404, "Syllabus version not found.");
   }
 
-  const isOwnSchoolDraft =
-    version.status === SyllabusVersionStatus.DRAFT &&
-    version.syllabus.schoolId === school.id;
-  const isVisibleFinal = version.status === SyllabusVersionStatus.FINAL;
+  if (user.role === UserRole.SCHOOL_MANAGER) {
+    const isOwnSchoolDraft =
+      version.status === SyllabusVersionStatus.DRAFT &&
+      version.syllabus.schoolId === school?.id;
+    const isVisibleFinal =
+      version.status === SyllabusVersionStatus.FINAL &&
+      (version.syllabus.schoolId === null || version.syllabus.schoolId === school?.id);
 
-  if (!isOwnSchoolDraft && !isVisibleFinal) {
-    throw new HttpError(403, "You are not allowed to access this syllabus version.");
+    if (!isOwnSchoolDraft && !isVisibleFinal) {
+      throw new HttpError(403, "You are not allowed to access this syllabus version.");
+    }
   }
 
   return {
@@ -325,8 +366,11 @@ export const createDraftSyllabusFromScratch = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
-  const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const user = ensureSyllabusOperator(context);
+  const school =
+    user.role === UserRole.SCHOOL_MANAGER
+      ? await getManagedSchoolForUserId(user.id)
+      : null;
   const { name, lessons } = ensureArgsSchemaOrThrowHttpError(
     createDraftFromScratchSchema,
     rawArgs,
@@ -336,7 +380,10 @@ export const createDraftSyllabusFromScratch = async (
     const syllabus = await tx.syllabus.create({
       data: {
         name,
-        schoolId: school.id,
+        schoolId:
+          user.role === UserRole.SYSTEM_ADMIN
+            ? null
+            : school?.id,
       },
     });
 
@@ -368,8 +415,11 @@ export const createDraftSyllabusFromTemplate = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
-  const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const user = ensureSyllabusOperator(context);
+  const school =
+    user.role === UserRole.SCHOOL_MANAGER
+      ? await getManagedSchoolForUserId(user.id)
+      : null;
   const { templateVersionId, name } = ensureArgsSchemaOrThrowHttpError(
     createDraftFromTemplateSchema,
     rawArgs,
@@ -378,6 +428,11 @@ export const createDraftSyllabusFromTemplate = async (
   const templateVersion = await prisma.syllabusVersion.findUnique({
     where: { id: templateVersionId },
     include: {
+      syllabus: {
+        select: {
+          schoolId: true,
+        },
+      },
       lessons: {
         orderBy: { position: "asc" },
       },
@@ -388,11 +443,22 @@ export const createDraftSyllabusFromTemplate = async (
     throw new HttpError(400, "Template must be an existing FINAL syllabus version.");
   }
 
+  if (
+    user.role === UserRole.SCHOOL_MANAGER &&
+    templateVersion.syllabus.schoolId !== null &&
+    templateVersion.syllabus.schoolId !== school?.id
+  ) {
+    throw new HttpError(403, "Template is not in your school scope.");
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     const syllabus = await tx.syllabus.create({
       data: {
         name,
-        schoolId: school.id,
+        schoolId:
+          user.role === UserRole.SYSTEM_ADMIN
+            ? null
+            : school?.id,
       },
     });
 
@@ -425,8 +491,11 @@ export const saveDraftSyllabusRevision = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusVersionId: string; version: number }> => {
-  const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const user = ensureSyllabusOperator(context);
+  const school =
+    user.role === UserRole.SCHOOL_MANAGER
+      ? await getManagedSchoolForUserId(user.id)
+      : null;
   const { sourceVersionId, lessons } = ensureArgsSchemaOrThrowHttpError(
     saveDraftRevisionSchema,
     rawArgs,
@@ -448,14 +517,14 @@ export const saveDraftSyllabusRevision = async (
     throw new HttpError(404, "Draft syllabus version not found.");
   }
 
-  if (
-    sourceVersion.status !== SyllabusVersionStatus.DRAFT ||
-    sourceVersion.syllabus.schoolId !== school.id
-  ) {
-    throw new HttpError(
-      403,
-      "Only drafts from your own school can be edited.",
-    );
+  const canEditDraft =
+    sourceVersion.status === SyllabusVersionStatus.DRAFT &&
+    (user.role === UserRole.SYSTEM_ADMIN
+      ? sourceVersion.syllabus.schoolId === null
+      : sourceVersion.syllabus.schoolId === school?.id);
+
+  if (!canEditDraft) {
+    throw new HttpError(403, "You can edit only drafts in your role scope.");
   }
 
   const created = await prisma.$transaction(async (tx) => {
@@ -496,8 +565,11 @@ export const publishDraftSyllabusVersion = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusVersionId: string; version: number }> => {
-  const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const user = ensureSyllabusOperator(context);
+  const school =
+    user.role === UserRole.SCHOOL_MANAGER
+      ? await getManagedSchoolForUserId(user.id)
+      : null;
   const { sourceVersionId } = ensureArgsSchemaOrThrowHttpError(
     publishDraftSchema,
     rawArgs,
@@ -522,14 +594,14 @@ export const publishDraftSyllabusVersion = async (
     throw new HttpError(404, "Draft syllabus version not found.");
   }
 
-  if (
-    sourceVersion.status !== SyllabusVersionStatus.DRAFT ||
-    sourceVersion.syllabus.schoolId !== school.id
-  ) {
-    throw new HttpError(
-      403,
-      "Only drafts from your own school can be published.",
-    );
+  const canPublishDraft =
+    sourceVersion.status === SyllabusVersionStatus.DRAFT &&
+    (user.role === UserRole.SYSTEM_ADMIN
+      ? sourceVersion.syllabus.schoolId === null
+      : sourceVersion.syllabus.schoolId === school?.id);
+
+  if (!canPublishDraft) {
+    throw new HttpError(403, "You can publish only drafts in your role scope.");
   }
 
   const created = await prisma.$transaction(async (tx) => {
@@ -570,7 +642,10 @@ export const getManagerCoursesForEnrollment = async (
   _args: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerCourseListItem[]> => {
-  const user = ensureSchoolManager(context);
+  const user = ensureSyllabusOperator(context);
+  if (user.role === UserRole.SYSTEM_ADMIN) {
+    return [];
+  }
   const school = await getManagedSchoolForUserId(user.id);
 
   const courses = await prisma.course.findMany({
@@ -613,7 +688,10 @@ export const getManagerStudentsForEnrollment = async (
   _args: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerStudentListItem[]> => {
-  const user = ensureSchoolManager(context);
+  const user = ensureSyllabusOperator(context);
+  if (user.role === UserRole.SYSTEM_ADMIN) {
+    return [];
+  }
   const school = await getManagedSchoolForUserId(user.id);
 
   const students = await prisma.student.findMany({
@@ -654,7 +732,10 @@ export const getManagerInstructorsForAssignment = async (
   _args: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerInstructorListItem[]> => {
-  const user = ensureSchoolManager(context);
+  const user = ensureSyllabusOperator(context);
+  if (user.role === UserRole.SYSTEM_ADMIN) {
+    return [];
+  }
   const school = await getManagedSchoolForUserId(user.id);
 
   const instructors = await prisma.instructor.findMany({
@@ -695,7 +776,10 @@ export const getManagerCourseEnrollmentDetails = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerCourseEnrollmentDetails> => {
-  const user = ensureSchoolManager(context);
+  const user = ensureSyllabusOperator(context);
+  if (user.role === UserRole.SYSTEM_ADMIN) {
+    return null;
+  }
   const school = await getManagedSchoolForUserId(user.id);
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     managerCourseEnrollmentDetailsSchema,
@@ -835,7 +919,10 @@ export const getManagerCourseInstructorDetails = async (
   rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerCourseInstructorDetails> => {
-  const user = ensureSchoolManager(context);
+  const user = ensureSyllabusOperator(context);
+  if (user.role === UserRole.SYSTEM_ADMIN) {
+    return null;
+  }
   const school = await getManagedSchoolForUserId(user.id);
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     managerCourseInstructorDetailsSchema,
