@@ -15,6 +15,7 @@ type LandingSchool = {
   id: string;
   name: string;
   websiteUrl: string | null;
+  logoUrl: string | null;
   city: string;
   country: string;
   courses: LandingCourse[];
@@ -143,11 +144,32 @@ export default function LandingPage() {
                 className="rounded-lg border border-border bg-card p-5 shadow-xs"
               >
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-semibold">{school.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {school.city}, {school.country}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    {school.logoUrl ? (
+                      <img
+                        src={school.logoUrl}
+                        alt={school.name}
+                        data-testid="landing-school-logo"
+                        className="h-12 w-12 rounded-md object-cover"
+                        onError={(event) => {
+                          (event.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        data-testid="landing-school-logo"
+                        aria-label={`${school.name} logo placeholder`}
+                        className="bg-muted text-muted-foreground flex h-12 w-12 items-center justify-center rounded-md text-sm font-semibold"
+                      >
+                        {school.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-xl font-semibold">{school.name}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {school.city}, {school.country}
+                      </p>
+                    </div>
                   </div>
                   {school.websiteUrl && (
                     <a

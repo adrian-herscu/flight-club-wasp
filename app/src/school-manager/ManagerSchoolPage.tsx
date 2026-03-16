@@ -15,6 +15,8 @@ const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as an
 type ManagedSchool = {
   name: string;
   websiteUrl: string | null;
+  phone: string | null;
+  logoUrl: string | null;
   addressLine1: string;
   addressLine2: string | null;
   city: string;
@@ -55,6 +57,22 @@ function isValidOptionalWebsiteUrl(value: string): boolean {
   }
 }
 
+function isValidOptionalLogoUrl(value: string): boolean {
+  if (!value.trim()) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(normalizeWebsiteUrl(value));
+    return (
+      Boolean(parsed.hostname) &&
+      (parsed.protocol === "https:" || parsed.protocol === "http:")
+    );
+  } catch {
+    return false;
+  }
+}
+
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
@@ -62,6 +80,8 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
   const [name, setName] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [phone, setPhone] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -74,6 +94,8 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
 
     setName(school.name);
     setWebsiteUrl(school.websiteUrl ?? "");
+    setPhone(school.phone ?? "");
+    setLogoUrl(school.logoUrl ?? "");
     setAddressLine1(school.addressLine1);
     setAddressLine2(school.addressLine2 ?? "");
     setCity(school.city);
@@ -93,11 +115,22 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
       return;
     }
 
+    if (!isValidOptionalLogoUrl(logoUrl)) {
+      toast({
+        title: t("school.invalidLogoUrl"),
+        description: t("school.invalidLogoUrlError"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       await updateMyManagedSchool({
         name,
         websiteUrl: websiteUrl.trim() || undefined,
+        phone: phone.trim() || undefined,
+        logoUrl: logoUrl.trim() || undefined,
         addressLine1,
         addressLine2,
         city,
@@ -165,6 +198,21 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                     </a>
                   </p>
                 ) : null}
+                {school.phone ? (
+                  <p className={valueClassName}>{school.phone}</p>
+                ) : null}
+                {school.logoUrl ? (
+                  <div className="mt-2">
+                    <img
+                      src={school.logoUrl}
+                      alt={school.name}
+                      className="h-12 w-12 rounded object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                ) : null}
                 <p className={valueClassName}>{school.addressLine1}</p>
                 {school.addressLine2 ? (
                   <p className={valueClassName}>{school.addressLine2}</p>
@@ -190,6 +238,27 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                     value={websiteUrl}
                     onChange={(event) => setWebsiteUrl(event.target.value)}
                     placeholder="https://example.com"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-phone">{t("school.phone")}</Label>
+                  <Input
+                    id="school-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="+1 555 0100"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="school-logo-url">{t("school.logoUrl")}</Label>
+                  <Input
+                    id="school-logo-url"
+                    value={logoUrl}
+                    onChange={(event) => setLogoUrl(event.target.value)}
+                    placeholder="https://example.com/logo.png"
                   />
                 </div>
 

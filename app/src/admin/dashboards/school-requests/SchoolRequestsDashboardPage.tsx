@@ -31,6 +31,8 @@ type SchoolRequestItem = {
     phone: string | null;
   };
   requestedSchoolName: string | null;
+  requestedPhone: string | null;
+  requestedLogoUrl: string | null;
   requestedAddressLine1: string | null;
   requestedAddressLine2: string | null;
   requestedCity: string | null;
@@ -42,6 +44,8 @@ type SchoolRequestItem = {
     id: string;
     name: string;
     websiteUrl: string | null;
+    phone: string | null;
+    logoUrl: string | null;
     addressLine1: string;
     addressLine2: string | null;
     city: string;
@@ -226,6 +230,19 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">{t("admin.requestedSchoolSnapshot")}</p>
                     <p className="text-sm font-medium">{request.requestedSchoolName ?? "-"}</p>
+                    {request.requestedPhone && (
+                      <p className="text-sm text-muted-foreground">{request.requestedPhone}</p>
+                    )}
+                    {request.requestedLogoUrl && (
+                      <img
+                        src={request.requestedLogoUrl}
+                        alt="logo"
+                        className="mt-1 h-8 w-8 rounded object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    )}
                     <p className="text-sm text-muted-foreground">
                       {[
                         request.requestedAddressLine1,
@@ -329,6 +346,25 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                           .filter(Boolean)
                           .join(", ") || "-"}
                       </p>
+                      {request.approvedSchool?.phone && (
+                        <p>
+                          <span className="font-medium text-foreground">Phone: </span>
+                          {request.approvedSchool.phone}
+                        </p>
+                      )}
+                      {request.approvedSchool?.logoUrl && (
+                        <div>
+                          <span className="font-medium text-foreground">Logo: </span>
+                          <img
+                            src={request.approvedSchool.logoUrl}
+                            alt="school logo"
+                            className="mt-1 h-10 w-10 rounded object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
                       <p>
                         <span className="font-medium text-foreground">{t("admin.currency")}: </span>
                         {request.approvedSchool?.currency ?? "-"}

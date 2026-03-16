@@ -86,6 +86,8 @@ test.describe("admin users", () => {
     await page.locator("#phone").fill("+1 555 0160");
     await page.locator("#requestedSchoolName").fill(uniqueSchoolName);
     await page.locator("#requestedWebsiteUrl").fill("https://e2e-school.example.test");
+    await page.locator("#requestedSchoolPhone").fill("+43 512 000000");
+    await page.locator("#requestedLogoUrl").fill("https://e2e-school.example.test/logo.png");
     await page.locator("#requestedAddressLine1").fill("10 Alpine Way");
     await page.locator("#requestedCity").fill("Innsbruck");
     await page.locator("#requestedPostalCode").fill("6020");
@@ -126,6 +128,7 @@ test.describe("admin users", () => {
     await expect(approvedSection.getByText(uniqueSchoolName).first()).toBeVisible();
     await approvedSection.getByText(/School details/i).first().click();
     await expect(approvedSection.getByText(/Address/i).first()).toBeVisible();
+    await expect(approvedSection.getByText(/\+43 512 000000/).first()).toBeVisible();
 
     await page.getByTestId("schools-status-filter-pending").click();
     await expect(page.locator("[data-testid='schools-panel-approved-section']")).toHaveCount(0);

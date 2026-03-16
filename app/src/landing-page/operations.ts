@@ -16,6 +16,7 @@ export type LandingSchoolWithCourses = {
   id: string;
   name: string;
   websiteUrl: string | null;
+  logoUrl: string | null;
   city: string;
   country: string;
   courses: LandingCourse[];
@@ -31,6 +32,7 @@ export const getLandingSchoolsWithCourses = async (
         id: true,
         name: true,
         websiteUrl: true,
+        logoUrl: true,
         city: true,
         country: true,
       },
@@ -74,6 +76,7 @@ export const getLandingSchoolsWithCourses = async (
         id: school.id,
         name: school.name,
         websiteUrl: school.websiteUrl,
+        logoUrl: school.logoUrl,
         city: school.city,
         country: school.country,
         courses,

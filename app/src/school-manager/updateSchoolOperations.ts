@@ -35,9 +35,30 @@ function normalizeOptionalWebsiteUrl(value: string | undefined): string | null {
   return normalized;
 }
 
+function normalizeOptionalLogoUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = normalizeWebsiteUrl(trimmed);
+  const parsed = new URL(normalized);
+  if (!parsed.hostname) {
+    throw new HttpError(400, "Logo URL must be a valid URL.");
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new HttpError(400, "Logo URL must use http or https.");
+  }
+
+  return normalized;
+}
+
 const updateManagedSchoolSchema = z.object({
   name: z.string().trim().min(2),
   websiteUrl: z.string().trim().max(2048).optional(),
+  phone: z.string().trim().max(50).optional(),
+  logoUrl: z.string().trim().max(2048).optional(),
   addressLine1: z.string().trim().min(2),
   addressLine2: z.string().trim().optional(),
   city: z.string().trim().min(2),
@@ -92,6 +113,8 @@ export const updateMyManagedSchool = async (
   const {
     name,
     websiteUrl,
+    phone,
+    logoUrl,
     addressLine1,
     addressLine2,
     city,
@@ -103,6 +126,7 @@ export const updateMyManagedSchool = async (
   ) as UpdateManagedSchoolInput;
 
   const normalizedWebsiteUrl = normalizeOptionalWebsiteUrl(websiteUrl);
+  const normalizedLogoUrl = normalizeOptionalLogoUrl(logoUrl);
 
   try {
     return await prisma.school.update({
@@ -110,6 +134,8 @@ export const updateMyManagedSchool = async (
       data: {
         name,
         websiteUrl: normalizedWebsiteUrl,
+        phone: phone?.trim() || null,
+        logoUrl: normalizedLogoUrl,
         addressLine1,
         addressLine2: addressLine2 || null,
         city,

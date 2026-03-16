@@ -105,6 +105,38 @@ function isValidOptionalWebsiteUrl(value: string | undefined): boolean {
   }
 }
 
+function normalizeOptionalLogoUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = normalizeWebsiteUrl(trimmed);
+  const parsed = new URL(normalized);
+  if (!parsed.hostname) {
+    throw new Error("Invalid logo URL.");
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Logo URL must use http or https.");
+  }
+
+  return normalized;
+}
+
+function isValidOptionalLogoUrl(value: string | undefined): boolean {
+  if (!value?.trim()) {
+    return true;
+  }
+
+  try {
+    normalizeOptionalLogoUrl(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function ensureSystemAdmin(context: RequestContext) {
   const user = ensureAuthenticatedUser(context);
 
@@ -146,6 +178,8 @@ const submitRegistrationRequestSchema = z
     targetSchoolId: z.string().min(1).optional(),
     requestedSchoolName: z.string().trim().min(2).optional(),
     requestedWebsiteUrl: z.string().trim().max(2048).optional(),
+    requestedPhone: z.string().trim().max(50).optional(),
+    requestedLogoUrl: z.string().trim().max(2048).optional(),
     requestedAddressLine1: z.string().trim().min(2).optional(),
     requestedAddressLine2: z.string().trim().optional(),
     requestedCity: z.string().trim().min(2).optional(),
@@ -203,6 +237,13 @@ const submitRegistrationRequestSchema = z
           code: z.ZodIssueCode.custom,
           path: ["requestedWebsiteUrl"],
           message: "Website URL must be a valid URL.",
+        });
+      }
+      if (!isValidOptionalLogoUrl(value.requestedLogoUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["requestedLogoUrl"],
+          message: "Logo URL must be a valid http/https URL.",
         });
       }
       return;
@@ -265,6 +306,8 @@ type RegistrationRequestListItem = {
   } | null;
   requestedSchoolName: string | null;
   requestedWebsiteUrl: string | null;
+  requestedPhone: string | null;
+  requestedLogoUrl: string | null;
   requestedAddressLine1: string | null;
   requestedAddressLine2: string | null;
   requestedCity: string | null;
@@ -277,6 +320,8 @@ type RegistrationRequestListItem = {
     id: string;
     name: string;
     websiteUrl: string | null;
+    phone: string | null;
+    logoUrl: string | null;
     addressLine1: string;
     addressLine2: string | null;
     city: string;
@@ -337,6 +382,8 @@ export const getRegistrationSchoolOptions = async (
       city: true,
       country: true,
       websiteUrl: true,
+      phone: true,
+      logoUrl: true,
     },
     orderBy: [{ name: "asc" }, { createdAt: "asc" }],
   });
@@ -379,6 +426,16 @@ export const submitRegistrationRequest = async (
   const requestedCountry =
     normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
       ? args.requestedCountry?.trim().toUpperCase() ?? null
+      : null;
+
+  const requestedPhone =
+    normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      ? args.requestedPhone?.trim() ?? null
+      : null;
+
+  const requestedLogoUrl =
+    normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
+      ? normalizeOptionalLogoUrl(args.requestedLogoUrl)
       : null;
 
   if (normalizedRequestedRole !== RegistrationRequestRole.SCHOOL_MANAGER) {
@@ -455,6 +512,8 @@ export const submitRegistrationRequest = async (
       normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedCurrency?.trim().toUpperCase() ?? null
         : null,
+    requestedPhone,
+    requestedLogoUrl,
   } satisfies Prisma.RegistrationRequestUncheckedCreateInput;
 
   try {
@@ -535,6 +594,8 @@ export const getPendingSchoolManagerRequests = async (
           id: true,
           name: true,
           websiteUrl: true,
+          phone: true,
+          logoUrl: true,
           addressLine1: true,
           addressLine2: true,
           city: true,
@@ -639,6 +700,8 @@ export const approveSchoolManagerRequest = async (
         data: {
           name: requestedSchoolName,
           websiteUrl: request.requestedWebsiteUrl,
+          phone: request.requestedPhone ?? null,
+          logoUrl: request.requestedLogoUrl ?? null,
           addressLine1: requestedAddressLine1,
           addressLine2: request.requestedAddressLine2,
           city: requestedCity,

@@ -23,6 +23,8 @@ test.describe("general landing page tests", () => {
   test("anonymous users can see schools and courses on landing", async ({ page }) => {
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+    const schoolCards = await page.getByTestId("landing-school-card").count();
+    await expect(page.getByTestId("landing-school-logo")).toHaveCount(schoolCards);
     await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
   });
 

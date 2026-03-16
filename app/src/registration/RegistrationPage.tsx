@@ -31,6 +31,8 @@ type SchoolOption = {
   city: string;
   country: string;
   websiteUrl: string | null;
+  phone: string | null;
+  logoUrl: string | null;
 };
 
 function normalizeWebsiteUrlForLink(value: string): string {
@@ -51,6 +53,22 @@ function isValidWebsiteUrl(value: string): boolean {
   try {
     const parsed = new URL(normalizeWebsiteUrlForLink(value));
     return Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isValidLogoUrl(value: string): boolean {
+  if (!value.trim()) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(normalizeWebsiteUrlForLink(value));
+    return (
+      Boolean(parsed.hostname) &&
+      (parsed.protocol === "https:" || parsed.protocol === "http:")
+    );
   } catch {
     return false;
   }
@@ -88,6 +106,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const [targetSchoolId, setTargetSchoolId] = useState(targetSchoolIdParam);
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
   const [requestedWebsiteUrl, setRequestedWebsiteUrl] = useState("");
+  const [requestedPhone, setRequestedPhone] = useState("");
+  const [requestedLogoUrl, setRequestedLogoUrl] = useState("");
   const [requestedAddressLine1, setRequestedAddressLine1] = useState("");
   const [requestedAddressLine2, setRequestedAddressLine2] = useState("");
   const [requestedCity, setRequestedCity] = useState("");
@@ -154,6 +174,15 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
         });
         return;
       }
+
+      if (!isValidLogoUrl(requestedLogoUrl)) {
+        toast({
+          title: t("registration.invalidLogoUrl"),
+          description: t("registration.invalidLogoUrlError"),
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (!isManagerRequest && !targetSchoolId) {
@@ -175,6 +204,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
         requestedSchoolName: isManagerRequest ? requestedSchoolName.trim() : undefined,
         requestedWebsiteUrl:
           isManagerRequest ? requestedWebsiteUrl.trim() || undefined : undefined,
+        requestedPhone: isManagerRequest ? requestedPhone.trim() || undefined : undefined,
+        requestedLogoUrl: isManagerRequest ? requestedLogoUrl.trim() || undefined : undefined,
         requestedAddressLine1: isManagerRequest ? requestedAddressLine1.trim() : undefined,
         requestedAddressLine2: isManagerRequest ? requestedAddressLine2.trim() || undefined : undefined,
         requestedCity: isManagerRequest ? requestedCity.trim() : undefined,
@@ -317,6 +348,25 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="requestedSchoolPhone">{t("registration.schoolPhone")}</Label>
+                <Input
+                  id="requestedSchoolPhone"
+                  type="tel"
+                  value={requestedPhone}
+                  onChange={(event) => setRequestedPhone(event.target.value)}
+                  placeholder="+1 555 0100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="requestedLogoUrl">{t("registration.logoUrl")}</Label>
+                <Input
+                  id="requestedLogoUrl"
+                  value={requestedLogoUrl}
+                  onChange={(event) => setRequestedLogoUrl(event.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="requestedAddressLine1">{t("registration.addressLine1")}</Label>
                 <Input
                   id="requestedAddressLine1"
@@ -389,7 +439,25 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 <SelectContent>
                   {schoolOptions.map((school) => (
                     <SelectItem key={school.id} value={school.id}>
-                      {school.name} ({school.city}, {school.country})
+                      <span className="flex items-center gap-2">
+                        {school.logoUrl ? (
+                          <img
+                            src={school.logoUrl}
+                            alt={school.name}
+                            className="h-5 w-5 rounded object-cover"
+                            onError={(event) => {
+                              (event.target as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <span className="bg-muted text-muted-foreground flex h-5 w-5 items-center justify-center rounded text-[10px] font-semibold">
+                            {school.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        <span>
+                          {school.name} ({school.city}, {school.country})
+                        </span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -397,28 +465,49 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
               {schoolOptions.length === 0 && (
                 <p className="text-muted-foreground text-sm">{t("registration.noSchoolsAvailable")}</p>
               )}
-              {schoolOptions.some((school) => Boolean(school.websiteUrl)) && (
+              {schoolOptions.length > 0 && (
                 <div className="space-y-2 rounded-md border p-3">
                   <p className="text-sm font-medium">{t("registration.schoolWebsites")}</p>
                   <ul className="space-y-1 text-sm">
                     {schoolOptions.map((school) => {
-                      if (!school.websiteUrl) {
-                        return null;
-                      }
-
-                      const href = normalizeWebsiteUrlForLink(school.websiteUrl);
+                      const href = school.websiteUrl
+                        ? normalizeWebsiteUrlForLink(school.websiteUrl)
+                        : null;
 
                       return (
                         <li key={`school-website-${school.id}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                          {school.logoUrl ? (
+                            <img
+                              src={school.logoUrl}
+                              alt={school.name}
+                              data-testid="registration-school-logo"
+                              className="h-8 w-8 rounded object-cover"
+                              onError={(event) => {
+                                (event.target as HTMLImageElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <span
+                              data-testid="registration-school-logo"
+                              aria-label={`${school.name} logo placeholder`}
+                              className="bg-muted text-muted-foreground flex h-8 w-8 items-center justify-center rounded text-xs font-semibold"
+                            >
+                              {school.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                           <span className="font-medium">{school.name}</span>
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary underline underline-offset-2"
-                          >
-                            {school.websiteUrl}
-                          </a>
+                          {href ? (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary underline underline-offset-2"
+                            >
+                              {school.websiteUrl}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </li>
                       );
                     })}
