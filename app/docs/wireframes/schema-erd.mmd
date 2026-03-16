@@ -1,0 +1,324 @@
+%% Flight Club – Database Schema ERD
+%% Generated from schema.prisma
+%% Cardinality notation: ||--o{ = one-to-many, ||--|| = one-to-one, }o--o{ = many-to-many
+
+erDiagram
+
+    %% ─────────────────────────────────────────────────────
+    %% ENUMS (documented as comments; Mermaid ERD has no enum type)
+    %% UserRole        : SYSTEM_ADMIN | SCHOOL_MANAGER | INSTRUCTOR | STUDENT | USER
+    %% RegistrationRequestRole   : SCHOOL_MANAGER | INSTRUCTOR | STUDENT
+    %% RegistrationRequestStatus : PENDING | APPROVED | REJECTED
+    %% SyllabusVersionStatus     : DRAFT | FINAL | OBSOLETE
+    %% LessonEvaluationStatus    : PASS | FAIL
+    %% CourseInterestStatus      : INTERESTED | CONTACTED | ENROLLED | CANCELLED
+    %% SubscriptionStatus        : ACTIVE | PAST_DUE | PAUSED | CANCELLED
+    %% TransactionType           : DEPOSIT | WITHDRAWAL
+    %% ─────────────────────────────────────────────────────
+
+    User {
+        String   id                         PK
+        DateTime createdAt
+        String   email                      UK
+        String   fullName                   "nullable"
+        String   phone                      "nullable"
+        UserRole role                       "default USER"
+        SubscriptionStatus subscriptionStatus "nullable"
+        String   subscriptionPlan           "nullable"
+        Boolean  sendNewsletter
+        DateTime datePaid                   "nullable"
+        Int      credits
+        String   paymentProcessorUserId     "nullable"
+        String   lemonSqueezyCustomerPortalUrl "nullable"
+    }
+
+    School {
+        String   id           PK
+        String   name
+        String   websiteUrl   "nullable"
+        String   addressLine1
+        String   addressLine2 "nullable"
+        String   city
+        String   stateProvince "nullable"
+        String   postalCode
+        String   country      "ISO 3166-1 alpha-2"
+        String   currency     "ISO 4217"
+        DateTime createdAt
+        String   adminId      FK
+    }
+
+    RegistrationRequest {
+        String                    id              PK
+        DateTime                  createdAt
+        DateTime                  updatedAt
+        String                    requesterId     FK "unique"
+        RegistrationRequestRole   requestedRole
+        RegistrationRequestStatus status          "default PENDING"
+        String                    targetSchoolId  FK "nullable"
+        String                    requestedSchoolName  "nullable"
+        String                    requestedWebsiteUrl  "nullable"
+        String                    requestedAddressLine1 "nullable"
+        String                    requestedAddressLine2 "nullable"
+        String                    requestedCity        "nullable"
+        String                    requestedStateProvince "nullable"
+        String                    requestedPostalCode  "nullable"
+        String                    requestedCountry     "nullable"
+        String                    requestedCurrency    "nullable"
+        String                    reviewerId      FK "nullable"
+        DateTime                  reviewedAt      "nullable"
+        String                    rejectionReason "nullable"
+        String                    approvedSchoolId FK "nullable"
+    }
+
+    Instructor {
+        String   id        PK
+        DateTime createdAt
+        String   userId    FK "unique"
+    }
+
+    Student {
+        String   id        PK
+        DateTime createdAt
+        String   userId    FK "unique"
+    }
+
+    Syllabus {
+        String   id        PK
+        DateTime createdAt
+        String   name
+        String   schoolId  FK "nullable"
+    }
+
+    SyllabusPrerequisite {
+        String  syllabusId         PK "FK"
+        String  requiredSyllabusId PK "FK"
+        Boolean isForInstructor    PK "true=instructor / false=student"
+    }
+
+    SyllabusVersion {
+        String                id                PK
+        DateTime              createdAt
+        String                syllabusId        FK
+        Int                   version
+        SyllabusVersionStatus status            "default DRAFT"
+        String                previousVersionId FK "nullable – self-ref"
+    }
+
+    SyllabusLesson {
+        String   id                  PK
+        DateTime createdAt
+        String   syllabusVersionId   FK
+        Int      position
+        String   name
+        String   description
+        Int      durationMinutes
+    }
+
+    Course {
+        String   id                  PK
+        DateTime createdAt
+        String   syllabusVersionId   FK
+        DateTime startDate           "nullable"
+        Int      minCapacity         "nullable"
+        Int      maxCapacity         "nullable"
+        Int      defaultLessonPrice  "nullable, minor units"
+    }
+
+    CourseLesson {
+        String   id                PK
+        DateTime createdAt
+        String   courseId          FK
+        String   syllabusLessonId  FK
+        Boolean  isExtra           "default false"
+        String   location
+        DateTime date
+        Int      bufferMinutes     "default 30"
+        Int      lessonPrice       "nullable, override"
+    }
+
+    AssignedInstructor {
+        String courseId     PK "FK"
+        String instructorId PK "FK"
+    }
+
+    EnrolledStudent {
+        String courseId  PK "FK"
+        String studentId PK "FK"
+    }
+
+    StudentLessonEvaluation {
+        String                 id             PK
+        DateTime               createdAt
+        DateTime               updatedAt
+        String                 studentId      FK
+        String                 courseLessonId FK
+        String                 instructorId   FK
+        String                 notes          "nullable"
+        LessonEvaluationStatus status
+    }
+
+    CourseInterest {
+        String               id        PK
+        DateTime             createdAt
+        DateTime             updatedAt
+        String               courseId  FK
+        String               userId    FK
+        CourseInterestStatus status    "default INTERESTED"
+        String               notes     "nullable"
+    }
+
+    Account {
+        String   id           PK
+        DateTime createdAt
+        String   userId       FK
+        String   schoolId     FK
+        String   currency     "ISO 4217"
+        Int      balanceMinor "default 0, minor units"
+    }
+
+    Transaction {
+        String          id                   PK
+        DateTime        createdAt
+        String          accountId            FK
+        TransactionType type
+        Int             amountMinor          "always positive"
+        String          currency             "at time of tx"
+        String          linkedTransactionId  FK "nullable – self-ref"
+        String          description          "nullable"
+        String          notes                "nullable"
+    }
+
+    GptResponse {
+        String   id        PK
+        DateTime createdAt
+        DateTime updatedAt
+        String   userId    FK
+        String   content
+    }
+
+    Task {
+        String   id          PK
+        DateTime createdAt
+        String   userId      FK
+        String   description
+        String   time        "default 1"
+        Boolean  isDone
+    }
+
+    File {
+        String   id        PK
+        DateTime createdAt
+        String   userId    FK
+        String   name
+        String   type
+        String   s3Key
+    }
+
+    ContactFormMessage {
+        String   id         PK
+        DateTime createdAt
+        String   userId     FK
+        String   content
+        Boolean  isRead
+        DateTime repliedAt  "nullable"
+    }
+
+    DailyStats {
+        Int      id                          PK "autoincrement"
+        DateTime date                        UK
+        Int      totalViews
+        String   prevDayViewsChangePercent
+        Int      userCount
+        Int      paidUserCount
+        Int      userDelta
+        Int      paidUserDelta
+        Float    totalRevenue
+        Float    totalProfit
+    }
+
+    PageViewSource {
+        String   name        PK
+        DateTime date        PK
+        Int      dailyStatsId FK "nullable"
+        Int      visitors
+    }
+
+    Logs {
+        Int      id        PK "autoincrement"
+        DateTime createdAt
+        String   message
+        String   level
+    }
+
+    AuditLog {
+        String   id         PK
+        DateTime createdAt
+        String   entityType
+        String   entityId
+    }
+
+    %% ─────────────────────────────────────────────────────
+    %% RELATIONSHIPS
+    %% ─────────────────────────────────────────────────────
+
+    %% User ↔ School (admin)
+    User ||--o{ School : "adminOfSchools (SchoolAdmin)"
+
+    %% User profiles
+    User ||--o| Instructor : "instructorProfile"
+    User ||--o| Student    : "studentProfile"
+
+    %% User → registration
+    User ||--o| RegistrationRequest : "registrationRequest (requester)"
+    User ||--o{ RegistrationRequest : "reviewedRegistrationRequests (reviewer)"
+
+    %% RegistrationRequest ↔ School
+    School ||--o{ RegistrationRequest : "memberRegistrationRequests (target)"
+    School ||--o{ RegistrationRequest : "approvedManagerRequests (approved)"
+
+    %% User → misc
+    User ||--o{ GptResponse         : "gptResponses"
+    User ||--o{ ContactFormMessage  : "contactFormMessages"
+    User ||--o{ Task                : "tasks"
+    User ||--o{ File                : "files"
+    User ||--o{ CourseInterest      : "courseInterests"
+    User ||--o{ Account             : "accounts"
+
+    %% School → children
+    School ||--o{ Syllabus  : "syllabuses"
+    School ||--o{ Account   : "accounts"
+
+    %% Syllabus
+    Syllabus ||--o{ SyllabusVersion     : "versions"
+    Syllabus ||--o{ SyllabusPrerequisite : "prerequisites (requires)"
+    Syllabus ||--o{ SyllabusPrerequisite : "prerequisiteFor (isPrerequisiteFor)"
+
+    %% SyllabusVersion self-reference chain
+    SyllabusVersion ||--o| SyllabusVersion : "previousVersion (history)"
+
+    %% SyllabusVersion → Lessons & Courses
+    SyllabusVersion ||--o{ SyllabusLesson : "lessons"
+    SyllabusVersion ||--o{ Course         : "courses"
+
+    %% SyllabusLesson → CourseLesson
+    SyllabusLesson ||--o{ CourseLesson : "courseLessons"
+
+    %% Course → join tables & children
+    Course ||--o{ CourseLesson         : "courseLessons"
+    Course ||--o{ AssignedInstructor   : "assignedInstructors"
+    Course ||--o{ EnrolledStudent      : "enrolledStudents"
+    Course ||--o{ CourseInterest       : "courseInterests"
+
+    %% Instructor / Student join tables
+    Instructor ||--o{ AssignedInstructor        : "assignedCourses"
+    Student    ||--o{ EnrolledStudent           : "enrolledCourses"
+    Instructor ||--o{ StudentLessonEvaluation   : "lessonEvaluations"
+    Student    ||--o{ StudentLessonEvaluation   : "evaluations"
+    CourseLesson ||--o{ StudentLessonEvaluation : "studentEvaluations"
+
+    %% Account → Transaction
+    Account     ||--o{ Transaction : "transactions"
+    Transaction ||--o| Transaction : "linkedTransaction (LinkedPair)"
+
+    %% DailyStats → PageViewSource
+    DailyStats ||--o{ PageViewSource : "sources"

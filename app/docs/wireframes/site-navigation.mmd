@@ -1,0 +1,297 @@
+%% Flight Club – Site Navigation & GUI Wireframe
+%% Each node = page  |  node label = name + key fields/content
+%% Arrows = navigation actions (links, buttons, form submissions)
+%% Role gates show which pages are visible per user role
+
+flowchart TD
+
+    %% ──────────────────────────────────────────────
+    %% PUBLIC PAGES
+    %% ──────────────────────────────────────────────
+
+    LANDING["`**/** Landing Page**
+    ─────────────────
+    *(empty shell – under construction)*
+    NavBar: \[Login\] \[Sign Up\]`"]
+
+    LOGIN["`**/login** Login
+    ─────────────────
+    Title: Sign in to your account
+    • Email field
+    • Password field
+    • \[Sign In\] button
+    • Google sign-in button
+    ─────────────────
+    Links: \[Sign Up\] · \[Forgot password?\]`"]
+
+    SIGNUP["`**/signup** Sign Up
+    ─────────────────
+    • Email field
+    • Password field
+    • \[Create account\] button
+    ─────────────────
+    Link: \[Log In\]`"]
+
+    VERIFY["`**/email-verification** Verify Email
+    ─────────────────
+    • Verification code input
+    • \[Verify\] button`"]
+
+    REQ_RESET["`**/request-password-reset** Forgot Password
+    ─────────────────
+    • Email field
+    • \[Send reset link\] button`"]
+
+    RESET["`**/password-reset** Reset Password
+    ─────────────────
+    • New password field
+    • Confirm password field
+    • \[Reset Password\] button`"]
+
+    %% ──────────────────────────────────────────────
+    %% ROLE GATE (post-login redirect logic)
+    %% ──────────────────────────────────────────────
+
+    ROLE_GATE{{"`**Role check**
+    role = USER → /registration
+    role = SYSTEM_ADMIN → /admin
+    role = SCHOOL_MANAGER → /admin
+    role = INSTRUCTOR → /admin
+    role = STUDENT → /admin`"}}
+
+    %% ──────────────────────────────────────────────
+    %% REGISTRATION FLOW  (role = USER only)
+    %% ──────────────────────────────────────────────
+
+    REG["`**/registration** Registration Request
+    ─────────────────
+    Personal: Full name · Phone
+    Role selector:
+      • SCHOOL_MANAGER → show school fields
+        - School name, Website URL
+        - Address line 1 & 2
+        - City, State/Province
+        - Postal code, Country (2-letter)
+        - Currency (3-letter)
+      • INSTRUCTOR / STUDENT → select school from list
+    ─────────────────
+    \[Submit Request\]`"]
+
+    REG_PENDING["`**Registration Request – Pending**
+    ─────────────────
+    Status card: PENDING
+    Submitted details (read-only)
+    Awaiting admin/manager approval`"]
+
+    %% ──────────────────────────────────────────────
+    %% ADMIN SHELL  (shared sidebar + header)
+    %% ──────────────────────────────────────────────
+
+    DASH["`**/admin** Dashboard
+    ─────────────────
+    Sidebar: role-filtered nav
+    Content: *Under construction*`"]
+
+    USERS["`**/admin/users** Users
+    ─────────────────
+    • Search / filter
+    • Paginated user list
+      - Email, name, role
+      - Toggle admin status checkbox
+    ─────────────────
+    Sidebar: all authenticated roles`"]
+
+    ACCOUNT["`**/account** Account
+    ─────────────────
+    • Email address
+    • Full name
+    • About (placeholder)
+    ─────────────────
+    Accessible via header avatar`"]
+
+    CALENDAR["`**/admin/calendar** Calendar
+    ─────────────────
+    • Calendar view component
+    ─────────────────
+    Sidebar: all authenticated roles`"]
+
+    SETTINGS["`**/admin/settings** Settings
+    ─────────────────
+    *(stub page)*
+    ─────────────────
+    Sidebar: all authenticated roles`"]
+
+    MESSAGES["`**/admin/messages** Messages
+    ─────────────────
+    • Contact form message list
+    ─────────────────
+    Sidebar: all authenticated roles`"]
+
+    UI_BTN["`**/admin/ui/buttons** UI Elements › Buttons
+    ─────────────────
+    • Button variant showcase
+    ─────────────────
+    Sidebar: UI Elements (expandable)`"]
+
+    NOT_FOUND["`**\*** 404 Not Found
+    ─────────────────
+    Page not found message`"]
+
+    %% ──────────────────────────────────────────────
+    %% SYSTEM_ADMIN only
+    %% ──────────────────────────────────────────────
+
+    SCH_REQ["`**/admin/school-requests** School Requests
+    ─────────────────
+    🔒 SYSTEM_ADMIN only
+    • Search by name/phone
+    • List per request:
+      - Requester: name, email, phone
+      - School: name, address, city
+        country, currency
+      - Rejection reason textarea
+    • \[Approve\] button
+    • \[Reject\] button`"]
+
+    %% ──────────────────────────────────────────────
+    %% SCHOOL_MANAGER only
+    %% ──────────────────────────────────────────────
+
+    MBR_REQ["`**/admin/member-requests** Member Requests
+    ─────────────────
+    🔒 SCHOOL_MANAGER only
+    • Search by name/phone
+    • List per request:
+      - Requester: name, email, phone
+      - Role: INSTRUCTOR / STUDENT
+      - Target school
+      - Rejection reason textarea
+    • \[Approve\] button
+    • \[Reject\] button`"]
+
+    MY_SCHOOL["`**/admin/school** My School
+    ─────────────────
+    🔒 SCHOOL_MANAGER only
+    Fields (editable):
+    • School name
+    • Website URL
+    • Address line 1 & 2
+    • City, State/Province
+    • Postal code, Country
+    Account balances (read-only)
+    ─────────────────
+    \[Save\] button`"]
+
+    SYLLABUSES["`**/admin/syllabuses** Syllabuses
+    ─────────────────
+    🔒 SCHOOL_MANAGER + SYSTEM_ADMIN
+    ─── Section: Catalog ───
+    • Editable drafts list
+    • Course-opening candidates list
+    \[Create from scratch\] \[Create from template\]
+    ─── Section: Draft Editor ───
+    • Syllabus name
+    • Lessons: position, name,
+      description, duration (min)
+    \[Save draft\] \[Publish version\]
+    ─── Section: Courses ───
+    • Course list: name, version, date,
+      enrolled count
+    \[Create course from syllabus\]
+    ─── Section: Enrollment ───
+    • Select course → student/instructor list
+    \[Enroll student\] \[Assign instructor\]`"]
+
+    %% ──────────────────────────────────────────────
+    %% NAVIGATION EDGES
+    %% ──────────────────────────────────────────────
+
+    %% Public navigation
+    LANDING -->|"NavBar · [Login]"| LOGIN
+    LANDING -->|"NavBar · [Sign Up]"| SIGNUP
+    LOGIN   -->|"[Sign Up] link"| SIGNUP
+    LOGIN   -->|"[Forgot password?] link"| REQ_RESET
+    SIGNUP  -->|"[Create account] success"| VERIFY
+    VERIFY  -->|"Code verified"| LOGIN
+    REQ_RESET -->|"Email sent → link clicked"| RESET
+    RESET   -->|"[Reset Password] success"| LOGIN
+
+    %% Auth success → role gate
+    LOGIN   -->|"[Sign In] success"| ROLE_GATE
+
+    %% Role gate routing
+    ROLE_GATE -->|"role = USER"| REG
+    ROLE_GATE -->|"role ≠ USER"| DASH
+
+    %% Registration flow
+    REG         -->|"[Submit Request]"| REG_PENDING
+    REG_PENDING -->|"Approved: role upgraded → refresh"| DASH
+
+    %% Admin sidebar – all authenticated roles
+    DASH <-->|"Sidebar"| USERS
+    DASH <-->|"Sidebar"| CALENDAR
+    DASH <-->|"Sidebar"| SETTINGS
+    DASH <-->|"Sidebar"| MESSAGES
+    DASH <-->|"Sidebar · UI Elements"| UI_BTN
+    DASH <-->|"Header avatar"| ACCOUNT
+
+    %% Admin sidebar – SYSTEM_ADMIN extras
+    DASH <-->|"Sidebar [SYSTEM_ADMIN]"| SCH_REQ
+    DASH <-->|"Sidebar [SYSTEM_ADMIN]"| SYLLABUSES
+
+    %% Admin sidebar – SCHOOL_MANAGER extras
+    DASH <-->|"Sidebar [SCHOOL_MANAGER]"| MBR_REQ
+    DASH <-->|"Sidebar [SCHOOL_MANAGER]"| MY_SCHOOL
+    DASH <-->|"Sidebar [SCHOOL_MANAGER]"| SYLLABUSES
+
+    %% In-page actions (self-loops = stays on same page after action)
+    SCH_REQ -->|"[Approve] → toast + list refresh"| SCH_REQ
+    SCH_REQ -->|"[Reject] → toast + list refresh"| SCH_REQ
+    MBR_REQ -->|"[Approve] → toast + list refresh"| MBR_REQ
+    MBR_REQ -->|"[Reject] → toast + list refresh"| MBR_REQ
+    MY_SCHOOL -->|"[Save] → toast + data refresh"| MY_SCHOOL
+    SYLLABUSES -->|"[Save draft] / [Publish] → toast"| SYLLABUSES
+
+    %% Catch-all
+    NOT_FOUND -.->|"[Go home]"| LANDING
+
+    %% ──────────────────────────────────────────────
+    %% VISUAL GROUPING
+    %% ──────────────────────────────────────────────
+
+    subgraph PUBLIC["Public (unauthenticated)"]
+        LANDING
+        LOGIN
+        SIGNUP
+        VERIFY
+        REQ_RESET
+        RESET
+    end
+
+    subgraph REGISTRATION_FLOW["Registration (role = USER)"]
+        REG
+        REG_PENDING
+    end
+
+    subgraph ADMIN["Admin Shell (authenticated)"]
+        DASH
+        USERS
+        ACCOUNT
+        CALENDAR
+        SETTINGS
+        MESSAGES
+        UI_BTN
+    end
+
+    subgraph SYSADMIN_ONLY["System Admin only"]
+        SCH_REQ
+    end
+
+    subgraph MANAGER_ONLY["School Manager only"]
+        MBR_REQ
+        MY_SCHOOL
+    end
+
+    subgraph SHARED_MGMT["Manager + System Admin"]
+        SYLLABUSES
+    end
