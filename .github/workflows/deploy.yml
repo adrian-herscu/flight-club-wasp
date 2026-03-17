@@ -37,7 +37,9 @@ jobs:
         working-directory: app
 
     steps:
-      - name: Checkout, setup Node.js and Wasp CLI
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
         uses: ./.github/actions/setup-wasp
 
       - name: Create .env.server for CI
@@ -107,7 +109,9 @@ jobs:
         working-directory: app
 
     steps:
-      - name: Checkout, setup Node.js and Wasp CLI
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
         uses: ./.github/actions/setup-wasp
 
       - name: Install Railway CLI

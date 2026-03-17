@@ -26,7 +26,7 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
   - `e2e:playwright` includes `wait-on` precheck
 2. Keep app startup command documented separately (`cd app && wasp start`).
 3. Verify with a fast smoke test first:
-   - run only `landingPageTests.spec.ts` test `has title`
+  - run only `04-01-public-discovery.spec.ts` test `has title`
 4. Then run full suite.
 
 ## Common failures and fixes
@@ -94,7 +94,7 @@ test("existing seeded user can log in", async ({ page }) => {
 ### Design rules
 - Helpers: avoid hardcoded redirect paths; accept `expectedRedirectPath` from caller.
 - Assertions: validate login response status `200`, URL leaves `/login`, plus one lightweight UI confirmation.
-- Test placement: append to existing suites if testing baseline auth (e.g., `landingPageTests.spec.ts`); create new spec for auth-focused matrix (signup/login/logout/role guards).
+- Test placement: append to existing suites if testing baseline auth (e.g., `04-01-public-discovery.spec.ts`); create new spec for auth-focused matrix (signup/login/logout/role guards).
 
 ### Selector strategy for translated auth UI
 - For auth forms in this repo, do not key critical actions off literal English button text like `Log in`.
