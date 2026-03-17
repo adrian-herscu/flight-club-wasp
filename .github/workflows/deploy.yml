@@ -51,6 +51,8 @@ jobs:
           SKIP_EMAIL_VERIFICATION_IN_DEV=true
           JWT_SECRET=supersecretjwtkey_for_ci_testing_only
           SENDGRID_API_KEY=${SENDGRID_API_KEY}
+          GOOGLE_CLIENT_ID=mock-google-client-id.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET=mock-google-client-secret
           EOF
 
       - name: Start Wasp dev server (compiles app, applies migrations, serves on :3000/:3001)
