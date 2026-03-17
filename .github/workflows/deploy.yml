@@ -43,15 +43,14 @@ jobs:
         uses: ./.github/actions/setup-wasp
 
       - name: Create .env.server for CI
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
         run: |
-          cat > .env.server << 'EOF'
+          cat > .env.server << EOF
           DATABASE_URL=postgresql://postgres:postgres@localhost:5432/flight_club_e2e
           SKIP_EMAIL_VERIFICATION_IN_DEV=true
           JWT_SECRET=supersecretjwtkey_for_ci_testing_only
-          STRIPE_API_KEY=sk_test_mock
-          STRIPE_WEBHOOK_SECRET=whsec_mock
-          SENDGRID_API_KEY=SG.mock
-          ADMIN_EMAILS=admin@example.test
+          SENDGRID_API_KEY=${SENDGRID_API_KEY}
           EOF
 
       - name: Start Wasp dev server (compiles app, applies migrations, serves on :3000/:3001)
@@ -67,8 +66,10 @@ jobs:
 
       - name: Wait for app and run E2E tests
         working-directory: e2e-tests
-        # 10 min timeout: Wasp compiles TypeScript before serving on first start
-        run: npx wait-on http://127.0.0.1:3000 -t 600000 && npx playwright test --reporter=html,github
+        # 10 min timeout: Wasp compiles TypeScript before serving on first start.
+        # Wait for BOTH the frontend (:3000) and backend (:3001) — auth API calls
+        # go to :3001 and tests will fail silently if it isn't ready yet.
+        run: npx wait-on http://127.0.0.1:3000 tcp:127.0.0.1:3001 -t 600000 && npx playwright test --reporter=html,github
 
       - name: Upload Playwright report to GitHub Pages
         if: always()
