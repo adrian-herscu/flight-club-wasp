@@ -6,7 +6,101 @@ on:
       - main
 
 jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flight_club_e2e
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      WASP_VERSION: 0.21.1
+      WASP_TELEMETRY_DISABLE: 1
+      # Passed to the Wasp dev server via .env.server created below
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.12"
+
+      - name: Install Wasp
+        # We pin the Wasp CLI version to avoid issues when a new Wasp version is released.
+        run: npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
+
+      - name: Create .env.server for CI
+        run: |
+          cat > .env.server << 'EOF'
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+          SKIP_EMAIL_VERIFICATION_IN_DEV=true
+          JWT_SECRET=supersecretjwtkey_for_ci_testing_only
+          STRIPE_API_KEY=sk_test_mock
+          STRIPE_WEBHOOK_SECRET=whsec_mock
+          SENDGRID_API_KEY=SG.mock
+          ADMIN_EMAILS=admin@example.test
+          EOF
+
+      - name: Start Wasp dev server (compiles app, applies migrations, serves on :3000/:3001)
+        run: wasp start > /tmp/wasp-start.log 2>&1 &
+
+      - name: Install e2e dependencies
+        working-directory: e2e-tests
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: e2e-tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for app and run E2E tests
+        working-directory: e2e-tests
+        # 10 min timeout: Wasp compiles TypeScript before serving on first start
+        run: npx wait-on http://127.0.0.1:3000 -t 600000 && npx playwright test --reporter=html,github
+
+      - name: Upload Playwright report to GitHub Pages
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: e2e-tests/playwright-report/
+
+      - name: Dump Wasp server log on failure
+        if: failure()
+        run: cat /tmp/wasp-start.log || true
+
+  publish-report:
+    needs: e2e
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Playwright report to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   deploy:
+    needs: e2e
     runs-on: ubuntu-latest
     env:
       WASP_VERSION: 0.21.1
