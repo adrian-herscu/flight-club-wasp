@@ -55,7 +55,10 @@ jobs:
           GOOGLE_CLIENT_SECRET=mock-google-client-secret
           EOF
 
-      - name: Start Wasp dev server (compiles app, applies migrations, serves on :3000/:3001)
+      - name: Apply database migrations for CI
+        run: wasp db migrate-dev --name ci_e2e_sync
+
+      - name: Start Wasp dev server (compiles app, serves on :3000/:3001)
         run: wasp start > /tmp/wasp-start.log 2>&1 &
 
       - name: Install e2e dependencies
