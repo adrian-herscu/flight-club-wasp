@@ -1,0 +1,22 @@
+name: Setup Wasp
+description: Checkout the repo, set up Node.js, and install the pinned Wasp CLI
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    default: '22.12'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install Wasp CLI
+      shell: bash
+      # WASP_VERSION is expected to be set at the calling workflow level
+      run: npm i -g @wasp.sh/wasp-cli@${{ env.WASP_VERSION }}

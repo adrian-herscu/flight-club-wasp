@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+env:
+  WASP_VERSION: 0.21.1
+  WASP_TELEMETRY_DISABLE: 1
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
@@ -25,8 +29,6 @@ jobs:
           - 5432:5432
 
     env:
-      WASP_VERSION: 0.21.1
-      WASP_TELEMETRY_DISABLE: 1
       # Passed to the Wasp dev server via .env.server created below
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
 
@@ -35,16 +37,8 @@ jobs:
         working-directory: app
 
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22.12"
-
-      - name: Install Wasp
-        # We pin the Wasp CLI version to avoid issues when a new Wasp version is released.
-        run: npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
+      - name: Checkout, setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
 
       - name: Create .env.server for CI
         run: |
@@ -103,28 +97,18 @@ jobs:
     needs: e2e
     runs-on: ubuntu-latest
     env:
-      WASP_VERSION: 0.21.1
       RAILWAY_PROJECT_NAME: flight-club-wasp
       RAILWAY_PROJECT_ID: d5b510d7-cad3-4b81-b785-f5ec6f8b3ddb
       # You must add RAILWAY_API_TOKEN to your Repository Secrets
       RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-      WASP_TELEMETRY_DISABLE: 1
 
     defaults:
       run:
         working-directory: app
 
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22.12"
-
-      - name: Install Wasp
-        # We pin the Wasp CLI version to avoid issues when a new Wasp version is released.
-        run: npm i -g @wasp.sh/wasp-cli@$WASP_VERSION
+      - name: Checkout, setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
