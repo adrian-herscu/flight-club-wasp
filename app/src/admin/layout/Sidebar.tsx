@@ -13,15 +13,46 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
+import * as operations from "wasp/client/operations";
 import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
 import SidebarLinkGroup from "./SidebarLinkGroup";
+
+const { getMyManagedSchool, useQuery } = operations as any;
+
+type ManagedSchoolSummary = {
+  name: string;
+};
 
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (arg: boolean) => void;
   userRole: string | null;
 }
+
+const SchoolContextBadge = () => {
+  const { t } = useTranslation();
+  const { data, isLoading } = useQuery(getMyManagedSchool);
+  const schools = (data as ManagedSchoolSummary[] | undefined) ?? [];
+  const currentSchoolName = schools[0]?.name;
+
+  if (!isLoading && !currentSchoolName) {
+    return null;
+  }
+
+  return (
+    <div className="px-6 pb-2">
+      <div className="rounded-md border bg-background/60 px-3 py-2">
+        <p className="text-muted-foreground text-xs uppercase tracking-wide">
+          {t("admin.mySchool")}
+        </p>
+        <p className="text-sm font-semibold">
+          {isLoading ? t("admin.loading") : currentSchoolName}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   const { t } = useTranslation();
@@ -105,6 +136,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
         </button>
       </div>
       {/* <!-- SIDEBAR HEADER --> */}
+
+      {userRole === "SCHOOL_MANAGER" && <SchoolContextBadge />}
 
       <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
         {/* <!-- Sidebar Menu --> */}
