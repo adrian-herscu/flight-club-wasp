@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("manager workflow A", () => {
-  test.skip("manager can view school profile", async ({ page }) => {
+  test.skip("[STD-SCH-001][STD-SCH-002][inactive] manager can view school profile", async ({ page }) => {
     await page.goto("/admin/school");
     await page.waitForURL("**/admin/school");
     await page.waitForLoadState("networkidle");
@@ -13,7 +13,7 @@ test.describe("manager workflow A", () => {
     await expect(page.getByText("USD").first()).toBeVisible();
   });
 
-  test.skip("manager can discover final syllabuses with policy hints", async ({
+  test.skip("[STD-SYL-001][STD-SYL-002][inactive] manager can discover final syllabuses with policy hints", async ({
     page,
   }) => {
     await page.goto("/admin/syllabuses");
@@ -32,7 +32,7 @@ test.describe("manager workflow A", () => {
     ).toBeVisible();
   });
 
-  test("rtl layout: sidebar stays anchored to right on syllabuses page", async ({
+  test("[STD-SYL-008][STD-I18N-005][STD-I18N-006] rtl layout: sidebar stays anchored to right on syllabuses page", async ({
     page,
   }) => {
     await page.goto("/login");
@@ -99,7 +99,7 @@ test.describe("manager workflow A", () => {
     expect((geometry as any).mainLeft).toBeGreaterThanOrEqual(0);
   });
 
-  test("hebrew locale: syllabuses catalog labels are translated", async ({ page }) => {
+  test("[STD-SYL-009][STD-I18N-007] hebrew locale: syllabuses catalog labels are translated", async ({ page }) => {
     await page.goto("/login");
     await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
     await page.fill('input[name="password"]', "12345678");
@@ -120,7 +120,7 @@ test.describe("manager workflow A", () => {
     await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
   });
 
-  test("manager member requests panel is split by instructors/students and supports pending/approved filtering", async ({ page }) => {
+  test("[STD-MGR-001][STD-MGR-002][STD-MGR-003][STD-MGR-004][STD-MGR-005][STD-MGR-006] manager member requests panel is split by instructors/students and supports pending/approved filtering", async ({ page }) => {
     const seedEmail = "seed+user.02@example.test";
 
     const dismissCookieBanner = async () => {

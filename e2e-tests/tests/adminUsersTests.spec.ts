@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { logUserIn } from "./utils";
 
 test.describe("admin users", () => {
-  test("system admin login redirects to dashboard", async ({ page }) => {
+  test("[STD-AUTH-001] system admin login redirects to dashboard", async ({ page }) => {
     await logUserIn({
       page,
       user: {
@@ -20,7 +20,7 @@ test.describe("admin users", () => {
     await expect(page.getByRole("heading", { name: "Users" })).toBeHidden();
   });
 
-  test("system admin sees seeded users without applying status filter", async ({ page }) => {
+  test("[STD-NAV-003] system admin sees seeded users without applying status filter", async ({ page }) => {
     await logUserIn({
       page,
       user: {
@@ -38,7 +38,7 @@ test.describe("admin users", () => {
     await expect(page.getByText("seed+system_admin.01@example.test")).toBeVisible();
   });
 
-  test("system admin can access syllabuses from sidebar and view catalog", async ({ page }) => {
+  test("[STD-NAV-003][STD-SYL-001][STD-SYL-002] system admin can access syllabuses from sidebar and view catalog", async ({ page }) => {
     await logUserIn({
       page,
       user: {
@@ -67,7 +67,7 @@ test.describe("admin users", () => {
     ).toBeHidden();
   });
 
-  test("system admin schools panel shows approved school requests with details", async ({ page }) => {
+  test("[STD-ADM-001][STD-ADM-002][STD-ADM-007] system admin schools panel shows approved school requests with details", async ({ page }) => {
     const uniqueSchoolName = `E2E Flight School ${Date.now()}`;
 
     await logUserIn({

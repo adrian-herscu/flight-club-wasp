@@ -49,7 +49,7 @@ type RoleScenario = {
 
 const roleScenarios: RoleScenario[] = [
   {
-    testName: "system admin can open each visible sidebar menu route",
+    testName: "[STD-NAV-001][STD-NAV-003] system admin can open each visible sidebar menu route",
     email: "seed+system_admin.01@example.test",
     visibilityRules: [
       { name: "Schools", visible: true },
@@ -66,7 +66,7 @@ const roleScenarios: RoleScenario[] = [
     ],
   },
   {
-    testName: "school manager can open each visible sidebar menu route",
+    testName: "[STD-NAV-002][STD-NAV-004] school manager can open each visible sidebar menu route",
     email: "seed+school_manager.01@example.test",
     visibilityRules: [
       { name: "Schools", visible: true },

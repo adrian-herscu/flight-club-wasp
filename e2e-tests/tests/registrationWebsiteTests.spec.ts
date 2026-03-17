@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { logUserIn } from "./utils";
 
 test.describe("registration website URL", () => {
-  test("school listing renders correctly for instructor role", async ({ page }) => {
+  test("[STD-REG-006][STD-REG-008] school listing renders correctly for instructor role", async ({ page }) => {
     await logUserIn({
       page,
       user: {

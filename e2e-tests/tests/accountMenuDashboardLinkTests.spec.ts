@@ -9,12 +9,12 @@ type DashboardUserScenario = {
 
 const dashboardUserScenarios: DashboardUserScenario[] = [
   {
-    testName: "admin user menu shows Admin Dashboard link that navigates to /admin",
+    testName: "[STD-NAV-008] admin user menu shows Admin Dashboard link that navigates to /admin",
     email: "seed+system_admin.01@example.test",
     triggerName: /system_admin_01/i,
   },
   {
-    testName: "school manager user menu shows Admin Dashboard link that navigates to /admin",
+    testName: "[STD-NAV-008] school manager user menu shows Admin Dashboard link that navigates to /admin",
     email: "seed+school_manager.01@example.test",
     triggerName: /school_manager_01/i,
   },
@@ -63,7 +63,7 @@ test.describe("account menu dashboard link", () => {
     });
   });
 
-  test("registered users can open Request Roles from user menu", async ({ page }) => {
+  test("[STD-AUTH-005] registered users can open Request Roles from user menu", async ({ page }) => {
     await openAccountUserMenu({
       page,
       email: "seed+school_manager.01@example.test",

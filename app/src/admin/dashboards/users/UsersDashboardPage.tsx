@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Navigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
@@ -6,6 +7,10 @@ import UsersTable from "./UsersTable";
 
 const Users = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
+
+  if (user.role !== "SYSTEM_ADMIN") {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <DefaultLayout user={user}>

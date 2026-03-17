@@ -7,7 +7,7 @@ async function selectLanguage(page: Page, languageLabel: string) {
 }
 
 test.describe("Internationalization & Translation Tests", () => {
-  test("language smoke: body text should match selected language on login", async ({ page }) => {
+  test("[STD-I18N-001] language smoke: body text should match selected language on login", async ({ page }) => {
     await page.goto("/login");
     await page.waitForLoadState("domcontentloaded");
 
@@ -33,7 +33,7 @@ test.describe("Internationalization & Translation Tests", () => {
     expect(detectLanguageFromText(romanianAuthText)).toBe("ro");
   });
 
-  test("Google sign-in button remains visible in English, Hebrew, and Romanian", async ({ page }) => {
+  test("[STD-I18N-004] Google sign-in button remains visible in English, Hebrew, and Romanian", async ({ page }) => {
     await page.goto("/login");
 
     await expect(page.getByText("Continue with Google")).toBeVisible();
@@ -53,7 +53,7 @@ test.describe("Internationalization & Translation Tests", () => {
     await expect(googleLink).toBeVisible();
   });
 
-  test("lang and dir attributes track language switching", async ({ page }) => {
+  test("[STD-I18N-002] lang and dir attributes track language switching", async ({ page }) => {
     await page.goto("/login");
 
     await expect.poll(async () => page.getAttribute("html", "lang")).toBe("en");
@@ -70,7 +70,7 @@ test.describe("Internationalization & Translation Tests", () => {
     await expect.poll(async () => page.getAttribute("html", "dir")).toBe("ltr");
   });
 
-  test("primary login affordances are translated", async ({ page }) => {
+  test("[STD-I18N-001] primary login affordances are translated", async ({ page }) => {
     await page.goto("/login");
 
     await expect(page.getByRole("button", { name: "Login" })).toBeVisible();
@@ -92,7 +92,7 @@ test.describe("Internationalization & Translation Tests", () => {
     await expect(page.getByRole("link", { name: /Reseteaz-o/ })).toBeVisible();
   });
 
-  test("language selector remains stable across multiple switches", async ({ page }) => {
+  test("[STD-I18N-002] language selector remains stable across multiple switches", async ({ page }) => {
     await page.goto("/login");
 
     const sequence: Array<[string, string]> = [
@@ -126,7 +126,7 @@ test.describe("Browser language auto-detection (no localStorage)", () => {
     return { page, ctx };
   }
 
-  test("opens in Hebrew when browser locale is he", async ({ browser }) => {
+  test("[STD-I18N-003] opens in Hebrew when browser locale is he", async ({ browser }) => {
     const { page, ctx } = await openFreshPage(browser, "he");
     try {
       await expect.poll(() => page.getAttribute("html", "lang")).toBe("he");
@@ -137,7 +137,7 @@ test.describe("Browser language auto-detection (no localStorage)", () => {
     }
   });
 
-  test("opens in Romanian when browser locale is ro", async ({ browser }) => {
+  test("[STD-I18N-003] opens in Romanian when browser locale is ro", async ({ browser }) => {
     const { page, ctx } = await openFreshPage(browser, "ro");
     try {
       await expect.poll(() => page.getAttribute("html", "lang")).toBe("ro");
@@ -148,7 +148,7 @@ test.describe("Browser language auto-detection (no localStorage)", () => {
     }
   });
 
-  test("falls back to English for unsupported browser locale (fr)", async ({ browser }) => {
+  test("[STD-I18N-003] falls back to English for unsupported browser locale (fr)", async ({ browser }) => {
     const { page, ctx } = await openFreshPage(browser, "fr");
     try {
       await expect.poll(() => page.getAttribute("html", "lang")).toBe("en");

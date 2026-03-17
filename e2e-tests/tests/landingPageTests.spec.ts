@@ -5,11 +5,11 @@ test.describe("general landing page tests", () => {
     await page.goto("/");
   });
 
-  test("has title", async ({ page }) => {
+  test("[template-relic] has title", async ({ page }) => {
     await expect(page).toHaveTitle(/SaaS/);
   });
 
-  test("existing seeded user can log in through translated login form", async ({ page }) => {
+  test("[STD-AUTH-001] existing seeded user can log in through translated login form", async ({ page }) => {
     await page.goto("/login");
     await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
     await page.fill('input[name="password"]', "12345678");
@@ -20,7 +20,7 @@ test.describe("general landing page tests", () => {
     await expect(page.getByText("school_manager_01")).toBeVisible();
   });
 
-  test("anonymous users can see schools and courses on landing", async ({ page }) => {
+  test("[STD-PUB-001][STD-PUB-002] anonymous users can see schools and courses on landing", async ({ page }) => {
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
     const schoolCards = await page.getByTestId("landing-school-card").count();
@@ -28,7 +28,7 @@ test.describe("general landing page tests", () => {
     await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
   });
 
-  test("logged in users can see schools and courses on landing", async ({ page }) => {
+  test("[STD-PUB-003] logged in users can see schools and courses on landing", async ({ page }) => {
     await page.goto("/login");
     await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
     await page.fill('input[name="password"]', "12345678");
@@ -41,7 +41,7 @@ test.describe("general landing page tests", () => {
     await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
   });
 
-  test("course name filter shows only matching courses", async ({ page }) => {
+  test("[STD-PUB-007][STD-PUB-010] course name filter shows only matching courses", async ({ page }) => {
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
 
     const filterInput = page.getByTestId("filter-course-name");
@@ -62,7 +62,7 @@ test.describe("general landing page tests", () => {
     await expect(page.getByText("Paragliding Intro v1")).not.toBeVisible();
   });
 
-  test("country dropdown filters schools by country", async ({ page }) => {
+  test("[STD-PUB-009][STD-PUB-010] country dropdown filters schools by country", async ({ page }) => {
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
 
     const dropdown = page.getByTestId("filter-country");
@@ -82,7 +82,7 @@ test.describe("general landing page tests", () => {
     await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
   });
 
-  test("location filter shows only matching schools", async ({ page }) => {
+  test("[STD-PUB-008][STD-PUB-010] location filter shows only matching schools", async ({ page }) => {
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
 
     const filterInput = page.getByTestId("filter-location");
@@ -99,12 +99,12 @@ test.describe("general landing page tests", () => {
     await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
   });
 
-  test.skip("get started link", async ({ page }) => {
+  test.skip("[template-relic] get started link", async ({ page }) => {
     await page.getByRole("link", { name: "Get started" }).click();
     await page.waitForURL("**/signup");
   });
 
-  test.skip("headings", async ({ page }) => {
+  test.skip("[template-relic] headings", async ({ page }) => {
     await expect(
       page.getByRole("heading", { name: "Frequently asked questions" }),
     ).toBeVisible();
@@ -119,7 +119,7 @@ test.describe("cookie consent tests", () => {
     await page.goto("/");
   });
 
-  test("cookie consent banner rejection does not set cc_cookie", async ({
+  test("[non-prd] cookie consent banner rejection does not set cc_cookie", async ({
     context,
     page,
   }) => {
@@ -132,7 +132,7 @@ test.describe("cookie consent tests", () => {
     expect(cookieObject.categories.includes("analytics")).toBeFalsy();
   });
 
-  test.skip("cookie consent banner acceptance sets cc_cookie and _ga cookies", async ({
+  test.skip("[template-relic] cookie consent banner acceptance sets cc_cookie and _ga cookies", async ({
     context,
     page,
   }) => {
