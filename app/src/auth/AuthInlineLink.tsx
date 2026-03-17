@@ -1,8 +1,10 @@
-import { Link as WaspRouterLink } from "wasp/client/router";
+import { Link as WaspRouterLink, routes } from "wasp/client/router";
+
+type RouteTo = (typeof routes)[keyof typeof routes]["to"];
 
 type AuthInlineLinkProps = {
   prefix: string;
-  to: string;
+  to: RouteTo;
   linkText: string;
   suffix?: string;
 };
@@ -16,7 +18,8 @@ export function AuthInlineLink({
   return (
     <span className="text-sm font-medium text-gray-900">
       {prefix}{" "}
-      <WaspRouterLink to={to} className="underline">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <WaspRouterLink to={to as any} className="underline">
         {linkText}
       </WaspRouterLink>
       {suffix}
