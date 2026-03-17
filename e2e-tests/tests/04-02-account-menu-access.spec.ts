@@ -9,12 +9,12 @@ type DashboardUserScenario = {
 
 const dashboardUserScenarios: DashboardUserScenario[] = [
   {
-    testName: "[STD-NAV-008] admin user menu shows Admin Dashboard link that navigates to /admin",
+    testName: "[4.11][STD-NAV-008] admin user menu shows Admin Dashboard link that navigates to /admin",
     email: "seed+system_admin.01@example.test",
     triggerName: /system_admin_01/i,
   },
   {
-    testName: "[STD-NAV-008] school manager user menu shows Admin Dashboard link that navigates to /admin",
+    testName: "[4.11][STD-NAV-008] school manager user menu shows Admin Dashboard link that navigates to /admin",
     email: "seed+school_manager.01@example.test",
     triggerName: /school_manager_01/i,
   },
@@ -46,7 +46,7 @@ const openAccountUserMenu = async ({
   await dropdownTrigger.click();
 };
 
-test.describe("account menu dashboard link", () => {
+test.describe("4.2 authentication and access control - account menu", () => {
   dashboardUserScenarios.forEach((scenario) => {
     test(scenario.testName, async ({ page }) => {
       await openAccountUserMenu({
@@ -63,7 +63,7 @@ test.describe("account menu dashboard link", () => {
     });
   });
 
-  test("[STD-AUTH-005] registered users can open Request Roles from user menu", async ({ page }) => {
+  test("[4.2][STD-AUTH-005] registered users can open Request Roles from user menu", async ({ page }) => {
     await openAccountUserMenu({
       page,
       email: "seed+school_manager.01@example.test",

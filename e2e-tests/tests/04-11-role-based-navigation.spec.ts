@@ -49,7 +49,7 @@ type RoleScenario = {
 
 const roleScenarios: RoleScenario[] = [
   {
-    testName: "[STD-NAV-001][STD-NAV-003] system admin can open each visible sidebar menu route",
+    testName: "[4.11][STD-NAV-001][STD-NAV-003] system admin can open each visible sidebar menu route",
     email: "seed+system_admin.01@example.test",
     visibilityRules: [
       { name: "Schools", visible: true },
@@ -66,7 +66,7 @@ const roleScenarios: RoleScenario[] = [
     ],
   },
   {
-    testName: "[STD-NAV-002][STD-NAV-004] school manager can open each visible sidebar menu route",
+    testName: "[4.11][STD-NAV-002][STD-NAV-004] school manager can open each visible sidebar menu route",
     email: "seed+school_manager.01@example.test",
     visibilityRules: [
       { name: "Schools", visible: true },
@@ -100,7 +100,7 @@ const roleScenarios: RoleScenario[] = [
   },
 ];
 
-test.describe("role menu navigation flows", () => {
+test.describe("4.11 role-based navigation", () => {
   roleScenarios.forEach((scenario) => {
     test(scenario.testName, async ({ page }) => {
       await logUserIn({

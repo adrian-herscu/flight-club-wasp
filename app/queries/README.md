@@ -43,7 +43,7 @@ They are idempotent (`ON CONFLICT`) and intentionally independent of Wasp action
 - Lesson metadata drill-down (`position`, `name`, `durationMinutes`)
 
 **UI:** `ManagerSyllabusesPage` — Catalog tab shows FINAL + draft syllabuses with policy notice.  
-**E2E:** `managerWorkflowATests.spec.ts` — asserts syllabus names and policy hint messages are visible.
+**E2E:** `04-05-school-manager-member-approval.spec.ts` — asserts syllabus names and policy hint messages are visible.
 
 ---
 

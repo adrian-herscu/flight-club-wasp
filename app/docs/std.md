@@ -36,49 +36,49 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-PUB-001 | FC-001 | Anonymous visitor sees landing page schools section and at least one school card when seeded data exists. | P0 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `anonymous users can see schools and courses on landing` |
-| STD-PUB-002 | FC-001 | Anonymous visitor sees visible course items under schools on landing page. | P0 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `anonymous users can see schools and courses on landing` |
-| STD-PUB-003 | FC-001 | Authenticated user also sees schools and courses on landing page. | P1 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `logged in users can see schools and courses on landing` |
-| STD-PUB-004 | FC-001 | School card renders school identity including name and location. | P0 | Partial | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) proves cards render, but does not explicitly assert school name and location text on the card. |
+| STD-PUB-001 | FC-001 | Anonymous visitor sees landing page schools section and at least one school card when seeded data exists. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `anonymous users can see schools and courses on landing` |
+| STD-PUB-002 | FC-001 | Anonymous visitor sees visible course items under schools on landing page. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `anonymous users can see schools and courses on landing` |
+| STD-PUB-003 | FC-001 | Authenticated user also sees schools and courses on landing page. | P1 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `logged in users can see schools and courses on landing` |
+| STD-PUB-004 | FC-001 | School card renders school identity including name and location. | P0 | Partial | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) proves cards render, but does not explicitly assert school name and location text on the card. |
 | STD-PUB-005 | FC-001 | Missing optional school data such as website URL or phone does not break landing rendering. | P1 | Gap | No active test exercises missing optional school website/phone data on landing cards. |
-| STD-PUB-006 | FC-001 | Missing optional school logo does not break landing rendering. | P1 | Partial | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) asserts logo count, but not graceful rendering when a logo is absent. |
-| STD-PUB-007 | FC-002 | Course-name filter narrows visible courses by text. | P0 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `course name filter shows only matching courses` |
-| STD-PUB-008 | FC-002 | Location filter narrows visible schools by text. | P0 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `location filter shows only matching schools` |
-| STD-PUB-009 | FC-002 | Country filter narrows visible schools by selected country. | P0 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `country dropdown filters schools by country` |
-| STD-PUB-010 | FC-002 | Applying public filters works without authentication. | P0 | Covered | Current landing filter tests operate anonymously in [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts). |
-| STD-PUB-011 | FC-002 | Empty-result states render correctly when filters yield no schools or courses. | P1 | Partial | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) checks zero-count behavior, but does not assert user-facing empty-state messaging or layout integrity. |
+| STD-PUB-006 | FC-001 | Missing optional school logo does not break landing rendering. | P1 | Partial | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) asserts logo count, but not graceful rendering when a logo is absent. |
+| STD-PUB-007 | FC-002 | Course-name filter narrows visible courses by text. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `course name filter shows only matching courses` |
+| STD-PUB-008 | FC-002 | Location filter narrows visible schools by text. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `location filter shows only matching schools` |
+| STD-PUB-009 | FC-002 | Country filter narrows visible schools by selected country. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `country dropdown filters schools by country` |
+| STD-PUB-010 | FC-002 | Applying public filters works without authentication. | P0 | Covered | Current landing filter tests operate anonymously in [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts). |
+| STD-PUB-011 | FC-002 | Empty-result states render correctly when filters yield no schools or courses. | P1 | Partial | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) checks zero-count behavior, but does not assert user-facing empty-state messaging or layout integrity. |
 
 ## 4.2 Authentication and access control
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-AUTH-001 | FC-003 | User can log in with email/password and reach the authenticated entry point. | P0 | Covered | [landingPageTests.spec.ts](../../e2e-tests/tests/landingPageTests.spec.ts) — `existing seeded user can log in through translated login form` |
-| STD-AUTH-002 | FC-003 | Login form remains usable in translated locales. | P1 | Covered | [i18nTranslationTests.spec.ts](../../e2e-tests/tests/i18nTranslationTests.spec.ts) |
-| STD-AUTH-003 | FC-003 | Unauthenticated access to a protected route redirects to `/login`. | P0 | Covered | [authzAccessControlTests.spec.ts](../../e2e-tests/tests/authzAccessControlTests.spec.ts) — `[STD-AUTH-003]` |
-| STD-AUTH-004 | FC-003 | Authenticated user can open account page. | P1 | Partial | [accountMenuDashboardLinkTests.spec.ts](../../e2e-tests/tests/accountMenuDashboardLinkTests.spec.ts) visits `/account`, but this is used as setup rather than asserted as a protected workflow outcome. |
-| STD-AUTH-005 | FC-003 | Request Roles entry point is reachable from the account menu. | P1 | Covered | [accountMenuDashboardLinkTests.spec.ts](../../e2e-tests/tests/accountMenuDashboardLinkTests.spec.ts) — `registered users can open Request Roles from user menu` |
-| STD-AUTH-006 | FC-003 | Google sign-in option is visible when provider configuration is enabled. | P1 | Partial | [i18nTranslationTests.spec.ts](../../e2e-tests/tests/i18nTranslationTests.spec.ts) checks button visibility and translation only; it does not prove OAuth flow initiation or success. |
-| STD-AUTH-007 | FC-015 | Non-admin user cannot access admin-only pages. | P0 | Covered | [authzAccessControlTests.spec.ts](../../e2e-tests/tests/authzAccessControlTests.spec.ts) — `[STD-AUTH-007]` |
-| STD-AUTH-008 | FC-015 | Non-manager user cannot access manager-only pages. | P0 | Covered | [authzAccessControlTests.spec.ts](../../e2e-tests/tests/authzAccessControlTests.spec.ts) — `[STD-AUTH-008]` |
-| STD-AUTH-009 | FC-015 | Sensitive actions validate authorization on the server side, not only by hidden UI links. | P0 | Covered | [authzAccessControlTests.spec.ts](../../e2e-tests/tests/authzAccessControlTests.spec.ts) — `[STD-AUTH-009]` direct operation action-denial checks |
+| STD-AUTH-001 | FC-003 | User can log in with email/password and reach the authenticated entry point. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `existing seeded user can log in through translated login form` |
+| STD-AUTH-002 | FC-003 | Login form remains usable in translated locales. | P1 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
+| STD-AUTH-003 | FC-003 | Unauthenticated access to a protected route redirects to `/login`. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-003]` |
+| STD-AUTH-004 | FC-003 | Authenticated user can open account page. | P1 | Partial | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) visits `/account`, but this is used as setup rather than asserted as a protected workflow outcome. |
+| STD-AUTH-005 | FC-003 | Request Roles entry point is reachable from the account menu. | P1 | Covered | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) — `registered users can open Request Roles from user menu` |
+| STD-AUTH-006 | FC-003 | Google sign-in option is visible when provider configuration is enabled. | P1 | Partial | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) checks button visibility and translation only; it does not prove OAuth flow initiation or success. |
+| STD-AUTH-007 | FC-015 | Non-admin user cannot access admin-only pages. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-007]` |
+| STD-AUTH-008 | FC-015 | Non-manager user cannot access manager-only pages. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-008]` |
+| STD-AUTH-009 | FC-015 | Sensitive actions validate authorization on the server side, not only by hidden UI links. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-009]` direct operation action-denial checks |
 
 ## 4.3 Registration and role requests
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-REG-001 | FC-004 | Signed-in user can open school-manager registration flow from the real role-selection path. | P0 | Partial | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) opens `/registration?role=SCHOOL_MANAGER` directly; it does not validate the role-selection journey. |
-| STD-REG-002 | FC-004 | School-manager registration collects required school details and submits a pending request. | P0 | Covered | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) — `instructor can submit a school registration request` |
-| STD-REG-003 | FC-004 | Submitted school-manager request is visible later with status. | P0 | Partial | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) accepts either pending or duplicate; it does not prove durable request-history visibility. |
+| STD-REG-001 | FC-004 | Signed-in user can open school-manager registration flow from the real role-selection path. | P0 | Partial | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) opens `/registration?role=SCHOOL_MANAGER` directly; it does not validate the role-selection journey. |
+| STD-REG-002 | FC-004 | School-manager registration collects required school details and submits a pending request. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `instructor can submit a school registration request` |
+| STD-REG-003 | FC-004 | Submitted school-manager request is visible later with status. | P0 | Partial | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) accepts either pending or duplicate; it does not prove durable request-history visibility. |
 | STD-REG-004 | FC-005 | Signed-in user can open instructor registration flow from the real role-selection path. | P0 | Partial | Current tests deep-link with `?role=INSTRUCTOR`; selection UI is not verified. |
 | STD-REG-005 | FC-005 | Signed-in user can open student registration flow from the real role-selection path. | P0 | Partial | Current tests deep-link with `?role=STUDENT`; selection UI is not verified. |
-| STD-REG-006 | FC-005 | Instructor registration requires choosing an existing school. | P0 | Partial | [registrationWebsiteTests.spec.ts](../../e2e-tests/tests/registrationWebsiteTests.spec.ts) proves school listing renders, but does not prove selection is required for submission. |
+| STD-REG-006 | FC-005 | Instructor registration requires choosing an existing school. | P0 | Partial | [04-03-registration-school-listing.spec.ts](../../e2e-tests/tests/04-03-registration-school-listing.spec.ts) proves school listing renders, but does not prove selection is required for submission. |
 | STD-REG-007 | FC-005 | Student registration requires choosing an existing school. | P0 | Gap | No active test specifically proves school selection is required for the student flow. |
-| STD-REG-008 | FC-005 | School options show recognizable identity including logo and website where available. | P1 | Partial | [registrationWebsiteTests.spec.ts](../../e2e-tests/tests/registrationWebsiteTests.spec.ts) checks school websites label and logos; it does not assert fallback behavior for missing optional identity fields. |
-| STD-REG-009 | FC-005 | Instructor request submission creates a pending request tied to selected school. | P0 | Covered | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) — `student can submit an instructor request for a school` |
-| STD-REG-010 | FC-005 | Student request submission creates a pending request tied to selected school. | P0 | Covered | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) — `school manager can submit a student request for a school` |
-| STD-REG-011 | FC-006 | Duplicate pending request for same user, role, and school context is blocked with a clear message. | P0 | Covered | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) — deterministic duplicate-block checks via repeated submission and explicit duplicate message assertion. |
-| STD-REG-012 | FC-006 | Existing approved role cannot be re-requested. | P0 | Covered | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) — `[STD-REG-012]` approves role (if needed) then verifies re-request is blocked with the approved-role message. |
-| STD-REG-013 | FC-006 | Conflicting pending requests are blocked consistently across manager, instructor, and student flows. | P0 | Covered | [roleRequestPermutations.spec.ts](../../e2e-tests/tests/roleRequestPermutations.spec.ts) — duplicate-block coverage across school-manager, instructor, and student request flows. |
+| STD-REG-008 | FC-005 | School options show recognizable identity including logo and website where available. | P1 | Partial | [04-03-registration-school-listing.spec.ts](../../e2e-tests/tests/04-03-registration-school-listing.spec.ts) checks school websites label and logos; it does not assert fallback behavior for missing optional identity fields. |
+| STD-REG-009 | FC-005 | Instructor request submission creates a pending request tied to selected school. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `student can submit an instructor request for a school` |
+| STD-REG-010 | FC-005 | Student request submission creates a pending request tied to selected school. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `school manager can submit a student request for a school` |
+| STD-REG-011 | FC-006 | Duplicate pending request for same user, role, and school context is blocked with a clear message. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — deterministic duplicate-block checks via repeated submission and explicit duplicate message assertion. |
+| STD-REG-012 | FC-006 | Existing approved role cannot be re-requested. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `[STD-REG-012]` approves role (if needed) then verifies re-request is blocked with the approved-role message. |
+| STD-REG-013 | FC-006 | Conflicting pending requests are blocked consistently across manager, instructor, and student flows. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — duplicate-block coverage across school-manager, instructor, and student request flows. |
 | STD-REG-014 | FC-006 | Validation errors are shown inline or clearly when required inputs are missing. | P1 | Gap | No active negative-form-validation tests for registration submission. |
 | STD-REG-015 | FC-004 / FC-005 | User can review submitted registration requests and statuses in a dedicated history view. | P0 | Gap | No active test covers request-history page or post-submission status review UX. |
 
@@ -86,36 +86,36 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-ADM-001 | FC-007 | Admin can open pending school-manager request list. | P0 | Covered | [adminUsersTests.spec.ts](../../e2e-tests/tests/adminUsersTests.spec.ts) — `system admin schools panel shows approved school requests with details` |
-| STD-ADM-002 | FC-007 | Approving school-manager request moves it from pending to approved state in UI. | P0 | Covered | [adminUsersTests.spec.ts](../../e2e-tests/tests/adminUsersTests.spec.ts) — approval flow in school requests panel |
+| STD-ADM-001 | FC-007 | Admin can open pending school-manager request list. | P0 | Covered | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) — `system admin schools panel shows approved school requests with details` |
+| STD-ADM-002 | FC-007 | Approving school-manager request moves it from pending to approved state in UI. | P0 | Covered | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) — approval flow in school requests panel |
 | STD-ADM-003 | FC-007 | Approving school-manager request provisions school and role relationships needed for downstream use. | P0 | Partial | Current test proves UI movement and details, but not that the requester receives the intended school-manager capabilities after approval. |
 | STD-ADM-004 | FC-007 | Admin can reject school-manager request with optional reason. | P0 | Gap | No active rejection-path test. |
 | STD-ADM-005 | FC-007 | Rejected request persists rejection state and reason after refresh/filter changes. | P1 | Gap | No active persistence test for rejection/audit visibility. |
-| STD-ADM-006 | FC-007 / FC-015 | Non-admin user cannot access or operate school-manager approval workflow. | P0 | Covered | [authzAccessControlTests.spec.ts](../../e2e-tests/tests/authzAccessControlTests.spec.ts) — `[STD-ADM-006]` direct denial on `approve-school-manager-request` |
-| STD-ADM-007 | FC-007 | Admin request filters correctly separate pending and approved school requests. | P1 | Covered | [adminUsersTests.spec.ts](../../e2e-tests/tests/adminUsersTests.spec.ts) — school status filters validated |
+| STD-ADM-006 | FC-007 / FC-015 | Non-admin user cannot access or operate school-manager approval workflow. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-ADM-006]` direct denial on `approve-school-manager-request` |
+| STD-ADM-007 | FC-007 | Admin request filters correctly separate pending and approved school requests. | P1 | Covered | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) — school status filters validated |
 
 ## 4.5 School-manager member approval workflow
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-MGR-001 | FC-008 | Manager can open separate instructor and student member-request routes. | P0 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) — `manager member requests panel is split by instructors/students and supports pending/approved filtering` |
-| STD-MGR-002 | FC-008 | Instructor route shows only instructor requests. | P0 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) |
-| STD-MGR-003 | FC-008 | Student route shows only student requests. | P0 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) |
-| STD-MGR-004 | FC-008 | Manager can filter member requests by pending status. | P0 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) |
-| STD-MGR-005 | FC-008 | Manager can filter member requests by approved status. | P0 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) |
-| STD-MGR-006 | FC-008 | Manager can approve an instructor request and see it move to approved view. | P0 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) |
+| STD-MGR-001 | FC-008 | Manager can open separate instructor and student member-request routes. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) — `manager member requests panel is split by instructors/students and supports pending/approved filtering` |
+| STD-MGR-002 | FC-008 | Instructor route shows only instructor requests. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
+| STD-MGR-003 | FC-008 | Student route shows only student requests. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
+| STD-MGR-004 | FC-008 | Manager can filter member requests by pending status. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
+| STD-MGR-005 | FC-008 | Manager can filter member requests by approved status. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
+| STD-MGR-006 | FC-008 | Manager can approve an instructor request and see it move to approved view. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
 | STD-MGR-007 | FC-008 | Manager can approve a student request and see it move to approved view. | P0 | Gap | Current test submits both request types, but only exercises instructor approval. |
 | STD-MGR-008 | FC-008 | Manager can reject instructor request and see updated state/history. | P0 | Gap | No active rejection-path test. |
 | STD-MGR-009 | FC-008 | Manager can reject student request and see updated state/history. | P0 | Gap | No active rejection-path test. |
 | STD-MGR-010 | FC-008 | Manager only sees requests for their authorized school. | P0 | Gap | No active scoping test across multiple schools/managers. |
-| STD-MGR-011 | FC-015 | Unauthorized user cannot operate manager approval actions. | P0 | Covered | [authzAccessControlTests.spec.ts](../../e2e-tests/tests/authzAccessControlTests.spec.ts) — `[STD-MGR-011]` direct denial on `approve-school-member-request` |
+| STD-MGR-011 | FC-015 | Unauthorized user cannot operate manager approval actions. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-MGR-011]` direct denial on `approve-school-member-request` |
 
 ## 4.6 School profile management
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-SCH-001 | FC-009 | Manager can open school profile page for their authorized school. | P1 | Inactive | PRD-relevant skipped test exists in [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) (`manager can view school profile`). |
-| STD-SCH-002 | FC-009 | School profile shows contact details, address, currency, and optional branding fields. | P1 | Inactive | PRD-relevant skipped test exists in [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) (`manager can view school profile`). |
+| STD-SCH-001 | FC-009 | Manager can open school profile page for their authorized school. | P1 | Inactive | PRD-relevant skipped test exists in [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) (`manager can view school profile`). |
+| STD-SCH-002 | FC-009 | School profile shows contact details, address, currency, and optional branding fields. | P1 | Inactive | PRD-relevant skipped test exists in [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) (`manager can view school profile`). |
 | STD-SCH-003 | FC-009 | Manager can update school profile fields and see saved values persist after reload. | P0 | Gap | No active school-profile update test. |
 | STD-SCH-004 | FC-009 | Unauthorized user cannot update another school's profile. | P0 | Gap | No active authz/scoping test for school-profile edits. |
 
@@ -123,15 +123,15 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-SYL-001 | FC-010 | Manager can browse syllabus catalog including relevant system and school syllabuses. | P0 | Partial | [adminUsersTests.spec.ts](../../e2e-tests/tests/adminUsersTests.spec.ts) covers admin visibility; [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) has only skipped manager catalog coverage. |
-| STD-SYL-002 | FC-010 | Catalog communicates visibility and usage policy. | P1 | Partial | Admin catalog policy is checked in [adminUsersTests.spec.ts](../../e2e-tests/tests/adminUsersTests.spec.ts); manager-specific active validation is missing. |
+| STD-SYL-001 | FC-010 | Manager can browse syllabus catalog including relevant system and school syllabuses. | P0 | Partial | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) covers admin visibility; [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) has only skipped manager catalog coverage. |
+| STD-SYL-002 | FC-010 | Catalog communicates visibility and usage policy. | P1 | Partial | Admin catalog policy is checked in [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts); manager-specific active validation is missing. |
 | STD-SYL-003 | FC-010 | Manager can create draft syllabus from scratch. | P0 | Gap | No active creation-flow test. |
 | STD-SYL-004 | FC-010 | Manager can create draft syllabus from template. | P1 | Gap | No active template-based creation test. |
 | STD-SYL-005 | FC-010 | Manager can save revisions to draft syllabus content. | P0 | Gap | No active draft revision test. |
 | STD-SYL-006 | FC-010 | Manager can publish draft syllabus into final version. | P0 | Gap | No active publish-flow test. |
 | STD-SYL-007 | FC-010 | UI clearly distinguishes draft, final, and obsolete versions. | P1 | Gap | No active status-distinction test. |
-| STD-SYL-008 | FC-016 | Manager syllabus page remains usable in RTL layout. | P1 | Covered | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) — `rtl layout: sidebar stays anchored to right on syllabuses page` |
-| STD-SYL-009 | FC-016 | Manager syllabus page labels translate correctly in Hebrew. | P1 | Partial | [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts) checks that English policy text is absent, but does not assert concrete translated labels/actions. |
+| STD-SYL-008 | FC-016 | Manager syllabus page remains usable in RTL layout. | P1 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) — `rtl layout: sidebar stays anchored to right on syllabuses page` |
+| STD-SYL-009 | FC-016 | Manager syllabus page labels translate correctly in Hebrew. | P1 | Partial | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) checks that English policy text is absent, but does not assert concrete translated labels/actions. |
 
 ## 4.8 Course creation and management
 
@@ -168,24 +168,24 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-NAV-001 | FC-014 | System admin sees only admin-appropriate sidebar links. | P0 | Covered | [roleMenuNavigationFlows.spec.ts](../../e2e-tests/tests/roleMenuNavigationFlows.spec.ts) |
-| STD-NAV-002 | FC-014 | School manager sees only manager-appropriate sidebar links. | P0 | Covered | [roleMenuNavigationFlows.spec.ts](../../e2e-tests/tests/roleMenuNavigationFlows.spec.ts) |
-| STD-NAV-003 | FC-014 | Each visible admin sidebar item loads the expected route. | P0 | Covered | [roleMenuNavigationFlows.spec.ts](../../e2e-tests/tests/roleMenuNavigationFlows.spec.ts) |
-| STD-NAV-004 | FC-014 | Each visible manager sidebar item loads the expected route. | P0 | Covered | [roleMenuNavigationFlows.spec.ts](../../e2e-tests/tests/roleMenuNavigationFlows.spec.ts) |
+| STD-NAV-001 | FC-014 | System admin sees only admin-appropriate sidebar links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
+| STD-NAV-002 | FC-014 | School manager sees only manager-appropriate sidebar links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
+| STD-NAV-003 | FC-014 | Each visible admin sidebar item loads the expected route. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
+| STD-NAV-004 | FC-014 | Each visible manager sidebar item loads the expected route. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
 | STD-NAV-005 | FC-014 | Instructor sees only instructor-appropriate navigation links. | P0 | Gap | No active instructor-role navigation test. |
 | STD-NAV-006 | FC-014 | Student sees only student-appropriate navigation links. | P0 | Gap | No active student-role navigation test. |
 | STD-NAV-007 | FC-014 | Authenticated user without elevated role does not see admin/manager links. | P0 | Gap | No active plain-user navigation visibility test. |
-| STD-NAV-008 | FC-014 | Account menu shows dashboard link for elevated roles. | P1 | Covered | [accountMenuDashboardLinkTests.spec.ts](../../e2e-tests/tests/accountMenuDashboardLinkTests.spec.ts) |
+| STD-NAV-008 | FC-014 | Account menu shows dashboard link for elevated roles. | P1 | Covered | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) |
 
 ## 4.12 Internationalization and RTL
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-I18N-001 | FC-016 | Login page text matches selected language for English, Hebrew, and Romanian. | P1 | Covered | [i18nTranslationTests.spec.ts](../../e2e-tests/tests/i18nTranslationTests.spec.ts) |
-| STD-I18N-002 | FC-016 | Language selector updates `lang` and `dir` correctly across switches. | P1 | Covered | [i18nTranslationTests.spec.ts](../../e2e-tests/tests/i18nTranslationTests.spec.ts) |
-| STD-I18N-003 | FC-016 | Browser locale auto-detection defaults to supported language or English fallback. | P2 | Covered | [i18nTranslationTests.spec.ts](../../e2e-tests/tests/i18nTranslationTests.spec.ts) |
-| STD-I18N-004 | FC-016 | Google sign-in affordance stays visible across supported languages. | P2 | Covered | [i18nTranslationTests.spec.ts](../../e2e-tests/tests/i18nTranslationTests.spec.ts) |
-| STD-I18N-005 | FC-016 | Core manager pages render without layout breakage in RTL mode. | P1 | Partial | Only syllabus catalog RTL layout is tested in [managerWorkflowATests.spec.ts](../../e2e-tests/tests/managerWorkflowATests.spec.ts); other critical manager pages are unproven. |
+| STD-I18N-001 | FC-016 | Login page text matches selected language for English, Hebrew, and Romanian. | P1 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
+| STD-I18N-002 | FC-016 | Language selector updates `lang` and `dir` correctly across switches. | P1 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
+| STD-I18N-003 | FC-016 | Browser locale auto-detection defaults to supported language or English fallback. | P2 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
+| STD-I18N-004 | FC-016 | Google sign-in affordance stays visible across supported languages. | P2 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
+| STD-I18N-005 | FC-016 | Core manager pages render without layout breakage in RTL mode. | P1 | Partial | Only syllabus catalog RTL layout is tested in [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts); other critical manager pages are unproven. |
 | STD-I18N-006 | FC-016 | Sidebar positioning remains usable in RTL layouts across manager/admin pages. | P1 | Partial | Only one manager syllabus page is covered. |
 | STD-I18N-007 | FC-016 | Localized rendering does not remove access to required actions on critical manager pages. | P1 | Gap | No active test asserts translated critical actions remain present and operable on manager approval or school pages. |
 

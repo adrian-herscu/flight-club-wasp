@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { logUserIn } from "./utils";
 
-test.describe("authorization and protected route access", () => {
+test.describe("4.2 authentication and access control", () => {
   const callOperation = async (
     page: Page,
     operationSlug: string,
@@ -53,14 +53,14 @@ test.describe("authorization and protected route access", () => {
     return lastResponse;
   };
 
-  test("[STD-AUTH-003] unauthenticated users are redirected to login for protected routes", async ({ page }) => {
+  test("[4.2][STD-AUTH-003] unauthenticated users are redirected to login for protected routes", async ({ page }) => {
     await page.goto("/admin/users");
     await page.waitForLoadState("networkidle");
 
     await expect(page).toHaveURL(/\/login(?:[?#].*)?$/);
   });
 
-  test("[STD-AUTH-007] non-admin users cannot access admin-only pages", async ({ page }) => {
+  test("[4.2][STD-AUTH-007] non-admin users cannot access admin-only pages", async ({ page }) => {
     await logUserIn({
       page,
       user: {
@@ -77,7 +77,7 @@ test.describe("authorization and protected route access", () => {
     await expect(page.getByRole("heading", { name: "Users" })).toHaveCount(0);
   });
 
-  test("[STD-AUTH-008] non-manager users cannot access manager-only member request pages", async ({ page }) => {
+  test("[4.2][STD-AUTH-008] non-manager users cannot access manager-only member request pages", async ({ page }) => {
     await logUserIn({
       page,
       user: {
@@ -94,7 +94,7 @@ test.describe("authorization and protected route access", () => {
     await expect(page.getByTestId("manager-member-request-card")).toHaveCount(0);
   });
 
-  test("[STD-AUTH-009][STD-ADM-006] non-admin users cannot execute admin-only school approval actions directly", async ({ page }) => {
+  test("[4.2][4.4][STD-AUTH-009][STD-ADM-006] non-admin users cannot execute admin-only school approval actions directly", async ({ page }) => {
     await logUserIn({
       page,
       user: {
@@ -114,7 +114,7 @@ test.describe("authorization and protected route access", () => {
     await expect(response.text()).resolves.toContain("Only system admins can access this resource.");
   });
 
-  test("[STD-AUTH-009][STD-MGR-011] non-managers cannot execute manager-only member approval actions directly", async ({ page }) => {
+  test("[4.2][4.5][STD-AUTH-009][STD-MGR-011] non-managers cannot execute manager-only member approval actions directly", async ({ page }) => {
     await logUserIn({
       page,
       user: {
