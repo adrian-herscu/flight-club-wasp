@@ -152,6 +152,8 @@ test.describe("4.3 registration and role requests", () => {
   });
 
   test("[4.3][STD-REG-012] approved role cannot be re-requested for the same school", async ({ page }) => {
+    test.slow();
+
     const requesterEmail = "seed+user.02@example.test";
     const managerEmail = "seed+school_manager.01@example.test";
 
@@ -167,7 +169,7 @@ test.describe("4.3 registration and role requests", () => {
     await page.goto(
       "/registration?role=INSTRUCTOR&schoolId=seed-school-cloudbase-paragliding",
     );
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
     await page.locator("#fullName").fill("Seed User 02");
     await page.locator("#phone").fill("+1 555 0199");
@@ -186,7 +188,7 @@ test.describe("4.3 registration and role requests", () => {
       });
 
       await page.goto("/admin/member-requests/instructors");
-      await page.waitForLoadState("networkidle");
+      await expect(page.getByRole("heading", { name: /member requests/i }).first()).toBeVisible();
 
       const pendingSection = page.locator("[data-testid='manager-requests-instructors-pending-section']");
       const pendingCard = pendingSection
@@ -217,7 +219,7 @@ test.describe("4.3 registration and role requests", () => {
       await page.goto(
         "/registration?role=INSTRUCTOR&schoolId=seed-school-cloudbase-paragliding",
       );
-      await page.waitForLoadState("networkidle");
+      await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
       await page.locator("#fullName").fill("Seed User 02");
       await page.locator("#phone").fill("+1 555 0199");

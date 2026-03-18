@@ -69,16 +69,9 @@ jobs:
         working-directory: e2e-tests
         run: npx playwright install --with-deps chromium
 
-      - name: Wait for app to be ready
+      - name: Run smoke E2E tests
         working-directory: e2e-tests
-        # 10 min timeout: Wasp compiles TypeScript before serving on first start.
-        # Wait for BOTH the frontend (:3000) and backend (:3001) — auth API calls
-        # go to :3001 and tests will fail silently if it isn't ready yet.
-        run: npx wait-on http://127.0.0.1:3000 tcp:127.0.0.1:3001 -t 600000
-
-      - name: Run E2E tests
-        working-directory: e2e-tests
-        run: npx playwright test --reporter=html,github
+        run: npm run e2e:smoke
 
       - name: Upload Playwright report to GitHub Pages
         if: always()

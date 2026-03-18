@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { logUserIn } from "./utils";
 
+const selectLanguage = async (page: Page, languageLabel: string) => {
+  await page.getByRole("combobox").click();
+  await page.getByRole("option", { name: languageLabel }).click();
+};
+
 const expectSidebarOnScreen = async (page: Page) => {
   const sidebar = page.locator("aside");
   await expect(sidebar).toBeVisible();
@@ -49,7 +54,7 @@ type RoleScenario = {
 
 const roleScenarios: RoleScenario[] = [
   {
-    testName: "[4.11][STD-NAV-001][STD-NAV-003] system admin can open each visible sidebar menu route",
+    testName: "[4.11][STD-NAV-001][STD-NAV-003][@smoke] system admin can open each visible sidebar menu route",
     email: "seed+system_admin.01@example.test",
     visibilityRules: [
       { name: "Schools", visible: true },
@@ -138,5 +143,32 @@ test.describe("4.11 role-based navigation", () => {
       await expect(sidebar.getByRole("link", { name: "Buttons" }).first()).toBeVisible();
       await clickSidebarLinkAndExpectUrl(page, "Buttons", /\/admin\/ui\/buttons\/?$/);
     });
+  });
+
+  test("[4.11][STD-NAV-004] school manager can open contextual help from the Schools page", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+school_manager.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/admin/school");
+    await expect(page.getByRole("heading", { name: "Schools" }).first()).toBeVisible();
+    await expect(page.getByTestId("manager-schools-list")).toBeVisible();
+
+    await selectLanguage(page, "Română");
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("ro");
+
+    const helpTrigger = page.getByTestId("manager-schools-help-trigger");
+    await expect(helpTrigger).toBeVisible();
+    await helpTrigger.click();
+
+    const helpDialog = page.getByTestId("manager-schools-help-dialog");
+    await expect(helpDialog).toBeVisible();
+    await expect(helpDialog).toContainText("Când lucrezi ca Manager școală");
+    await expect(helpDialog).toContainText("Manager School Account");
   });
 });

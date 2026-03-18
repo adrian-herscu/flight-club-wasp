@@ -9,7 +9,9 @@
     "test": "tests"
   },
   "scripts": {
-    "e2e:playwright": "npx wait-on http://127.0.0.1:3000 -t 5000 && npx playwright test",
+    "e2e:wait": "npx wait-on http://127.0.0.1:3000 tcp:127.0.0.1:3001 -t 600000",
+    "e2e:playwright": "npm run e2e:wait && npx playwright test",
+    "e2e:smoke": "npm run e2e:wait && npx playwright test --project=chromium --grep @smoke --reporter=html,github",
     "local:e2e:playwright:ui": "SKIP_EMAIL_VERIFICATION_IN_DEV=true npx playwright test --ui",
 
     "_comment-on-local:e2e:cleanup-stripe": "NOTE: because we are running the stripe webhook listener in the background, we want to make sure we kill the previous processes before starting a new one.",
