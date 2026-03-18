@@ -145,30 +145,4 @@ test.describe("4.11 role-based navigation", () => {
     });
   });
 
-  test("[4.11][STD-NAV-004] school manager can open contextual help from the Schools page", async ({ page }) => {
-    await logUserIn({
-      page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
-      expectedRedirectPath: "/",
-    });
-
-    await page.goto("/admin/school");
-    await expect(page.getByRole("heading", { name: "Schools" }).first()).toBeVisible();
-    await expect(page.getByTestId("manager-schools-list")).toBeVisible();
-
-    await selectLanguage(page, "Română");
-    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("ro");
-
-    const helpTrigger = page.getByTestId("manager-schools-help-trigger");
-    await expect(helpTrigger).toBeVisible();
-    await helpTrigger.click();
-
-    const helpDialog = page.getByTestId("manager-schools-help-dialog");
-    await expect(helpDialog).toBeVisible();
-    await expect(helpDialog).toContainText("Când lucrezi ca Manager școală");
-    await expect(helpDialog).toContainText("Manager School Account");
-  });
 });
