@@ -61,13 +61,33 @@ jobs:
       - name: Start Wasp dev server (compiles app, serves on :3000/:3001)
         run: wasp start > /tmp/wasp-start.log 2>&1 &
 
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-e2e-${{ hashFiles('e2e-tests/package-lock.json') }}
+          restore-keys: npm-e2e-
+
       - name: Install e2e dependencies
         working-directory: e2e-tests
         run: npm ci
 
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('e2e-tests/package-lock.json') }}
+
       - name: Install Playwright browsers
         working-directory: e2e-tests
-        run: npx playwright install --with-deps chromium
+        # On cache hit only reinstall OS-level deps (fast); on miss do a full download.
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Run smoke E2E tests
         working-directory: e2e-tests
