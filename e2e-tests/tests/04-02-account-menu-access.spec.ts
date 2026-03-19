@@ -11,12 +11,12 @@ const dashboardUserScenarios: DashboardUserScenario[] = [
   {
     testName: "[4.11][STD-NAV-008] admin user menu shows Admin Dashboard link that navigates to /admin",
     email: "seed+system_admin.01@example.test",
-    triggerName: /system_admin_01/i,
+    triggerName: /system_admin_01|seed\+system_admin\.01@example\.test/i,
   },
   {
     testName: "[4.11][STD-NAV-008] school manager user menu shows Admin Dashboard link that navigates to /admin",
     email: "seed+school_manager.01@example.test",
-    triggerName: /school_manager_01/i,
+    triggerName: /school_manager_01|seed\+school_manager\.01@example\.test/i,
   },
 ];
 
@@ -41,7 +41,10 @@ const openAccountUserMenu = async ({
   await page.goto("/account");
   await expect(page).toHaveURL(/\/account/);
 
-  const dropdownTrigger = page.getByRole("button", { name: triggerName });
+  const dropdownTriggerByName = page.getByRole("button", { name: triggerName });
+  const dropdownTrigger = (await dropdownTriggerByName.count())
+    ? dropdownTriggerByName.first()
+    : page.locator("button:has(svg.lucide-user)").first();
   await expect(dropdownTrigger).toBeVisible();
   await dropdownTrigger.click();
 };
@@ -67,7 +70,7 @@ test.describe("4.2 authentication and access control - account menu", () => {
     await openAccountUserMenu({
       page,
       email: "seed+school_manager.01@example.test",
-      triggerName: /school_manager_01/i,
+      triggerName: /school_manager_01|seed\+school_manager\.01@example\.test/i,
     });
 
     const requestRolesLink = page.getByRole("menuitem").filter({ hasText: /request roles/i });

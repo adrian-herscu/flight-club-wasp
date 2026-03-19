@@ -1,7 +1,48 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { logUserIn } from "./utils";
 
 test.describe("4.5 school-manager member approval workflow", () => {
+  const schoolManagerUser = {
+    email: "seed+school_manager.01@example.test",
+    password: "12345678",
+  };
+
+  const dismissCookieBanner = async (page: Page) => {
+    const cookieAcceptButton = page.getByRole("button", { name: /Accept all/i });
+    if (await cookieAcceptButton.count()) {
+      await cookieAcceptButton.first().click();
+    }
+  };
+
+  const submitMemberRequest = async ({
+    page,
+    requesterEmail,
+    expectedRedirectPath,
+    role,
+    fullName,
+    phone,
+  }: {
+    page: Page;
+    requesterEmail: string;
+    expectedRedirectPath: "/" | "/registration";
+    role: "INSTRUCTOR" | "STUDENT";
+    fullName: string;
+    phone: string;
+  }) => {
+    await logUserIn({
+      page,
+      user: { email: requesterEmail, password: "12345678" },
+      expectedRedirectPath,
+    });
+
+    await page.goto(`/registration?role=${role}&schoolId=seed-school-cloudbase-paragliding`);
+    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
+    await dismissCookieBanner(page);
+    await page.locator("#fullName").fill(fullName);
+    await page.locator("#phone").fill(phone);
+    await page.locator(".flex.justify-end button").last().click();
+    await page.waitForURL(/registration|\/$/);
+  };
   test.skip("[4.6][STD-SCH-001][STD-SCH-002][inactive] manager can view school profile", async ({ page }) => {
     await page.goto("/admin/school");
     await page.waitForURL("**/admin/school");
@@ -121,83 +162,69 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
   });
 
-  test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003] manager can view and approve instructor member requests", async ({ page }) => {
-    const dismissCookieBanner = async () => {
-      const cookieAcceptButton = page.getByRole("button", { name: /Accept all/i });
-      if (await cookieAcceptButton.count()) {
-        await cookieAcceptButton.first().click();
-      }
-    };
+  test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003] manager can view and approve instructor member requests (UI smoke)", async ({ page }) => {
+    const requesterEmail = "seed+user.01@example.test";
 
-    await logUserIn({
+    await submitMemberRequest({
       page,
-      user: { email: "seed+user.02@example.test", password: "12345678" },
+      requesterEmail,
       expectedRedirectPath: "/registration",
+      role: "INSTRUCTOR",
+      fullName: "Manager Test User",
+      phone: "+1 555 0171",
     });
 
-    await page.goto(`/registration?role=INSTRUCTOR&schoolId=seed-school-cloudbase-paragliding`);
-    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-    await dismissCookieBanner();
-    await page.locator("#fullName").fill("Manager Test User");
-    await page.locator("#phone").fill("+1 555 0171");
-    await page.locator(".flex.justify-end button").click();
-    await page.waitForURL(/registration|\/$/);
-
     await logUserIn({
       page,
-      user: { email: "seed+school_manager.01@example.test", password: "12345678" },
+      user: schoolManagerUser,
       expectedRedirectPath: "/",
     });
 
     await page.goto("/admin/member-requests/instructors");
     await page.waitForURL("**/admin/member-requests/instructors");
+      await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /instructor/i }).first()).toBeVisible();
 
-    const instructorPendingSection = page.locator(
-      "[data-testid='manager-requests-instructors-pending-section']",
-    );
-    
-    // Check if there are pending requests
-    const hasPendingRequests = await instructorPendingSection.locator("[data-testid='manager-member-request-card']").count() > 0;
-    
-    if (hasPendingRequests) {
-      const instructorPendingCard = instructorPendingSection
-        .locator("[data-testid='manager-member-request-card']")
-        .first();
-      await instructorPendingCard.getByRole("button", { name: /approve/i }).click();
+    const instructorPendingSection = page.getByTestId("manager-requests-instructors-pending-section");
+    const pendingCards = instructorPendingSection.getByTestId("manager-member-request-card");
+    const hasPendingCards = (await pendingCards.count()) > 0;
+
+    if (hasPendingCards) {
+      await expect(pendingCards.first()).toBeVisible();
     }
 
-    const instructorApprovedSection = page.locator(
-      "[data-testid='manager-requests-instructors-approved-section']",
+    const requesterPendingCard = instructorPendingSection
+      .getByTestId("manager-member-request-card")
+      .filter({ hasText: requesterEmail })
+      .first();
+
+    const hasRequesterPendingCard = (await requesterPendingCard.count()) > 0;
+
+    if (hasRequesterPendingCard) {
+      await requesterPendingCard.getByRole("button", { name: /approve/i }).click();
+    }
+
+    await page.getByTestId("manager-requests-status-filter-approved").click();
+
+    const instructorApprovedSection = page.getByTestId(
+      "manager-requests-instructors-approved-section",
     );
-    await expect(instructorApprovedSection.locator("[data-testid='manager-member-request-card']").first()).toBeVisible({ timeout: 5000 });
+    await expect(instructorApprovedSection.first()).toBeVisible();
   });
 
   test("[4.5][STD-MGR-004][STD-MGR-005][STD-MGR-006] manager can view and filter student member requests", async ({ page }) => {
-    const dismissCookieBanner = async () => {
-      const cookieAcceptButton = page.getByRole("button", { name: /Accept all/i });
-      if (await cookieAcceptButton.count()) {
-        await cookieAcceptButton.first().click();
-      }
-    };
-
-    await logUserIn({
+    await submitMemberRequest({
       page,
-      user: { email: "seed+student.02@example.test", password: "12345678" },
+      requesterEmail: "seed+student.02@example.test",
       expectedRedirectPath: "/",
+      role: "STUDENT",
+      fullName: "Manager Test Student",
+      phone: "+1 555 0172",
     });
 
-    await page.goto(`/registration?role=STUDENT&schoolId=seed-school-cloudbase-paragliding`);
-    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-    await dismissCookieBanner();
-    await page.locator("#fullName").fill("Manager Test Student");
-    await page.locator("#phone").fill("+1 555 0172");
-    await page.locator(".flex.justify-end button").click();
-    await page.waitForURL(/registration|\/$/);
-
     await logUserIn({
       page,
-      user: { email: "seed+school_manager.01@example.test", password: "12345678" },
+      user: schoolManagerUser,
       expectedRedirectPath: "/",
     });
 

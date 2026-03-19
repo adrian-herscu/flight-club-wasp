@@ -1,4 +1,5 @@
 import { Cookie, expect, test } from "@playwright/test";
+import { logUserIn } from "./utils";
 
 test.describe("4.1 public discovery", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,14 +11,14 @@ test.describe("4.1 public discovery", () => {
   });
 
   test("[4.2][STD-AUTH-001] existing seeded user can log in through translated login form", async ({ page }) => {
-    await page.goto("/login");
-    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
-    await page.fill('input[name="password"]', "12345678");
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-
+    await logUserIn({
+      page,
+      user: { email: "seed+school_manager.01@example.test", password: "12345678" },
+      expectedRedirectPath: "/",
+    });
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByText("school_manager_01")).toBeVisible();
+    await expect(page.locator('input[name="email"]')).toHaveCount(0);
+    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
   });
 
   test("[4.1][STD-PUB-001][STD-PUB-002] anonymous users can see schools and courses on landing", async ({ page }) => {

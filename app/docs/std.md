@@ -25,16 +25,6 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 ## 3. Status Legend
 
-- **Covered**: An active Playwright test already validates the required behavior closely enough.
-- **Partial**: An active Playwright test covers part of the requirement, but material acceptance criteria are still unproven.
-- **Inactive**: A PRD-relevant test exists but is currently skipped, so it does not protect the active baseline.
-- **Gap**: No relevant Playwright test currently proves the behavior.
-
-## 4. Test Inventory and Traceability
-
-## 4.1 Public discovery
-
-| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
 | STD-PUB-001 | FC-001 | Anonymous visitor sees landing page schools section and at least one school card when seeded data exists. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `anonymous users can see schools and courses on landing` |
 | STD-PUB-002 | FC-001 | Anonymous visitor sees visible course items under schools on landing page. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `anonymous users can see schools and courses on landing` |
@@ -60,7 +50,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-AUTH-006 | FC-003 | Google sign-in option is visible when provider configuration is enabled. | P1 | Partial | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) checks button visibility and translation only; it does not prove OAuth flow initiation or success. |
 | STD-AUTH-007 | FC-015 | Non-admin user cannot access admin-only pages. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-007]` |
 | STD-AUTH-008 | FC-015 | Non-manager user cannot access manager-only pages. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-008]` |
-| STD-AUTH-009 | FC-015 | Sensitive actions validate authorization on the server side, not only by hidden UI links. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-009]` direct operation action-denial checks |
+ | STD-AUTH-009 | FC-015 | Sensitive actions validate authorization on the server side, not only by hidden UI links. | P0 | Covered (API) | [api-tests/tests/01-role-gates.spec.ts](../../api-tests/tests/01-role-gates.spec.ts) — 10 tests validate 401/403 for approveSchoolManagerRequest and approveSchoolMemberRequest. E2E: [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts). |
 
 ## 4.3 Registration and role requests
 
@@ -76,9 +66,9 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-REG-008 | FC-005 | School options show recognizable identity including logo and website where available. | P1 | Partial | [04-03-registration-school-listing.spec.ts](../../e2e-tests/tests/04-03-registration-school-listing.spec.ts) checks school websites label and logos; it does not assert fallback behavior for missing optional identity fields. |
 | STD-REG-009 | FC-005 | Instructor request submission creates a pending request tied to selected school. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `student can submit an instructor request for a school` |
 | STD-REG-010 | FC-005 | Student request submission creates a pending request tied to selected school. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `school manager can submit a student request for a school` |
-| STD-REG-011 | FC-006 | Duplicate pending request for same user, role, and school context is blocked with a clear message. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — deterministic duplicate-block checks via repeated submission and explicit duplicate message assertion. |
-| STD-REG-012 | FC-006 | Existing approved role cannot be re-requested. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — `[STD-REG-012]` approves role (if needed) then verifies re-request is blocked with the approved-role message. |
-| STD-REG-013 | FC-006 | Conflicting pending requests are blocked consistently across manager, instructor, and student flows. | P0 | Covered | [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts) — duplicate-block coverage across school-manager, instructor, and student request flows. |
+ | STD-REG-011 | FC-006 | Duplicate pending request for same user, role, and school context is blocked with a clear message. | P0 | Covered (API) | [api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts](../../api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts) — 3 tests validate duplicate SCHOOL_MANAGER, INSTRUCTOR, STUDENT with 409 error. E2E: [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts). |
+ | STD-REG-012 | FC-006 | Existing approved role cannot be re-requested. | P0 | Covered (API) | [api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts](../../api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts) — test validates 409 error for existing approved role. E2E: [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts). |
+ | STD-REG-013 | FC-006 | Conflicting pending requests are blocked consistently across manager, instructor, and student flows. | P0 | Covered (API) | [api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts](../../api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts) — 5 tests: 3 duplicate tests, 1 approved-role hold test, 1 concurrent race-condition test. E2E: [04-03-registration-role-requests.spec.ts](../../e2e-tests/tests/04-03-registration-role-requests.spec.ts). |
 | STD-REG-014 | FC-006 | Validation errors are shown inline or clearly when required inputs are missing. | P1 | Gap | No active negative-form-validation tests for registration submission. |
 | STD-REG-015 | FC-004 / FC-005 | User can review submitted registration requests and statuses in a dedicated history view. | P0 | Gap | No active test covers request-history page or post-submission status review UX. |
 
@@ -86,13 +76,13 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-ADM-001 | FC-007 | Admin can open pending school-manager request list. | P0 | Covered | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) — `system admin schools panel shows approved school requests with details` |
-| STD-ADM-002 | FC-007 | Approving school-manager request moves it from pending to approved state in UI. | P0 | Covered | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) — approval flow in school requests panel |
-| STD-ADM-003 | FC-007 | Approving school-manager request provisions school and role relationships needed for downstream use. | P0 | Partial | Current test proves UI movement and details, but not that the requester receives the intended school-manager capabilities after approval. |
-| STD-ADM-004 | FC-007 | Admin can reject school-manager request with optional reason. | P0 | Gap | No active rejection-path test. |
-| STD-ADM-005 | FC-007 | Rejected request persists rejection state and reason after refresh/filter changes. | P1 | Gap | No active persistence test for rejection/audit visibility. |
-| STD-ADM-006 | FC-007 / FC-015 | Non-admin user cannot access or operate school-manager approval workflow. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-ADM-006]` direct denial on `approve-school-manager-request` |
-| STD-ADM-007 | FC-007 | Admin request filters correctly separate pending and approved school requests. | P1 | Covered | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) — school status filters validated |
+| STD-ADM-001 | FC-007 | Admin can open pending school-manager request list. | P0 | Covered (API+E2E) | API: [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts) validates pending/approved listing scope; E2E: [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) validates panel rendering. |
+| STD-ADM-002 | FC-007 | Approving school-manager request moves it from pending to approved state in UI. | P0 | Covered (API+E2E) | API: [04-approvals-side-effects.spec.ts](../../api-tests/tests/04-approvals-side-effects.spec.ts) validates approval state transition and invariants; E2E: [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) keeps UI smoke movement check. |
+| STD-ADM-003 | FC-007 | Approving school-manager request provisions school and role relationships needed for downstream use. | P0 | Covered (API) | [04-approvals-side-effects.spec.ts](../../api-tests/tests/04-approvals-side-effects.spec.ts) validates school/account/userSchoolRole/user-role/decision side effects. |
+| STD-ADM-004 | FC-007 | Admin can reject school-manager request with optional reason. | P0 | Covered (API) | [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts) validates rejection path and reason persistence. |
+| STD-ADM-005 | FC-007 | Rejected request persists rejection state and reason after refresh/filter changes. | P1 | Partial | API persistence covered in [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts), but no explicit E2E refresh/filter persistence assertion yet. |
+ | STD-ADM-006 | FC-007 / FC-015 | Non-admin user cannot access or operate school-manager approval workflow. | P0 | Covered (API) | [api-tests/tests/01-role-gates.spec.ts](../../api-tests/tests/01-role-gates.spec.ts) — 5 tests validate 401 unauthenticated + 403 for USER/SCHOOL_MANAGER/INSTRUCTOR/STUDENT on approveSchoolManagerRequest. E2E: [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts). |
+| STD-ADM-007 | FC-007 | Admin request filters correctly separate pending and approved school requests. | P1 | Covered (API+E2E) | API: [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts) validates status inclusion/exclusion; E2E: [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) validates filter UI behavior. |
 
 ## 4.5 School-manager member approval workflow
 
@@ -103,12 +93,12 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-MGR-003 | FC-008 | Student route shows only student requests. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
 | STD-MGR-004 | FC-008 | Manager can filter member requests by pending status. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
 | STD-MGR-005 | FC-008 | Manager can filter member requests by approved status. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
-| STD-MGR-006 | FC-008 | Manager can approve an instructor request and see it move to approved view. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
-| STD-MGR-007 | FC-008 | Manager can approve a student request and see it move to approved view. | P0 | Gap | Current test submits both request types, but only exercises instructor approval. |
-| STD-MGR-008 | FC-008 | Manager can reject instructor request and see updated state/history. | P0 | Gap | No active rejection-path test. |
-| STD-MGR-009 | FC-008 | Manager can reject student request and see updated state/history. | P0 | Gap | No active rejection-path test. |
-| STD-MGR-010 | FC-008 | Manager only sees requests for their authorized school. | P0 | Gap | No active scoping test across multiple schools/managers. |
-| STD-MGR-011 | FC-015 | Unauthorized user cannot operate manager approval actions. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-MGR-011]` direct denial on `approve-school-member-request` |
+| STD-MGR-006 | FC-008 | Manager can approve an instructor request and see it move to approved view. | P0 | Covered (API+E2E) | API: [04-approvals-side-effects.spec.ts](../../api-tests/tests/04-approvals-side-effects.spec.ts) validates transition/side effects; E2E: [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) keeps route+approve smoke. |
+| STD-MGR-007 | FC-008 | Manager can approve a student request and see it move to approved view. | P0 | Covered (API) | [04-approvals-side-effects.spec.ts](../../api-tests/tests/04-approvals-side-effects.spec.ts) validates student approval and profile/role side effects. |
+| STD-MGR-008 | FC-008 | Manager can reject instructor request and see updated state/history. | P0 | Partial | API rejection covered in [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts), but E2E history visibility remains unproven. |
+| STD-MGR-009 | FC-008 | Manager can reject student request and see updated state/history. | P0 | Partial | API rejection covered in [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts), but E2E history visibility remains unproven. |
+| STD-MGR-010 | FC-008 | Manager only sees requests for their authorized school. | P0 | Covered (API) | [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts) validates cross-school request exclusion in list operation. |
+ | STD-MGR-011 | FC-015 | Unauthorized user cannot operate manager approval actions. | P0 | Covered (API) | [api-tests/tests/01-role-gates.spec.ts](../../api-tests/tests/01-role-gates.spec.ts) — 5 tests validate 401 unauthenticated + 403 for USER/SCHOOL_MANAGER/INSTRUCTOR/STUDENT on approveSchoolMemberRequest. E2E: [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts). |
 
 ## 4.6 School profile management
 
@@ -208,35 +198,29 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | FC-003 Authenticate and reach protected areas | Partial; login, i18n, and protected-route redirect are covered; account-route assertion depth and Google OAuth execution remain incomplete. |
 | FC-004 Submit school-manager registration request | Partial; deep-link submission works, but real entry path and request-history coverage are missing. |
 | FC-005 Submit instructor or student requests | Partial; submission exists, but school-selection validation and history coverage are incomplete. |
-| FC-006 Prevent invalid or duplicate role requests | Weak partial; duplicate handling is not deterministically proven. |
-| FC-007 Review and decide school-manager requests | Partial; approval path exists, rejection and authz denial are missing. |
-| FC-008 Review instructor and student requests separately | Partial; route split and instructor approval are covered, student approval and all rejection paths are missing. |
+ | FC-006 Prevent invalid or duplicate role requests | **Covered (API)**; 5 API tests validate duplicate pending requests, approved-role hold, and concurrent race conditions. E2E smoke test also covers basic blocking. |
+| FC-007 Review and decide school-manager requests | **Covered (API+E2E)**; approval/rejection/authz invariants are API-covered with E2E UI smoke retained for panel flow. Remaining gap is explicit UI refresh/filter persistence of rejected state. |
+| FC-008 Review instructor and student requests separately | **Covered (API+E2E)**; instructor/student approval and rejection invariants are API-covered, with E2E route/filter/approve smoke retained. Remaining gap is dedicated E2E rejection-history visibility. |
 | FC-009 Manage school profile data | Missing in active suite. |
 | FC-010 Manage syllabus lifecycle | Largely missing in active suite. |
 | FC-011 Open a course from a final syllabus version | Missing in active suite. |
 | FC-012 Enroll students in courses | Missing in active suite. |
 | FC-013 Assign instructors to courses | Missing in active suite. |
 | FC-014 Navigate admin features by role | Good for admin and manager; missing for instructor, student, and plain authenticated users. |
-| FC-015 Preserve security and authorization boundaries | Partial; route-level and key action-level denial are covered, but school-scope enforcement and additional sensitive actions still need direct E2E coverage. |
+ | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; 10 API tests validate operation-level 401/403 authorization gates for approveSchoolManagerRequest and approveSchoolMemberRequest across 5 roles; E2E covers route-level denial. School-scope enforcement still needs testing. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
 
 ## 6. Highest-Priority Gaps to Implement Next
 
-1. School-scope authorization checks for admin/manager actions (cross-school approve/reject, enroll, assign).
-2. Deterministic duplicate/conflicting role-request tests.
-3. Admin rejection flow and manager rejection flows, including reason persistence.
-4. School profile view/edit authorization tests.
-5. Syllabus draft-create / revise / publish workflow tests.
-6. Course creation from final syllabus, including non-final rejection messaging.
-7. Student enrollment happy path and duplicate/cross-school denial tests.
-8. Instructor assignment happy path and conflict/duplicate/cross-school denial tests.
-9. Instructor, student, and plain-user role-based navigation tests.
-10. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
+1. School profile view/edit authorization tests.
+2. Syllabus draft-create / revise / publish workflow tests.
+3. Course creation from final syllabus, including non-final rejection messaging.
+4. Student enrollment happy path and duplicate/cross-school denial tests.
+5. Instructor assignment happy path and conflict/duplicate/cross-school denial tests.
+6. Instructor, student, and plain-user role-based navigation tests.
+7. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
+8. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
 
 ## 7. Notes
 
-- Skipped tests are treated as **Inactive** only when they are PRD-relevant (for example manager school-profile/syllabus checks).
-- Template relic tests and template-only skipped suites (for example under [e2e-tests/tests/template-skipped](../../e2e-tests/tests/template-skipped/)) are excluded from Flight Club PRD coverage accounting.
-- Non-PRD skipped tests (for example generic OpenSaaS marketing/template checks) are not counted as Flight Club coverage gaps.
-- Several existing registration tests use deep links such as `?role=` and `schoolId=`; these provide useful smoke coverage but do not fully validate the intended user journey.
-- This document is intentionally E2E-focused. Some lower-level invariants may also deserve query/action or integration tests, especially for authorization and DB-constraint error translation.
+ - As of March 2026, **43 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, and approval side effects. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.

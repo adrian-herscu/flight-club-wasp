@@ -32,6 +32,9 @@ Then run the tests:
 cd e2e-tests && npm run e2e:playwright
 ```
 
+`playwright` now performs a database reset in global setup once per invocation.
+This applies both to full suite runs and single-test invocations from the IDE.
+
 The test command fails fast if the app is not reachable at `http://127.0.0.1:3000`.
 
 ### Optional UI Mode

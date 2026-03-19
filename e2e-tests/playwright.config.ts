@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
   fullyParallel: true,
+  globalSetup: './global-setup.ts',
   
   use: {
     /* Wasp frontend defaults to port 3000 */
