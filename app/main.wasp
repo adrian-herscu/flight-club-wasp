@@ -203,6 +203,12 @@ page ManagerSyllabusesPage {
 }
 route ManagerSyllabusesRoute { path: "/admin/syllabuses", to: ManagerSyllabusesPage }
 
+page ManagerCoursesPage {
+  authRequired: true,
+  component: import ManagerCoursesPage from "@src/school-manager/ManagerCoursesPage"
+}
+route ManagerCoursesRoute { path: "/admin/courses", to: ManagerCoursesPage }
+
 query getMyManagedSchool {
   fn: import { getMyManagedSchool } from "@src/school-manager/operations",
   entities: [User, School, Account]

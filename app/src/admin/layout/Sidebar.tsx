@@ -4,6 +4,7 @@ import {
   ChevronUp,
   ClipboardList,
   GraduationCap,
+  BookOpen,
   LayoutDashboard,
   LayoutTemplate,
   School,
@@ -231,6 +232,23 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
               {/* <!-- Menu Item School --> */}
 
               {/* <!-- Menu Item Syllabuses --> */}
+                {(userRole === "SCHOOL_MANAGER" || userRole === "SYSTEM_ADMIN") && (
+                  <li>
+                  <NavLink
+                    to="/admin/courses"
+                    className={() =>
+                      cn(navItemBaseClass, {
+                        "bg-accent text-accent-foreground":
+                          pathname === "/admin/courses" ||
+                          pathname.startsWith("/admin/courses/"),
+                      })
+                    }
+                  >
+                    <BookOpen />
+                    {t("course.courses")}
+                  </NavLink>
+                  </li>
+                )}
               {(userRole === "SCHOOL_MANAGER" || userRole === "SYSTEM_ADMIN") && (
                 <li>
                 <NavLink
