@@ -9,7 +9,7 @@ export type LandingCourse = {
   startDate: Date | null;
   minCapacity: number | null;
   maxCapacity: number | null;
-  defaultLessonPrice: number | null;
+  hourlyRate: number | null;
 };
 
 export type LandingSchoolWithCourses = {
@@ -69,7 +69,7 @@ export const getLandingSchoolsWithCourses = async (
           startDate: null,
           minCapacity: null,
           maxCapacity: null,
-          defaultLessonPrice: null,
+          hourlyRate: null,
         }));
 
       return {

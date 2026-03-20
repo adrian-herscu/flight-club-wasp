@@ -76,6 +76,7 @@ model School {
   postalCode                String
   country                   String          // ISO 3166-1 alpha-2 country code (e.g., US, GB, FR)
   currency                  String          // ISO 4217 currency code (e.g., USD, GBP, EUR)
+  defaultHourlyRate         Int?            // Default course hourly rate in whole currency units
   createdAt                 DateTime        @default(now())
   
   admin                     User            @relation("SchoolAdmin", fields: [adminId], references: [id])
@@ -378,7 +379,7 @@ model Course {
   startDate                 DateTime?
   minCapacity               Int?
   maxCapacity               Int?
-  defaultLessonPrice        Int?            // Price in minor units (cents for USD, etc.), currency from school
+  hourlyRate                Int?            // Default course hourly rate in whole currency units
 
   courseInterests           CourseInterest[]
   courseLessons             CourseLesson[]
@@ -405,7 +406,7 @@ model CourseLesson {
   location                  String
   date                      DateTime
   bufferMinutes             Int             @default(30)
-  lessonPrice               Int?            // Price override in minor units (cents for USD, etc.), if null use course default
+  lessonPrice               Int?            // Lesson price override in whole currency units; if null, derive from course.hourlyRate and lesson duration
 
   @@index([date])
   @@index([courseId, date])

@@ -23,6 +23,7 @@ const {
   getManagerCourseInstructorDetails,
   getManagerCourseEnrollmentDetails,
   getManagerCoursesForEnrollment,
+  getMyManagedSchool,
   getManagerSyllabusCatalog,
   getManagerInstructorsForAssignment,
   getManagerStudentsForEnrollment,
@@ -49,6 +50,7 @@ type EnrollmentCourseItem = {
   syllabusName: string;
   syllabusVersion: number;
   startDate: string | null;
+  hourlyRate: number | null;
   enrolledCount: number;
 };
 
@@ -76,12 +78,21 @@ type ManagerSyllabusCatalog = {
   editableDrafts: CatalogItem[];
 };
 
+type ManagedSchool = {
+  id: string;
+  defaultHourlyRate: number | null;
+};
+
 const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
 
   const { data: catalogData, isLoading: isCatalogLoading } = useQuery(getManagerSyllabusCatalog);
   const catalog = catalogData as ManagerSyllabusCatalog | undefined;
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
+
+  const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
+  const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
+  const managedSchoolDefaultHourlyRate = managedSchools[0]?.defaultHourlyRate ?? null;
 
   const {
     data: coursesForEnrollmentData,
@@ -129,7 +140,19 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const [newCourseStartDate, setNewCourseStartDate] = useState<string>("");
   const [newCourseMinCapacity, setNewCourseMinCapacity] = useState<string>("");
   const [newCourseMaxCapacity, setNewCourseMaxCapacity] = useState<string>("");
-  const [newCourseDefaultPrice, setNewCourseDefaultPrice] = useState<string>("");
+  const [newCourseHourlyRate, setNewCourseHourlyRate] = useState<string>("");
+
+  useEffect(() => {
+    if (newCourseHourlyRate.trim() !== "") {
+      return;
+    }
+
+    if (managedSchoolDefaultHourlyRate == null) {
+      return;
+    }
+
+    setNewCourseHourlyRate(String(managedSchoolDefaultHourlyRate));
+  }, [managedSchoolDefaultHourlyRate, newCourseHourlyRate]);
 
   useEffect(() => {
     if (!coursesForEnrollment.length) {
@@ -316,8 +339,8 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       newCourseMinCapacity.trim() === "" ? null : Number(newCourseMinCapacity);
     const parsedMaxCapacity =
       newCourseMaxCapacity.trim() === "" ? null : Number(newCourseMaxCapacity);
-    const parsedDefaultPrice =
-      newCourseDefaultPrice.trim() === "" ? null : Number(newCourseDefaultPrice);
+    const parsedHourlyRate =
+      newCourseHourlyRate.trim() === "" ? null : Number(newCourseHourlyRate);
 
     if (parsedMinCapacity != null && (!Number.isInteger(parsedMinCapacity) || parsedMinCapacity <= 0)) {
       toast({
@@ -351,12 +374,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     }
 
     if (
-      parsedDefaultPrice != null &&
-      (!Number.isInteger(parsedDefaultPrice) || parsedDefaultPrice <= 0)
+      parsedHourlyRate != null &&
+      (!Number.isInteger(parsedHourlyRate) || parsedHourlyRate <= 0)
     ) {
       toast({
-        title: t("syllabus.invalidLessonPrice"),
-        description: t("syllabus.lessonPricePositiveInteger"),
+        title: t("syllabus.invalidHourlyRate"),
+        description: t("syllabus.hourlyRatePositiveInteger"),
         variant: "destructive",
       });
       return;
@@ -371,7 +394,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           : null,
         minCapacity: parsedMinCapacity,
         maxCapacity: parsedMaxCapacity,
-        defaultLessonPrice: parsedDefaultPrice,
+        hourlyRate: parsedHourlyRate,
       });
 
       await Promise.all([
@@ -384,7 +407,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       setNewCourseStartDate("");
       setNewCourseMinCapacity("");
       setNewCourseMaxCapacity("");
-      setNewCourseDefaultPrice("");
+      setNewCourseHourlyRate(managedSchoolDefaultHourlyRate != null ? String(managedSchoolDefaultHourlyRate) : "");
 
       toast({
         title: t("syllabus.courseCreated"),
@@ -469,13 +492,13 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium">
-                    {t("syllabus.defaultLessonPriceLabel")}
+                    {t("syllabus.courseHourlyRateLabel")}
                   </label>
                   <Input
                     type="number"
                     min={1}
-                    value={newCourseDefaultPrice}
-                    onChange={(event) => setNewCourseDefaultPrice(event.target.value)}
+                    value={newCourseHourlyRate}
+                    onChange={(event) => setNewCourseHourlyRate(event.target.value)}
                   />
                 </div>
 
@@ -503,6 +526,9 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                     </p>
                     <p className="text-muted-foreground text-xs">
                       {t("syllabus.enrolledStudents", { count: course.enrolledCount })} • {" "}
+                      {course.hourlyRate != null
+                        ? t("syllabus.courseHourlyRateValue", { rate: course.hourlyRate })
+                        : t("syllabus.noHourlyRate")} • {" "}
                       {course.startDate
                         ? new Date(course.startDate).toLocaleDateString()
                         : t("syllabus.startDate")}

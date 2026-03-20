@@ -64,6 +64,7 @@ const updateManagedSchoolSchema = z.object({
   city: z.string().trim().min(2),
   stateProvince: z.string().trim().optional(),
   postalCode: z.string().trim().min(2),
+  defaultHourlyRate: z.number().int().positive().nullable().optional(),
 });
 
 type UpdateManagedSchoolInput = z.infer<typeof updateManagedSchoolSchema>;
@@ -120,6 +121,7 @@ export const updateMyManagedSchool = async (
     city,
     stateProvince,
     postalCode,
+    defaultHourlyRate,
   } = ensureArgsSchemaOrThrowHttpError(
     updateManagedSchoolSchema,
     rawArgs,
@@ -141,6 +143,7 @@ export const updateMyManagedSchool = async (
         city,
         stateProvince: stateProvince || null,
         postalCode,
+        defaultHourlyRate: defaultHourlyRate ?? null,
       },
       include: {
         accounts: {

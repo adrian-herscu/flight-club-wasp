@@ -1,14 +1,18 @@
-import { useMemo } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
+import { Button } from "../client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
+import { Input } from "../client/components/ui/input";
+import { toast } from "../client/hooks/use-toast";
 
-const { getMyManagedSchool, useQuery } = operations as any;
+const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as any;
 
 type ManagedSchool = {
+  id: string;
   name: string;
   websiteUrl: string | null;
   phone: string | null;
@@ -20,6 +24,7 @@ type ManagedSchool = {
   postalCode: string;
   country: string;
   currency: string;
+  defaultHourlyRate: number | null;
   accounts: Array<{
     id: string;
     currency: string;
@@ -42,8 +47,69 @@ function normalizeWebsiteUrl(value: string): string {
 
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
-  const { data, isLoading, error } = useQuery(getMyManagedSchool);
+  const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
   const schools = useMemo(() => (data as ManagedSchool[] | undefined) ?? [], [data]);
+  const [hourlyRateDraftBySchoolId, setHourlyRateDraftBySchoolId] = useState<Record<string, string>>({});
+  const [savingSchoolId, setSavingSchoolId] = useState<string | null>(null);
+
+  const getHourlyRateDraft = (school: ManagedSchool) => {
+    const cached = hourlyRateDraftBySchoolId[school.id];
+    if (cached != null) {
+      return cached;
+    }
+
+    return school.defaultHourlyRate != null ? String(school.defaultHourlyRate) : "";
+  };
+
+  const handleSaveDefaultHourlyRate = async (event: FormEvent, school: ManagedSchool) => {
+    event.preventDefault();
+
+    const draft = getHourlyRateDraft(school).trim();
+    const parsedDefaultHourlyRate = draft === "" ? null : Number(draft);
+
+    if (
+      parsedDefaultHourlyRate != null &&
+      (!Number.isInteger(parsedDefaultHourlyRate) || parsedDefaultHourlyRate <= 0)
+    ) {
+      toast({
+        title: t("school.invalidDefaultHourlyRate"),
+        description: t("school.defaultHourlyRatePositiveInteger"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingSchoolId(school.id);
+    try {
+      await updateMyManagedSchool({
+        name: school.name,
+        websiteUrl: school.websiteUrl ?? "",
+        phone: school.phone ?? "",
+        logoUrl: school.logoUrl ?? "",
+        addressLine1: school.addressLine1,
+        addressLine2: school.addressLine2 ?? "",
+        city: school.city,
+        stateProvince: school.stateProvince ?? "",
+        postalCode: school.postalCode,
+        defaultHourlyRate: parsedDefaultHourlyRate,
+      });
+
+      await refetch();
+
+      toast({
+        title: t("school.updatedSuccess"),
+        description: t("school.defaultHourlyRateUpdatedMessage"),
+      });
+    } catch (updateError: unknown) {
+      toast({
+        title: t("school.updateFailedMessage"),
+        description: updateError instanceof Error ? updateError.message : t("school.updateErrorMessage"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSchoolId(null);
+    }
+  };
 
   return (
     <DefaultLayout user={user}>
@@ -82,7 +148,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
           </Card>
 
           {schools.map((school) => (
-          <div key={`${school.name}-${school.country}-${school.postalCode}`} className="grid gap-6 xl:grid-cols-2">
+          <div key={school.id} className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>{t("school.schoolProfile")}</CardTitle>
@@ -136,6 +202,31 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
                   <p className={valueClassName}>{school.currency}</p>
                 </div>
               </div>
+
+              <form
+                className="grid gap-3 border-t pt-4"
+                onSubmit={(event) => handleSaveDefaultHourlyRate(event, school)}
+              >
+                <div>
+                  <p className={labelClassName}>{t("school.defaultHourlyRate")}</p>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={getHourlyRateDraft(school)}
+                    onChange={(event) =>
+                      setHourlyRateDraftBySchoolId((prev) => ({
+                        ...prev,
+                        [school.id]: event.target.value,
+                      }))
+                    }
+                    placeholder={t("school.defaultHourlyRatePlaceholder")}
+                  />
+                </div>
+
+                <Button type="submit" disabled={savingSchoolId === school.id}>
+                  {savingSchoolId === school.id ? t("school.savingButton") : t("school.saveDefaultHourlyRateButton")}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

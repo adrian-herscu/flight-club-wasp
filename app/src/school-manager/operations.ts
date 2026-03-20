@@ -78,7 +78,7 @@ const createCourseFromFinalSyllabusSchema = z.object({
   startDate: z.string().datetime().nullable().optional(),
   minCapacity: z.number().int().positive().nullable().optional(),
   maxCapacity: z.number().int().positive().nullable().optional(),
-  defaultLessonPrice: z.number().int().positive().nullable().optional(),
+  hourlyRate: z.number().int().positive().nullable().optional(),
 });
 
 type CreateCourseFromFinalSyllabusInput = z.infer<
@@ -120,6 +120,7 @@ type ManagerCourseListItem = {
   syllabusName: string;
   syllabusVersion: number;
   startDate: Date | null;
+  hourlyRate: number | null;
   enrolledCount: number;
 };
 
@@ -694,6 +695,7 @@ export const getManagerCoursesForEnrollment = async (
     syllabusName: course.syllabusVersion.syllabus.name,
     syllabusVersion: course.syllabusVersion.version,
     startDate: course.startDate,
+    hourlyRate: course.hourlyRate,
     enrolledCount: course._count.enrolledStudents,
   }));
 };
@@ -1083,11 +1085,20 @@ export const createCourseFromFinalSyllabus = async (
     startDate,
     minCapacity,
     maxCapacity,
-    defaultLessonPrice,
+    hourlyRate,
   } = ensureArgsSchemaOrThrowHttpError(
     createCourseFromFinalSyllabusSchema,
     rawArgs,
   ) as CreateCourseFromFinalSyllabusInput;
+
+  const resolvedHourlyRate = hourlyRate ?? school.defaultHourlyRate ?? null;
+
+  if (resolvedHourlyRate == null) {
+    throw new HttpError(
+      400,
+      "Missing hourly rate. Set school default hourly rate or provide a course hourly rate.",
+    );
+  }
 
   if (
     minCapacity != null &&
@@ -1123,7 +1134,7 @@ export const createCourseFromFinalSyllabus = async (
       startDate: startDate ? new Date(startDate) : null,
       minCapacity: minCapacity ?? null,
       maxCapacity: maxCapacity ?? null,
-      defaultLessonPrice: defaultLessonPrice ?? null,
+      hourlyRate: resolvedHourlyRate,
     },
     select: {
       id: true,

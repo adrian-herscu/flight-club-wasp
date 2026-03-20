@@ -43,6 +43,7 @@ erDiagram
         String   postalCode
         String   country      "ISO 3166-1 alpha-2"
         String   currency     "ISO 4217"
+        Int      defaultHourlyRate "nullable, whole units"
         DateTime createdAt
         String   adminId      FK
     }
@@ -121,7 +122,7 @@ erDiagram
         DateTime startDate           "nullable"
         Int      minCapacity         "nullable"
         Int      maxCapacity         "nullable"
-        Int      defaultLessonPrice  "nullable, minor units"
+        Int      hourlyRate          "nullable, whole units"
     }
 
     CourseLesson {

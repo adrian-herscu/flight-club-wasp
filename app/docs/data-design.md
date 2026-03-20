@@ -30,9 +30,9 @@ Workflow implementation planning and status tracking: see [queries/README.md](..
 > **Note:** `Certification` and `UserCertification` models are **not present** in the current schema. Instructor qualifications are currently modelled implicitly via completed course enrollments and passing `StudentLessonEvaluation` records, combined with `SyllabusPrerequisite` (with `isForInstructor = true`).
 
 ### Notable fields and behaviors
-- `School`: `currency` (ISO 4217 code, e.g., USD, GBP, EUR) — all pricing for school uses this currency
-- `Course`: `minCapacity`, `maxCapacity`, optional default lesson pricing (`defaultLessonPrice` in minor units, e.g., cents)
-- `CourseLesson`: required `syllabusLessonId`, optional extra-session marker (`isExtra`), `bufferMinutes`, optional lesson-level price override (`lessonPrice` in minor units, e.g., cents)
+- `School`: `currency` (ISO 4217 code, e.g., USD, GBP, EUR), optional default hourly rate baseline (`defaultHourlyRate`, whole currency units)
+- `Course`: `minCapacity`, `maxCapacity`, default hourly rate (`hourlyRate`, whole currency units).
+- `CourseLesson`: required `syllabusLessonId`, optional extra-session marker (`isExtra`), `bufferMinutes`, optional lesson-level price override (`lessonPrice`, whole currency units)
 - `CourseInterest.status`: `INTERESTED`, `CONTACTED`, `ENROLLED`, `CANCELLED`
 - `Account.balanceMinor`: current balance in minor units (cents); `currency` matches school currency (or EUR for the system school)
 - `Transaction.amountMinor`: always positive; `type` (`DEPOSIT`/`WITHDRAWAL`) determines debit/credit direction; `linkedTransactionId` cross-references the counterpart leg of a transfer
