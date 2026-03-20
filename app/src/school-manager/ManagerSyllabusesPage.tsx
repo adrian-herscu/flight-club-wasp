@@ -20,17 +20,9 @@ import { Textarea } from "../client/components/ui/textarea";
 import { toast } from "../client/hooks/use-toast";
 
 const {
-  assignInstructorToCourse,
-  createCourseFromFinalSyllabus,
   createDraftSyllabusFromScratch,
   createDraftSyllabusFromTemplate,
-  enrollStudentInCourse,
-  getManagerCourseInstructorDetails,
-  getManagerCourseEnrollmentDetails,
-  getManagerCoursesForEnrollment,
-  getManagerInstructorsForAssignment,
   getManagerSyllabusCatalog,
-  getManagerStudentsForEnrollment,
   getSyllabusVersionDetails,
   publishDraftSyllabusVersion,
   saveDraftSyllabusRevision,
@@ -77,40 +69,6 @@ type ManagerSyllabusCatalog = {
   editableDrafts: CatalogItem[];
 };
 
-type EnrollmentCourseItem = {
-  courseId: string;
-  syllabusName: string;
-  syllabusVersion: number;
-  startDate: string | null;
-  enrolledCount: number;
-};
-
-type EnrollmentStudentItem = {
-  studentId: string;
-  userId: string;
-  displayName: string;
-  email: string | null;
-};
-
-type AssignmentInstructorItem = {
-  instructorId: string;
-  userId: string;
-  displayName: string;
-  email: string | null;
-};
-
-type CourseEnrollmentDetails = {
-  courseId: string;
-  enrolledCount: number;
-  enrolledStudents: EnrollmentStudentItem[];
-} | null;
-
-type CourseInstructorDetails = {
-  courseId: string;
-  assignedCount: number;
-  assignedInstructors: AssignmentInstructorItem[];
-} | null;
-
 type SyllabusesSection = "catalog" | "create" | "details" | "editor";
 const validSections: SyllabusesSection[] = ["catalog", "create", "details", "editor"];
 
@@ -139,58 +97,11 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     refetch: refetchVersion,
   } = useQuery(getSyllabusVersionDetails, { syllabusVersionId: selectedVersionId });
 
-  const {
-    data: coursesForEnrollmentData,
-    refetch: refetchCoursesForEnrollment,
-  } = useQuery(getManagerCoursesForEnrollment);
-
-  const {
-    data: studentsForEnrollmentData,
-    refetch: refetchStudentsForEnrollment,
-  } = useQuery(getManagerStudentsForEnrollment);
-
-  const {
-    data: instructorsForAssignmentData,
-    refetch: refetchInstructorsForAssignment,
-  } = useQuery(getManagerInstructorsForAssignment);
-
   const catalog = catalogData as ManagerSyllabusCatalog | undefined;
   const versionDetails = versionDetailsData as SyllabusVersionDetails;
-  const coursesForEnrollment =
-    (coursesForEnrollmentData as EnrollmentCourseItem[] | undefined) ?? [];
-  const studentsForEnrollment =
-    (studentsForEnrollmentData as EnrollmentStudentItem[] | undefined) ?? [];
-  const instructorsForAssignment =
-    (instructorsForAssignmentData as AssignmentInstructorItem[] | undefined) ?? [];
 
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
   const editableDrafts = catalog?.editableDrafts ?? [];
-
-  const [selectedEnrollmentCourseId, setSelectedEnrollmentCourseId] = useState<
-    string | null
-  >(null);
-  const [selectedStudentIdToEnroll, setSelectedStudentIdToEnroll] = useState<string>("");
-  const [selectedAssignmentCourseId, setSelectedAssignmentCourseId] = useState<string | null>(null);
-  const [selectedInstructorIdToAssign, setSelectedInstructorIdToAssign] =
-    useState<string>("");
-
-  const {
-    data: courseEnrollmentDetailsData,
-    refetch: refetchCourseEnrollmentDetails,
-  } = useQuery(getManagerCourseEnrollmentDetails, {
-    courseId: selectedEnrollmentCourseId,
-  });
-  const courseEnrollmentDetails =
-    courseEnrollmentDetailsData as CourseEnrollmentDetails;
-
-  const {
-    data: courseInstructorDetailsData,
-    refetch: refetchCourseInstructorDetails,
-  } = useQuery(getManagerCourseInstructorDetails, {
-    courseId: selectedAssignmentCourseId,
-  });
-  const courseInstructorDetails =
-    courseInstructorDetailsData as CourseInstructorDetails;
 
   const [templateVersionId, setTemplateVersionId] = useState<string>("");
   const [newSyllabusName, setNewSyllabusName] = useState("");
@@ -210,81 +121,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [isSavingRevision, setIsSavingRevision] = useState(false);
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
-  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
-  const [isAssigningInstructor, setIsAssigningInstructor] = useState(false);
-  const [newCourseTemplateVersionId, setNewCourseTemplateVersionId] = useState<string>("");
-  const [newCourseStartDate, setNewCourseStartDate] = useState<string>("");
-  const [newCourseMinCapacity, setNewCourseMinCapacity] = useState<string>("");
-  const [newCourseMaxCapacity, setNewCourseMaxCapacity] = useState<string>("");
-  const [newCourseDefaultPrice, setNewCourseDefaultPrice] = useState<string>("");
-
-  useEffect(() => {
-    if (!coursesForEnrollment.length) {
-      setSelectedEnrollmentCourseId(null);
-      return;
-    }
-
-    if (
-      selectedEnrollmentCourseId &&
-      coursesForEnrollment.some((course) => course.courseId === selectedEnrollmentCourseId)
-    ) {
-      return;
-    }
-
-    setSelectedEnrollmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
-  }, [coursesForEnrollment, selectedEnrollmentCourseId]);
-
-  useEffect(() => {
-    if (!coursesForEnrollment.length) {
-      setSelectedAssignmentCourseId(null);
-      return;
-    }
-
-    if (
-      selectedAssignmentCourseId &&
-      coursesForEnrollment.some((course) => course.courseId === selectedAssignmentCourseId)
-    ) {
-      return;
-    }
-
-    setSelectedAssignmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
-  }, [coursesForEnrollment, selectedAssignmentCourseId]);
-
-  useEffect(() => {
-    if (!studentsForEnrollment.length) {
-      setSelectedStudentIdToEnroll("");
-      return;
-    }
-
-    if (
-      selectedStudentIdToEnroll &&
-      studentsForEnrollment.some((student) => student.studentId === selectedStudentIdToEnroll)
-    ) {
-      return;
-    }
-
-    setSelectedStudentIdToEnroll(studentsForEnrollment[0]?.studentId ?? "");
-  }, [selectedStudentIdToEnroll, studentsForEnrollment]);
-
-  useEffect(() => {
-    if (!instructorsForAssignment.length) {
-      setSelectedInstructorIdToAssign("");
-      return;
-    }
-
-    if (
-      selectedInstructorIdToAssign &&
-      instructorsForAssignment.some(
-        (instructor) => instructor.instructorId === selectedInstructorIdToAssign,
-      )
-    ) {
-      return;
-    }
-
-    setSelectedInstructorIdToAssign(instructorsForAssignment[0]?.instructorId ?? "");
-  }, [instructorsForAssignment, selectedInstructorIdToAssign]);
 
   const goToSection = (section: SyllabusesSection) => {
     hasChangedSectionRef.current = true;
@@ -541,208 +378,6 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
-  const handleEnrollStudent = async () => {
-    if (!selectedEnrollmentCourseId) {
-      toast({
-        title: t("syllabus.noCoursSelected"),
-        description: t("syllabus.selectCourseBeforeEnrolling"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!selectedStudentIdToEnroll) {
-      toast({
-        title: t("syllabus.noStudentSelected"),
-        description: t("syllabus.selectStudentToEnroll"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsEnrollingStudent(true);
-    try {
-      await enrollStudentInCourse({
-        courseId: selectedEnrollmentCourseId,
-        studentId: selectedStudentIdToEnroll,
-      });
-
-      await Promise.all([
-        refetchCoursesForEnrollment(),
-        refetchStudentsForEnrollment(),
-        refetchCourseEnrollmentDetails(),
-      ]);
-
-      toast({
-        title: t("syllabus.studentEnrolled"),
-        description: t("syllabus.studentEnrolled_desc"),
-      });
-    } catch (enrollError: unknown) {
-      toast({
-        title: t("syllabus.enrollmentFailed"),
-        description:
-          enrollError instanceof Error
-            ? enrollError.message
-            : t("syllabus.unableEnrollStudent"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsEnrollingStudent(false);
-    }
-  };
-
-  const handleAssignInstructor = async () => {
-    if (!selectedAssignmentCourseId) {
-      toast({
-        title: t("syllabus.noCoursSelected"),
-        description: t("syllabus.selectCourseBeforeAssigning"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!selectedInstructorIdToAssign) {
-      toast({
-        title: t("syllabus.noInstructorSelected"),
-        description: t("syllabus.selectInstructorToAssign"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAssigningInstructor(true);
-    try {
-      await assignInstructorToCourse({
-        courseId: selectedAssignmentCourseId,
-        instructorId: selectedInstructorIdToAssign,
-      });
-
-      await Promise.all([
-        refetchCoursesForEnrollment(),
-        refetchInstructorsForAssignment(),
-        refetchCourseInstructorDetails(),
-      ]);
-
-      toast({
-        title: t("syllabus.instructorAssigned"),
-        description: t("syllabus.instructorAssigned_desc"),
-      });
-    } catch (assignError: unknown) {
-      toast({
-        title: t("syllabus.assignmentFailed"),
-        description:
-          assignError instanceof Error
-            ? assignError.message
-            : t("syllabus.unableAssignInstructor"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsAssigningInstructor(false);
-    }
-  };
-
-  const handleCreateCourse = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!newCourseTemplateVersionId) {
-      toast({
-        title: t("syllabus.missingTemplate"),
-        description: t("syllabus.selectFinalVersion"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const parsedMinCapacity =
-      newCourseMinCapacity.trim() === "" ? null : Number(newCourseMinCapacity);
-    const parsedMaxCapacity =
-      newCourseMaxCapacity.trim() === "" ? null : Number(newCourseMaxCapacity);
-    const parsedDefaultPrice =
-      newCourseDefaultPrice.trim() === "" ? null : Number(newCourseDefaultPrice);
-
-    if (parsedMinCapacity != null && (!Number.isInteger(parsedMinCapacity) || parsedMinCapacity <= 0)) {
-      toast({
-        title: t("syllabus.invalidMinCapacity"),
-        description: t("syllabus.minCapacityPositiveInteger"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (parsedMaxCapacity != null && (!Number.isInteger(parsedMaxCapacity) || parsedMaxCapacity <= 0)) {
-      toast({
-        title: t("syllabus.invalidMaxCapacity"),
-        description: t("syllabus.maxCapacityPositiveInteger"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      parsedMinCapacity != null &&
-      parsedMaxCapacity != null &&
-      parsedMinCapacity > parsedMaxCapacity
-    ) {
-      toast({
-        title: t("syllabus.invalidCapacityRange"),
-        description: t("syllabus.minCannotGreaterThanMax"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      parsedDefaultPrice != null &&
-      (!Number.isInteger(parsedDefaultPrice) || parsedDefaultPrice <= 0)
-    ) {
-      toast({
-        title: t("syllabus.invalidLessonPrice"),
-        description: t("syllabus.lessonPricePositiveInteger"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreatingCourse(true);
-    try {
-      await createCourseFromFinalSyllabus({
-        syllabusVersionId: newCourseTemplateVersionId,
-        startDate: newCourseStartDate ? new Date(newCourseStartDate).toISOString() : null,
-        minCapacity: parsedMinCapacity,
-        maxCapacity: parsedMaxCapacity,
-        defaultLessonPrice: parsedDefaultPrice,
-      });
-
-      await Promise.all([
-        refetchCoursesForEnrollment(),
-        refetchCourseEnrollmentDetails(),
-        refetchCourseInstructorDetails(),
-      ]);
-
-      setNewCourseTemplateVersionId("");
-      setNewCourseStartDate("");
-      setNewCourseMinCapacity("");
-      setNewCourseMaxCapacity("");
-      setNewCourseDefaultPrice("");
-
-      toast({
-        title: t("syllabus.courseCreated"),
-        description: t("syllabus.courseCreated_desc"),
-      });
-    } catch (createCourseError: unknown) {
-      toast({
-        title: t("syllabus.courseCreationFailed"),
-        description:
-          createCourseError instanceof Error
-            ? createCourseError.message
-            : t("syllabus.unableCreateCourse"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingCourse(false);
-    }
-  };
-
   const updateLessonDraft = (index: number, patch: Partial<LessonDraft>) => {
     setLessonDrafts((current) =>
       current.map((lesson, lessonIndex) =>
@@ -893,11 +528,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
               )}
             </CardContent>
           </Card>
-            </div>
 
-          
-
-          
+        </div>
         </div>
       )}
 
@@ -1016,8 +648,6 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
               </form>
             </CardContent>
           </Card>
-
-          
         </div>
       )}
 

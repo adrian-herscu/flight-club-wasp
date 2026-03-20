@@ -140,6 +140,7 @@ export const ro = {
   admin: {
     dashboard: "Panou de control",
     users: "Utilizatori",
+    courses: "Cursuri",
     schools: "Școli",
     schoolRequests: "Cereri școli",
     memberRequests: "Cereri membri",

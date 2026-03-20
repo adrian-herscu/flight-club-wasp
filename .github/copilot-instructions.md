@@ -4,6 +4,9 @@
 - Start the database unless asked to do so for a specific task.
 - Start the dev server unless asked to do so for a specific task.
 
+# ALWAYS
+- Prefer the vscode built in tools and configured MCP servers instead of CLI tools
+
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
 - State concise rationale for key technical decisions.

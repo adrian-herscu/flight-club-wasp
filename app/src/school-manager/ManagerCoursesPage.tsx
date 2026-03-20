@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -38,8 +38,9 @@ type CatalogItem = {
 };
 
 type EnrollmentStudentItem = {
-  id: string;
-  fullName: string;
+  studentId: string;
+  userId: string;
+  displayName: string;
   email: string | null;
 };
 
@@ -47,25 +48,28 @@ type EnrollmentCourseItem = {
   courseId: string;
   syllabusName: string;
   syllabusVersion: number;
-  startDate: Date | null;
+  startDate: string | null;
+  enrolledCount: number;
 };
 
 type AssignmentInstructorItem = {
-  id: string;
-  fullName: string;
+  instructorId: string;
+  userId: string;
+  displayName: string;
   email: string | null;
 };
 
 type CourseEnrollmentDetails = {
-  remainingCapacity: number | null;
-  enrolledStudentsCount: number;
-  minCapacity: number | null;
-  maxCapacity: number | null;
-};
+  courseId: string;
+  enrolledCount: number;
+  enrolledStudents: EnrollmentStudentItem[];
+} | null;
 
 type CourseInstructorDetails = {
-  instructorsAssignedCount: number;
-};
+  courseId: string;
+  assignedCount: number;
+  assignedInstructors: AssignmentInstructorItem[];
+} | null;
 
 type ManagerSyllabusCatalog = {
   courseOpeningCandidates: CatalogItem[];
@@ -74,7 +78,7 @@ type ManagerSyllabusCatalog = {
 
 const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
-  
+
   const { data: catalogData, isLoading: isCatalogLoading } = useQuery(getManagerSyllabusCatalog);
   const catalog = catalogData as ManagerSyllabusCatalog | undefined;
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
@@ -127,13 +131,79 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const [newCourseMaxCapacity, setNewCourseMaxCapacity] = useState<string>("");
   const [newCourseDefaultPrice, setNewCourseDefaultPrice] = useState<string>("");
 
+  useEffect(() => {
+    if (!coursesForEnrollment.length) {
+      setSelectedEnrollmentCourseId(null);
+      return;
+    }
+
+    if (
+      selectedEnrollmentCourseId &&
+      coursesForEnrollment.some((course) => course.courseId === selectedEnrollmentCourseId)
+    ) {
+      return;
+    }
+
+    setSelectedEnrollmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
+  }, [coursesForEnrollment, selectedEnrollmentCourseId]);
+
+  useEffect(() => {
+    if (!coursesForEnrollment.length) {
+      setSelectedAssignmentCourseId(null);
+      return;
+    }
+
+    if (
+      selectedAssignmentCourseId &&
+      coursesForEnrollment.some((course) => course.courseId === selectedAssignmentCourseId)
+    ) {
+      return;
+    }
+
+    setSelectedAssignmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
+  }, [coursesForEnrollment, selectedAssignmentCourseId]);
+
+  useEffect(() => {
+    if (!studentsForEnrollment.length) {
+      setSelectedStudentIdToEnroll("");
+      return;
+    }
+
+    if (
+      selectedStudentIdToEnroll &&
+      studentsForEnrollment.some((student) => student.studentId === selectedStudentIdToEnroll)
+    ) {
+      return;
+    }
+
+    setSelectedStudentIdToEnroll(studentsForEnrollment[0]?.studentId ?? "");
+  }, [selectedStudentIdToEnroll, studentsForEnrollment]);
+
+  useEffect(() => {
+    if (!instructorsForAssignment.length) {
+      setSelectedInstructorIdToAssign("");
+      return;
+    }
+
+    if (
+      selectedInstructorIdToAssign &&
+      instructorsForAssignment.some(
+        (instructor) => instructor.instructorId === selectedInstructorIdToAssign,
+      )
+    ) {
+      return;
+    }
+
+    setSelectedInstructorIdToAssign(instructorsForAssignment[0]?.instructorId ?? "");
+  }, [instructorsForAssignment, selectedInstructorIdToAssign]);
+
   const handleEnrollStudent = async (event: FormEvent) => {
     event.preventDefault();
 
     if (!selectedEnrollmentCourseId) {
       toast({
-        title: t("syllabus.missingCourse"),
-        description: t("syllabus.selectCourseFirst"),
+        title: t("syllabus.noCoursSelected"),
+        description: t("syllabus.selectCourseBeforeEnrolling"),
         variant: "destructive",
       });
       return;
@@ -141,8 +211,8 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
     if (!selectedStudentIdToEnroll) {
       toast({
-        title: t("syllabus.missingStudent"),
-        description: t("syllabus.selectStudentFirst"),
+        title: t("syllabus.noStudentSelected"),
+        description: t("syllabus.selectStudentToEnroll"),
         variant: "destructive",
       });
       return;
@@ -164,13 +234,13 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       setSelectedStudentIdToEnroll("");
       toast({
         title: t("syllabus.studentEnrolled"),
-        description: t("syllabus.successStudentEnrolled"),
+        description: t("syllabus.studentEnrolled_desc"),
       });
     } catch (enrollError: unknown) {
       toast({
         title: t("syllabus.enrollmentFailed"),
         description:
-          enrollError instanceof Error ? enrollError.message : t("syllabus.enrollmentFailed_desc"),
+          enrollError instanceof Error ? enrollError.message : t("syllabus.unableEnrollStudent"),
         variant: "destructive",
       });
     } finally {
@@ -183,8 +253,8 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
     if (!selectedAssignmentCourseId) {
       toast({
-        title: t("syllabus.missingCourse"),
-        description: t("syllabus.selectCourseFirst"),
+        title: t("syllabus.noCoursSelected"),
+        description: t("syllabus.selectCourseBeforeAssigning"),
         variant: "destructive",
       });
       return;
@@ -192,8 +262,8 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
     if (!selectedInstructorIdToAssign) {
       toast({
-        title: t("syllabus.missingInstructor"),
-        description: t("syllabus.selectInstructorFirst"),
+        title: t("syllabus.noInstructorSelected"),
+        description: t("syllabus.selectInstructorToAssign"),
         variant: "destructive",
       });
       return;
@@ -216,13 +286,13 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
       toast({
         title: t("syllabus.instructorAssigned"),
-        description: t("syllabus.successInstructorAssigned"),
+        description: t("syllabus.instructorAssigned_desc"),
       });
     } catch (assignError: unknown) {
       toast({
         title: t("syllabus.assignmentFailed"),
         description:
-          assignError instanceof Error ? assignError.message : t("syllabus.assignmentFailed_desc"),
+          assignError instanceof Error ? assignError.message : t("syllabus.unableAssignInstructor"),
         variant: "destructive",
       });
     } finally {
@@ -324,7 +394,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
         description:
           createCourseError instanceof Error
             ? createCourseError.message
-            : t("syllabus.courseCreationFailed_desc"),
+            : t("syllabus.unableCreateCourse"),
         variant: "destructive",
       });
     } finally {
@@ -334,16 +404,16 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
   return (
     <DefaultLayout user={user}>
-      <Breadcrumb pageName="Courses" showTitle={false} />
+      <Breadcrumb pageName={t("admin.courses")} showTitle={false} />
 
-      <div className="grid gap-6 2xl:grid-cols-3 mb-6">
+      <div className="mb-6 grid gap-6 2xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.openCourseFromFinalSyllabus")}</CardTitle>
           </CardHeader>
           <CardContent>
             {isCatalogLoading ? (
-              <p className="text-sm text-muted-foreground">Loading syllabuses...</p>
+              <p className="text-sm text-muted-foreground">{t("syllabus.loadingCatalog")}</p>
             ) : (
               <form onSubmit={handleCreateCourse} className="space-y-3">
                 <div className="space-y-2">
@@ -414,10 +484,36 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("admin.courses")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {coursesForEnrollment.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
+            ) : (
+              <ul className="space-y-2">
+                {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
+                  <li key={course.courseId} className="rounded-md border p-3">
+                    <p className="text-sm font-medium">
+                      {course.syllabusName} (v{course.syllabusVersion})
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {t("syllabus.enrolledStudents", { count: course.enrolledCount })} • {" "}
+                      {course.startDate
+                        ? new Date(course.startDate).toLocaleDateString()
+                        : t("syllabus.startDate")}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 2xl:grid-cols-2">
-        {/* Enrollment Component */}
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.workflowSingleStudentEnrollment")}</CardTitle>
@@ -431,7 +527,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                   onValueChange={(val) => setSelectedEnrollmentCourseId(val || null)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.selectManagerOwnedCourse")} />
+                    <SelectValue placeholder={t("syllabus.coursePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
@@ -453,12 +549,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                   onValueChange={setSelectedStudentIdToEnroll}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.selectStudentFromSchool")} />
+                    <SelectValue placeholder={t("syllabus.studentPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {studentsForEnrollment.map((student: EnrollmentStudentItem) => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {student.fullName} • {student.email ?? t("syllabus.noEmail")}
+                      <SelectItem key={student.studentId} value={student.studentId}>
+                        {student.displayName} • {student.email ?? "—"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -466,13 +562,38 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               </div>
 
               <Button type="submit" disabled={isEnrollingStudent}>
-                {isEnrollingStudent ? t("syllabus.enrolling") : t("syllabus.enrollStudent")}
+                {isEnrollingStudent ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
               </Button>
             </form>
+
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-sm font-medium">
+                {t("syllabus.enrolledStudents", {
+                  count: courseEnrollmentDetails?.enrolledCount ?? 0,
+                })}
+              </p>
+              {!selectedEnrollmentCourseId ? (
+                <p className="text-muted-foreground text-sm">
+                  {t("syllabus.selectCourseToViewEnrolled")}
+                </p>
+              ) : !courseEnrollmentDetails ? (
+                <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
+              ) : courseEnrollmentDetails.enrolledStudents.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t("syllabus.noStudentsEnrolled")}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {courseEnrollmentDetails.enrolledStudents.map((student) => (
+                    <li key={student.studentId} className="rounded-md border p-3 text-sm">
+                      <p className="font-medium">{student.displayName}</p>
+                      <p className="text-muted-foreground text-xs">{student.email ?? "—"}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Assignment Component */}
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.workflowInstructorAssignment")}</CardTitle>
@@ -486,7 +607,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                   onValueChange={(val) => setSelectedAssignmentCourseId(val || null)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.selectManagerOwnedCourse")} />
+                    <SelectValue placeholder={t("syllabus.coursePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
@@ -508,12 +629,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                   onValueChange={setSelectedInstructorIdToAssign}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.selectInstructorFromSchool")} />
+                    <SelectValue placeholder={t("syllabus.instructorPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {instructorsForAssignment.map((inst: AssignmentInstructorItem) => (
-                      <SelectItem key={inst.id} value={inst.id}>
-                        {inst.fullName} • {inst.email ?? t("syllabus.noEmail")}
+                      <SelectItem key={inst.instructorId} value={inst.instructorId}>
+                        {inst.displayName} • {inst.email ?? "—"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -521,9 +642,35 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               </div>
 
               <Button type="submit" disabled={isAssigningInstructor}>
-                {isAssigningInstructor ? t("syllabus.assigning") : t("syllabus.assignInstructor")}
+                {isAssigningInstructor ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
               </Button>
             </form>
+
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-sm font-medium">
+                {t("syllabus.assignedInstructors", {
+                  count: courseInstructorDetails?.assignedCount ?? 0,
+                })}
+              </p>
+              {!selectedAssignmentCourseId ? (
+                <p className="text-muted-foreground text-sm">
+                  {t("syllabus.selectCourseToViewAssigned")}
+                </p>
+              ) : !courseInstructorDetails ? (
+                <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
+              ) : courseInstructorDetails.assignedInstructors.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t("syllabus.noInstructorsAssigned")}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {courseInstructorDetails.assignedInstructors.map((instructor) => (
+                    <li key={instructor.instructorId} className="rounded-md border p-3 text-sm">
+                      <p className="font-medium">{instructor.displayName}</p>
+                      <p className="text-muted-foreground text-xs">{instructor.email ?? "—"}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

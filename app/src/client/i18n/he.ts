@@ -140,6 +140,7 @@ export const he = {
   admin: {
     dashboard: "לוח בקרה",
     users: "משתמשים",
+    courses: "קורסים",
     schools: "בתי ספר",
     schoolRequests: "בקשות בתי ספר",
     memberRequests: "בקשות חברים",

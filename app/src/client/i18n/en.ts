@@ -140,6 +140,7 @@ export const en = {
   admin: {
     dashboard: "Dashboard",
     users: "Users",
+    courses: "Courses",
     schools: "Schools",
     schoolRequests: "School Requests",
     memberRequests: "Member Requests",

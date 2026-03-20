@@ -1,10 +1,10 @@
 import {
+  BookOpen,
   Calendar,
   ChevronDown,
   ChevronUp,
   ClipboardList,
   GraduationCap,
-  BookOpen,
   LayoutDashboard,
   LayoutTemplate,
   School,
@@ -231,9 +231,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
               )}
               {/* <!-- Menu Item School --> */}
 
-              {/* <!-- Menu Item Syllabuses --> */}
-                {(userRole === "SCHOOL_MANAGER" || userRole === "SYSTEM_ADMIN") && (
-                  <li>
+              {/* <!-- Menu Item Courses --> */}
+              {userRole === "SCHOOL_MANAGER" && (
+                <li>
                   <NavLink
                     to="/admin/courses"
                     className={() =>
@@ -245,25 +245,27 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                     }
                   >
                     <BookOpen />
-                    {t("course.courses")}
+                    {t("admin.courses")}
                   </NavLink>
-                  </li>
-                )}
+                </li>
+              )}
+
+              {/* <!-- Menu Item Syllabuses --> */}
               {(userRole === "SCHOOL_MANAGER" || userRole === "SYSTEM_ADMIN") && (
                 <li>
-                <NavLink
-                  to="/admin/syllabuses?section=catalog"
-                  className={() =>
-                    cn(navItemBaseClass, {
-                      "bg-accent text-accent-foreground":
-                        pathname === "/admin/syllabuses" ||
-                        pathname.startsWith("/admin/syllabuses/"),
-                    })
-                  }
-                >
-                  <GraduationCap />
-                  {t("admin.syllabuses")}
-                </NavLink>
+                  <NavLink
+                    to="/admin/syllabuses?section=catalog"
+                    className={() =>
+                      cn(navItemBaseClass, {
+                        "bg-accent text-accent-foreground":
+                          pathname === "/admin/syllabuses" ||
+                          pathname.startsWith("/admin/syllabuses/"),
+                      })
+                    }
+                  >
+                    <GraduationCap />
+                    {t("admin.syllabuses")}
+                  </NavLink>
                 </li>
               )}
               {/* <!-- Menu Item Syllabuses --> */}

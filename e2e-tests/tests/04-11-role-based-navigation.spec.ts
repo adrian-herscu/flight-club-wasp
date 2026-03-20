@@ -60,6 +60,7 @@ const roleScenarios: RoleScenario[] = [
       { name: "Schools", visible: true },
       { name: "Member Requests", visible: false },
       { name: "My School", visible: false },
+      { name: "Courses", visible: false },
       { name: "Syllabuses", visible: true },
     ],
     navSteps: [
@@ -79,6 +80,7 @@ const roleScenarios: RoleScenario[] = [
       { name: "Instructors", visible: true },
       { name: "Students", visible: true },
       { name: "My School", visible: false },
+      { name: "Courses", visible: true },
       { name: "Syllabuses", visible: true },
     ],
     navSteps: [
@@ -97,6 +99,15 @@ const roleScenarios: RoleScenario[] = [
         additionalAssertions: async (page) => {
           await expect(page.getByRole("heading", { name: "Schools" }).first()).toBeVisible();
           await expect(page.getByTestId("manager-schools-list")).toBeVisible();
+        },
+      },
+      {
+        linkName: "Courses",
+        expectedUrl: /\/admin\/courses\/?$/,
+        additionalAssertions: async (page) => {
+          await expect(
+            page.getByRole("heading", { name: /open course from final syllabus/i }).first(),
+          ).toBeVisible();
         },
       },
       { linkName: "Syllabuses", expectedUrl: /\/admin\/syllabuses\?section=catalog$/ },
