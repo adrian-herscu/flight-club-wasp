@@ -36,7 +36,7 @@ The result: a **self-organizing, domain-driven knowledge base** that grows smart
 ```
 
 - `>domain-name` - Optional. Explicitly target a domain (e.g., `>clojure`, `>git-workflow`)
-- `[scope]` - Optional. One of: `global`, `user` (both mean global), `workspace`, or `ws`. Defaults to `global`
+- `[scope]` - Optional. One of: `global`, `user` (both mean global), `workspace`, or `ws`. Defaults to `ws`
 - `lesson content` - Required. The lesson to remember
 
 **Examples:**
