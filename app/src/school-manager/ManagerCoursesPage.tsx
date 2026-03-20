@@ -366,7 +366,9 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     try {
       await createCourseFromFinalSyllabus({
         syllabusVersionId: newCourseTemplateVersionId,
-        startDate: newCourseStartDate ? new Date(newCourseStartDate).toISOString() : null,
+        startDate: newCourseStartDate
+          ? new Date(`${newCourseStartDate}T00:00:00.000Z`).toISOString()
+          : null,
         minCapacity: parsedMinCapacity,
         maxCapacity: parsedMaxCapacity,
         defaultLessonPrice: parsedDefaultPrice,
@@ -438,7 +440,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 <div className="space-y-2">
                   <label className="text-xs font-medium">{t("syllabus.startDateLabel")}</label>
                   <Input
-                    type="datetime-local"
+                    type="date"
                     value={newCourseStartDate}
                     onChange={(event) => setNewCourseStartDate(event.target.value)}
                   />

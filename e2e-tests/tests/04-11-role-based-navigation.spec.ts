@@ -108,6 +108,12 @@ const roleScenarios: RoleScenario[] = [
           await expect(
             page.getByRole("heading", { name: /open course from final syllabus/i }).first(),
           ).toBeVisible();
+
+          const startDateDateInput = page.locator('input[type="date"]').first();
+          await expect(startDateDateInput).toBeVisible();
+
+          const startDateDateTimeInput = page.locator('input[type="datetime-local"]');
+          await expect(startDateDateTimeInput).toHaveCount(0);
         },
       },
       { linkName: "Syllabuses", expectedUrl: /\/admin\/syllabuses\?section=catalog$/ },
