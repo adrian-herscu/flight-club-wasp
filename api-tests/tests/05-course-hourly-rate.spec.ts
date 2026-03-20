@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createCourseFromFinalSyllabus,
+  getManagerCoursesForEnrollment,
 } from '../../app/src/school-manager/operations';
 import { updateMyManagedSchool } from '../../app/src/school-manager/updateSchoolOperations';
 import { prisma } from '../src/wasp-server-stub.js';
@@ -120,5 +121,21 @@ describe('4.8 course hourly-rate baseline (API)', () => {
       message:
         'Missing hourly rate. Set school default hourly rate or provide a course hourly rate.',
     });
+  });
+
+  it('[STD-CRS-003] lists course opened from system FINAL syllabus under manager school', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-04-03T00:00:00.000Z').toISOString(),
+        minCapacity: 3,
+        maxCapacity: 10,
+      },
+      ctx.schoolManager,
+    );
+
+    const courses = await getManagerCoursesForEnrollment({}, ctx.schoolManager);
+
+    expect(courses.some((course) => course.courseId === created.courseId)).toBe(true);
   });
 });

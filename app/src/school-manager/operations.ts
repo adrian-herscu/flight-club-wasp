@@ -665,11 +665,19 @@ export const getManagerCoursesForEnrollment = async (
 
   const courses = await prisma.course.findMany({
     where: {
-      syllabusVersion: {
-        syllabus: {
+      OR: [
+        {
           schoolId: school.id,
         },
-      },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
     },
     include: {
       syllabusVersion: {
@@ -809,11 +817,19 @@ export const getManagerCourseEnrollmentDetails = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      syllabusVersion: {
-        syllabus: {
+      OR: [
+        {
           schoolId: school.id,
         },
-      },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
     },
     include: {
       enrolledStudents: {
@@ -873,11 +889,19 @@ export const enrollStudentInCourse = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      syllabusVersion: {
-        syllabus: {
+      OR: [
+        {
           schoolId: school.id,
         },
-      },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
     },
     select: {
       id: true,
@@ -952,11 +976,19 @@ export const getManagerCourseInstructorDetails = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      syllabusVersion: {
-        syllabus: {
+      OR: [
+        {
           schoolId: school.id,
         },
-      },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
     },
     include: {
       assignedInstructors: {
@@ -1131,6 +1163,7 @@ export const createCourseFromFinalSyllabus = async (
   const created = await prisma.course.create({
     data: {
       syllabusVersionId,
+      schoolId: school.id,
       startDate: startDate ? new Date(startDate) : null,
       minCapacity: minCapacity ?? null,
       maxCapacity: maxCapacity ?? null,

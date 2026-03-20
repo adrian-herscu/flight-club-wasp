@@ -87,6 +87,7 @@ model School {
   approvedManagerRequests   RegistrationRequest[] @relation("RegistrationApprovedSchool")
   schoolRoles               UserSchoolRole[] @relation("SchoolRoleMembership")
   approvedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionApprovedSchool")
+  courses                   Course[]
   
   @@unique([name, country])
 }
@@ -376,6 +377,9 @@ model Course {
   syllabusVersion           SyllabusVersion @relation(fields: [syllabusVersionId], references: [id])
   syllabusVersionId         String
 
+  school                    School?         @relation(fields: [schoolId], references: [id])
+  schoolId                  String?
+
   startDate                 DateTime?
   minCapacity               Int?
   maxCapacity               Int?
@@ -388,6 +392,7 @@ model Course {
 
   @@index([startDate])
   @@index([syllabusVersionId, startDate])
+  @@index([schoolId])
 }
 
 model CourseLesson {
