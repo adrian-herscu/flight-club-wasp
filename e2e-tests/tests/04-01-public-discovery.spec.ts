@@ -7,7 +7,7 @@ test.describe("4.1 public discovery", () => {
   });
 
   test("[template-relic] has title", async ({ page }) => {
-    await expect(page).toHaveTitle(/SaaS/);
+    await expect(page).toHaveTitle("Flight Club");
   });
 
   test("[4.2][STD-AUTH-001] existing seeded user can log in through translated login form", async ({ page }) => {

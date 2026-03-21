@@ -560,14 +560,15 @@ export const saveDraftSyllabusRevision = async (
     throw new HttpError(404, "Draft syllabus version not found.");
   }
 
-  const canEditDraft =
-    sourceVersion.status === SyllabusVersionStatus.DRAFT &&
+  const canSaveRevisionFromSource =
+    (sourceVersion.status === SyllabusVersionStatus.DRAFT ||
+      sourceVersion.status === SyllabusVersionStatus.FINAL) &&
     (user.role === UserRole.SYSTEM_ADMIN
       ? sourceVersion.syllabus.schoolId === null
       : sourceVersion.syllabus.schoolId === school?.id);
 
-  if (!canEditDraft) {
-    throw new HttpError(403, "You can edit only drafts in your role scope.");
+  if (!canSaveRevisionFromSource) {
+    throw new HttpError(403, "You can save revisions only in your role scope.");
   }
 
   const created = await prisma.$transaction(async (tx) => {

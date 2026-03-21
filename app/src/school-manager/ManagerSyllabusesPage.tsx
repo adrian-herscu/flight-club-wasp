@@ -191,6 +191,28 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     });
   }, [activeSection]);
 
+  const selectedSaveSourceId = useMemo(() => {
+    if (!versionDetails) return null;
+
+    const isEditableStatus =
+      versionDetails.status === SyllabusVersionStatus.DRAFT ||
+      versionDetails.status === SyllabusVersionStatus.FINAL;
+    if (!isEditableStatus) return null;
+
+    if (user.role === UserRole.SYSTEM_ADMIN && versionDetails.schoolId !== null) {
+      return null;
+    }
+
+    if (
+      user.role === UserRole.SCHOOL_MANAGER &&
+      (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId)
+    ) {
+      return null;
+    }
+
+    return versionDetails.syllabusVersionId;
+  }, [selectedSchoolId, user.role, versionDetails]);
+
   const selectedDraftId = useMemo(() => {
     if (!versionDetails) return null;
     if (versionDetails.status !== SyllabusVersionStatus.DRAFT) return null;
@@ -199,12 +221,15 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       return null;
     }
 
-    if (user.role === UserRole.SCHOOL_MANAGER && versionDetails.schoolId === null) {
+    if (
+      user.role === UserRole.SCHOOL_MANAGER &&
+      (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId)
+    ) {
       return null;
     }
 
     return versionDetails.syllabusVersionId;
-  }, [user.role, versionDetails]);
+  }, [selectedSchoolId, user.role, versionDetails]);
 
   const handleCreateFromTemplate = async (event: FormEvent) => {
     event.preventDefault();
@@ -321,7 +346,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   };
 
   const handleSaveRevision = async () => {
-    if (!selectedDraftId) {
+    if (!selectedSaveSourceId) {
       toast({
         title: t("syllabus.noEditableDraft"),
         description: t("syllabus.selectDraftBeforeSaving"),
@@ -343,7 +368,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     try {
       const result = await saveDraftSyllabusRevision({
         schoolId: selectedSchoolId,
-        sourceVersionId: selectedDraftId,
+        sourceVersionId: selectedSaveSourceId,
         lessons: lessonDrafts.map((lesson, index) => ({
           ...lesson,
           position: index + 1,
@@ -751,7 +776,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                   <Button
                     type="button"
                     onClick={handleSaveRevision}
-                    disabled={!selectedDraftId || isSavingRevision}
+                    disabled={!selectedSaveSourceId || isSavingRevision}
                   >
                     {isSavingRevision ? t("syllabus.saving") : t("syllabus.saveAsNewDraftRevision")}
                   </Button>
@@ -867,7 +892,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                   <Button
                     type="button"
                     onClick={handleSaveRevision}
-                    disabled={!selectedDraftId || isSavingRevision}
+                    disabled={!selectedSaveSourceId || isSavingRevision}
                   >
                     {isSavingRevision ? t("syllabus.saving") : t("syllabus.saveAsNewDraftRevision")}
                   </Button>

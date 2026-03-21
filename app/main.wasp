@@ -1,7 +1,7 @@
 app OpenSaaS {
   wasp: { version: "^0.21.0" },
 
-  title: "My Open SaaS App",
+  title: "Flight Club",
 
   head: [
     "<link rel='icon' href='/favicon.ico' />",

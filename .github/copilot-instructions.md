@@ -16,6 +16,7 @@
 
 ## Execution gate (plan first)
 - Before implementing any code/config/test change, provide a concise step-by-step plan.
+- The plan must consider existing `app/docs` and the execution must update them approriately
 - Wait for explicit user approval (e.g., "yes" / "approved") before any state-changing action.
 - State-changing actions include edits, migrations, seeding, code generation, and validating test runs that are part of implementation.
 - Read-only investigation (file reads/search, documentation lookup, diagnostics that do not modify project state) may proceed before approval.
