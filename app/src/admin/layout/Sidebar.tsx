@@ -1,12 +1,8 @@
 import {
   BookOpen,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
   ClipboardList,
   GraduationCap,
   LayoutDashboard,
-  LayoutTemplate,
   School,
   Sheet,
   X,
@@ -17,7 +13,6 @@ import { NavLink, useLocation } from "react-router";
 import * as operations from "wasp/client/operations";
 import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
-import SidebarLinkGroup from "./SidebarLinkGroup";
 
 const { getMyManagedSchool, useQuery } = operations as any;
 
@@ -73,7 +68,6 @@ const SIDEBAR_NAV: Record<string, NavItem[]> = {
       icon: GraduationCap,
       matchPrefix: "/system-admin/syllabuses",
     },
-    { nameKey: "admin.calendar", to: "/system-admin/calendar", icon: Calendar },
   ],
   SCHOOL_MANAGER: [
     { nameKey: "admin.dashboard", to: "/school-manager", icon: LayoutDashboard },
@@ -100,7 +94,6 @@ const SIDEBAR_NAV: Record<string, NavItem[]> = {
       icon: GraduationCap,
       matchPrefix: "/school-manager/syllabuses",
     },
-    { nameKey: "admin.calendar", to: "/school-manager/calendar", icon: Calendar },
   ],
   INSTRUCTOR: [
     { nameKey: "admin.dashboard", to: "/instructor", icon: LayoutDashboard },
@@ -108,15 +101,6 @@ const SIDEBAR_NAV: Record<string, NavItem[]> = {
   STUDENT: [
     { nameKey: "admin.dashboard", to: "/student", icon: LayoutDashboard },
   ],
-};
-
-/** Roles that see the "Extra Components" section (UI Elements, etc.) */
-const SHOW_EXTRA_COMPONENTS = new Set(["SYSTEM_ADMIN", "SCHOOL_MANAGER"]);
-
-/** Per-role route for the UI Buttons extra page */
-const UI_BUTTONS_ROUTE: Record<string, string> = {
-  SYSTEM_ADMIN: "/system-admin/ui/buttons",
-  SCHOOL_MANAGER: "/school-manager/ui/buttons",
 };
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
@@ -172,8 +156,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   }, [sidebarExpanded]);
 
   const navItems = userRole ? (SIDEBAR_NAV[userRole] ?? []) : [];
-  const showExtras = userRole ? SHOW_EXTRA_COMPONENTS.has(userRole) : false;
-  const uiButtonsRoute = userRole ? (UI_BUTTONS_ROUTE[userRole] ?? "/") : "/";
 
   return (
     <aside
@@ -237,60 +219,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
               ))}
             </ul>
           </div>
-
-          {/* Extra components section */}
-          {showExtras && (
-            <div>
-              <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
-                {t("admin.extraComponents")}
-              </h3>
-              <ul className="mb-6 flex flex-col gap-1.5">
-                <SidebarLinkGroup activeCondition={pathname.includes("ui")}>
-                  {(handleClick, open) => (
-                    <React.Fragment>
-                      <NavLink
-                        to="#"
-                        className={cn(navItemBaseClass, {
-                          "bg-accent text-accent-foreground": pathname.includes("ui"),
-                        })}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (!sidebarExpanded) setSidebarExpanded(true);
-                          handleClick();
-                        }}
-                      >
-                        <LayoutTemplate />
-                        UI Elements
-                        {open ? <ChevronUp /> : <ChevronDown />}
-                      </NavLink>
-                      <div
-                        className={cn("translate transform overflow-hidden", {
-                          hidden: !open,
-                        })}
-                      >
-                        <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
-                          <li>
-                            <NavLink
-                              to={uiButtonsRoute}
-                              end
-                              className={({ isActive }) =>
-                                cn(
-                                  "text-muted-foreground hover:text-accent group relative flex items-center gap-2.5 rounded-md px-4 font-medium duration-300 ease-in-out",
-                                  { "text-accent!": isActive },
-                                )
-                              }
-                            >
-                              Buttons
-                            </NavLink>
-                          </li>
-                        </ul>
-                      </div>
-                    </React.Fragment>
-                  )}
-                </SidebarLinkGroup>
-              </ul>
-            </div>
-          )}
         </nav>
       </div>
     </aside>

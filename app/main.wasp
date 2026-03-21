@@ -303,18 +303,6 @@ page SchoolManagerDashboardPage {
 }
 route SchoolManagerRoute { path: "/school-manager", to: SchoolManagerDashboardPage }
 
-page SchoolManagerCalendarPage {
-  authRequired: true,
-  component: import AdminCalendar from "@src/admin/elements/calendar/CalendarPage"
-}
-route SchoolManagerCalendarRoute { path: "/school-manager/calendar", to: SchoolManagerCalendarPage }
-
-page SchoolManagerUIButtonsPage {
-  authRequired: true,
-  component: import AdminUI from "@src/admin/elements/ui-elements/ButtonsPage"
-}
-route SchoolManagerUIButtonsRoute { path: "/school-manager/ui/buttons", to: SchoolManagerUIButtonsPage }
-
 page InstructorDashboardPage {
   authRequired: true,
   component: import InstructorDashboardPage from "@src/portal/instructor/DashboardPage"
@@ -339,23 +327,11 @@ page SystemAdminSettingsPage {
 }
 route SystemAdminSettingsRoute { path: "/system-admin/settings", to: SystemAdminSettingsPage }
 
-page SystemAdminCalendarPage {
-  authRequired: true,
-  component: import AdminCalendar from "@src/admin/elements/calendar/CalendarPage"
-}
-route SystemAdminCalendarRoute { path: "/system-admin/calendar", to: SystemAdminCalendarPage }
-
 page SystemAdminSyllabusesPage {
   authRequired: true,
   component: import ManagerSyllabusesPage from "@src/school-manager/ManagerSyllabusesPage"
 }
 route SystemAdminSyllabusesRoute { path: "/system-admin/syllabuses", to: SystemAdminSyllabusesPage }
-
-page SystemAdminUIButtonsPage {
-  authRequired: true,
-  component: import AdminUI from "@src/admin/elements/ui-elements/ButtonsPage"
-}
-route SystemAdminUIButtonsRoute { path: "/system-admin/ui/buttons", to: SystemAdminUIButtonsPage }
 
 page NotFoundPage {
   component: import { NotFoundPage } from "@src/client/components/NotFoundPage"
