@@ -11,12 +11,21 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
 import * as operations from "wasp/client/operations";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../client/components/ui/select";
 import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
+import { useManagedSchoolSelection } from "../../school-manager/useManagedSchoolSelection";
 
 const { getMyManagedSchool, useQuery } = operations as any;
 
 type ManagedSchoolSummary = {
+  id: string;
   name: string;
 };
 
@@ -30,7 +39,8 @@ const SchoolContextBadge = () => {
   const { t } = useTranslation();
   const { data, isLoading } = useQuery(getMyManagedSchool);
   const schools = (data as ManagedSchoolSummary[] | undefined) ?? [];
-  const currentSchoolName = schools[0]?.name;
+  const { selectedSchool, selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(schools);
+  const currentSchoolName = selectedSchool?.name;
 
   if (!isLoading && !currentSchoolName) {
     return null;
@@ -42,9 +52,24 @@ const SchoolContextBadge = () => {
         <p className="text-muted-foreground text-xs uppercase tracking-wide">
           {t("admin.mySchool")}
         </p>
-        <p className="text-sm font-semibold">
-          {isLoading ? t("admin.loading") : currentSchoolName}
-        </p>
+        {isLoading ? (
+          <p className="text-sm font-semibold">{t("admin.loading")}</p>
+        ) : schools.length > 1 ? (
+          <Select value={selectedSchoolId ?? ""} onValueChange={setSelectedSchoolId}>
+            <SelectTrigger className="mt-1 h-8 text-xs relative z-50">
+              <SelectValue placeholder={t("school.selectManagedSchool")} />
+            </SelectTrigger>
+            <SelectContent side="bottom" align="start" className="z-10000">
+              {schools.map((school) => (
+                <SelectItem key={school.id} value={school.id}>
+                  {school.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <p className="text-sm font-semibold">{currentSchoolName}</p>
+        )}
       </div>
     </div>
   );

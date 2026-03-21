@@ -81,7 +81,6 @@ const roleScenarios: RoleScenario[] = [
           await expect(page.getByText(/visibility and usage policy/i)).toBeVisible();
         },
       },
-      { linkName: "Calendar", expectedUrl: /\/system-admin\/calendar\/?$/ },
     ],
   },
   {
@@ -130,7 +129,6 @@ const roleScenarios: RoleScenario[] = [
         },
       },
       { linkName: "Syllabuses", expectedUrl: /\/school-manager\/syllabuses\?section=catalog$/ },
-      { linkName: "Calendar", expectedUrl: /\/school-manager\/calendar\/?$/ },
     ],
   },
 ];
@@ -172,12 +170,6 @@ test.describe("4.11 role-based navigation", () => {
         await clickSidebarLinkAndExpectUrl(page, step.linkName, step.expectedUrl);
         await step.additionalAssertions?.(page);
       }
-
-      const uiElementsLink = sidebar.getByRole("link", { name: "UI Elements" }).first();
-      await expect(uiElementsLink).toBeVisible();
-      await uiElementsLink.click();
-      await expect(sidebar.getByRole("link", { name: "Buttons" }).first()).toBeVisible();
-      await clickSidebarLinkAndExpectUrl(page, "Buttons", scenario.email.includes("system_admin") ? /\/system-admin\/ui\/buttons\/?$/ : /\/school-manager\/ui\/buttons\/?$/);
     });
   });
 

@@ -96,6 +96,15 @@ async function createMemberRequest(
   role: 'INSTRUCTOR' | 'STUDENT',
   schoolId: string,
 ): Promise<string> {
+  await prisma.registrationRequest.deleteMany({
+    where: {
+      requesterId: requesterContext.user!.id,
+      requestedRole: role,
+      targetSchoolId: schoolId,
+      status: 'PENDING',
+    },
+  });
+
   await submitRegistrationRequest(
     {
       fullName: `API ${role} Requester`,

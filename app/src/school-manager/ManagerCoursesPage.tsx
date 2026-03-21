@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "../client/components/ui/select";
 import { toast } from "../client/hooks/use-toast";
+import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
   assignInstructorToCourse,
@@ -80,36 +81,40 @@ type ManagerSyllabusCatalog = {
 
 type ManagedSchool = {
   id: string;
+  name: string;
   defaultHourlyRate: number | null;
 };
 
 const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
 
-  const { data: catalogData, isLoading: isCatalogLoading } = useQuery(getManagerSyllabusCatalog);
-  const catalog = catalogData as ManagerSyllabusCatalog | undefined;
-  const finalCandidates = catalog?.courseOpeningCandidates ?? [];
-
   const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
   const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
-  const managedSchoolDefaultHourlyRate = managedSchools[0]?.defaultHourlyRate ?? null;
+  const { selectedSchool, selectedSchoolId } = useManagedSchoolSelection(managedSchools);
+  const managedSchoolDefaultHourlyRate = selectedSchool?.defaultHourlyRate ?? null;
+
+  const { data: catalogData, isLoading: isCatalogLoading } = useQuery(getManagerSyllabusCatalog, {
+    schoolId: selectedSchoolId,
+  });
+  const catalog = catalogData as ManagerSyllabusCatalog | undefined;
+  const finalCandidates = catalog?.courseOpeningCandidates ?? [];
 
   const {
     data: coursesForEnrollmentData,
     refetch: refetchCoursesForEnrollment,
-  } = useQuery(getManagerCoursesForEnrollment);
+  } = useQuery(getManagerCoursesForEnrollment, { schoolId: selectedSchoolId });
   const coursesForEnrollment = (coursesForEnrollmentData as EnrollmentCourseItem[] | undefined) ?? [];
 
   const {
     data: studentsForEnrollmentData,
     refetch: refetchStudentsForEnrollment,
-  } = useQuery(getManagerStudentsForEnrollment);
+  } = useQuery(getManagerStudentsForEnrollment, { schoolId: selectedSchoolId });
   const studentsForEnrollment = (studentsForEnrollmentData as EnrollmentStudentItem[] | undefined) ?? [];
 
   const {
     data: instructorsForAssignmentData,
     refetch: refetchInstructorsForAssignment,
-  } = useQuery(getManagerInstructorsForAssignment);
+  } = useQuery(getManagerInstructorsForAssignment, { schoolId: selectedSchoolId });
   const instructorsForAssignment = (instructorsForAssignmentData as AssignmentInstructorItem[] | undefined) ?? [];
 
   const [selectedEnrollmentCourseId, setSelectedEnrollmentCourseId] = useState<string | null>(null);
@@ -121,6 +126,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     data: courseEnrollmentDetailsData,
     refetch: refetchCourseEnrollmentDetails,
   } = useQuery(getManagerCourseEnrollmentDetails, {
+    schoolId: selectedSchoolId,
     courseId: selectedEnrollmentCourseId,
   });
   const courseEnrollmentDetails = courseEnrollmentDetailsData as CourseEnrollmentDetails;
@@ -129,6 +135,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     data: courseInstructorDetailsData,
     refetch: refetchCourseInstructorDetails,
   } = useQuery(getManagerCourseInstructorDetails, {
+    schoolId: selectedSchoolId,
     courseId: selectedAssignmentCourseId,
   });
   const courseInstructorDetails = courseInstructorDetailsData as CourseInstructorDetails;
@@ -244,6 +251,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     setIsEnrollingStudent(true);
     try {
       await enrollStudentInCourse({
+        schoolId: selectedSchoolId,
         courseId: selectedEnrollmentCourseId,
         studentId: selectedStudentIdToEnroll,
       });
@@ -295,6 +303,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     setIsAssigningInstructor(true);
     try {
       await assignInstructorToCourse({
+        schoolId: selectedSchoolId,
         courseId: selectedAssignmentCourseId,
         instructorId: selectedInstructorIdToAssign,
       });
@@ -388,6 +397,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     setIsCreatingCourse(true);
     try {
       await createCourseFromFinalSyllabus({
+        schoolId: selectedSchoolId,
         syllabusVersionId: newCourseTemplateVersionId,
         startDate: newCourseStartDate
           ? new Date(`${newCourseStartDate}T00:00:00.000Z`).toISOString()

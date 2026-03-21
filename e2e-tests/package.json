@@ -9,7 +9,7 @@
     "test": "tests"
   },
   "scripts": {
-    "db:reset": "cd ../app && DATABASE_URL=$(grep 'DATABASE_URL' .wasp/out/server/.env | cut -d= -f2-) npx prisma migrate reset --force --schema=.wasp/out/db/schema.prisma",
+    "db:reset": "cd ../app && DATABASE_URL=$(grep 'DATABASE_URL' .wasp/out/server/.env | cut -d= -f2-) npx prisma migrate reset --force --schema=schema.prisma",
     "e2e:wait": "npx wait-on http://127.0.0.1:3000 tcp:127.0.0.1:3001 -t 600000",
     "e2e:playwright": "npm run e2e:wait && npx playwright test",
     "e2e:smoke": "npm run e2e:wait && npx playwright test --project=chromium --grep @smoke --reporter=html,github",

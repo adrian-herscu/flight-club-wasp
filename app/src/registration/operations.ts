@@ -147,24 +147,48 @@ function ensureSystemAdmin(context: RequestContext) {
   return user;
 }
 
-async function ensureSchoolManagerAndGetSchool(context: RequestContext) {
+function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
+  if (!rawArgs || typeof rawArgs !== "object") {
+    return undefined;
+  }
+
+  const rawSchoolId = (rawArgs as { schoolId?: unknown }).schoolId;
+  if (typeof rawSchoolId !== "string") {
+    return undefined;
+  }
+
+  const trimmedSchoolId = rawSchoolId.trim();
+  return trimmedSchoolId.length > 0 ? trimmedSchoolId : undefined;
+}
+
+async function ensureSchoolManagerAndGetSchool(context: RequestContext, rawArgs?: unknown) {
   const user = ensureAuthenticatedUser(context);
 
   if (user.role !== UserRole.SCHOOL_MANAGER) {
     throw new HttpError(403, "Only school managers can access this resource.");
   }
 
+  const selectedSchoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school = await prisma.school.findFirst({
-    where: { adminId: user.id },
+    where: {
+      adminId: user.id,
+      ...(selectedSchoolId ? { id: selectedSchoolId } : {}),
+    },
     select: {
       id: true,
       currency: true,
       adminId: true,
     },
+    orderBy: [{ createdAt: "asc" }],
   });
 
   if (!school) {
-    throw new HttpError(403, "No managed school is assigned to this account.");
+    throw new HttpError(
+      403,
+      selectedSchoolId
+        ? "Selected school is not managed by this account."
+        : "No managed school is assigned to this account.",
+    );
   }
 
   return { user, school };
@@ -567,6 +591,9 @@ export const getPendingSchoolManagerRequests = async (
   return prisma.registrationRequest.findMany({
     where: {
       requestedRole: RegistrationRequestRole.SCHOOL_MANAGER,
+      status: {
+        in: [RegistrationRequestStatus.PENDING, RegistrationRequestStatus.APPROVED],
+      },
     },
     include: {
       requester: {
@@ -605,10 +632,10 @@ export const getPendingSchoolManagerRequests = async (
 };
 
 export const getPendingSchoolMemberRequests = async (
-  _args: unknown,
+  rawArgs: unknown,
   context: RequestContext,
 ): Promise<RegistrationRequestListItem[]> => {
-  const { school } = await ensureSchoolManagerAndGetSchool(context);
+  const { school } = await ensureSchoolManagerAndGetSchool(context, rawArgs);
 
   return prisma.registrationRequest.findMany({
     where: {
@@ -867,7 +894,7 @@ export const approveSchoolMemberRequest = async (
   rawArgs: unknown,
   context: RequestContext,
 ) => {
-  const { user: reviewer, school } = await ensureSchoolManagerAndGetSchool(context);
+  const { user: reviewer, school } = await ensureSchoolManagerAndGetSchool(context, rawArgs);
   const { requestId } = ensureArgsSchemaOrThrowHttpError(
     requestIdSchema,
     rawArgs,
@@ -1016,7 +1043,7 @@ export const rejectSchoolMemberRequest = async (
   rawArgs: unknown,
   context: RequestContext,
 ) => {
-  const { user: reviewer, school } = await ensureSchoolManagerAndGetSchool(context);
+  const { user: reviewer, school } = await ensureSchoolManagerAndGetSchool(context, rawArgs);
   const { requestId, rejectionReason } = ensureArgsSchemaOrThrowHttpError(
     rejectRequestSchema,
     rawArgs,

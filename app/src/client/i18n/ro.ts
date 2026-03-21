@@ -466,6 +466,7 @@ export const ro = {
     invalidDefaultHourlyRate: "Tarif orar implicit invalid",
     defaultHourlyRatePositiveInteger: "Tariful orar implicit trebuie să fie un număr întreg pozitiv.",
     defaultHourlyRateUpdatedMessage: "Tariful orar implicit a fost salvat cu succes.",
+    selectManagedSchool: "Selectează școala de administrat",
   },
 
   user: {

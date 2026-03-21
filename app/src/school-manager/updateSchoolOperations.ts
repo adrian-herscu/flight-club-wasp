@@ -69,6 +69,20 @@ const updateManagedSchoolSchema = z.object({
 
 type UpdateManagedSchoolInput = z.infer<typeof updateManagedSchoolSchema>;
 
+function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
+  if (!rawArgs || typeof rawArgs !== "object") {
+    return undefined;
+  }
+
+  const rawSchoolId = (rawArgs as { schoolId?: unknown }).schoolId;
+  if (typeof rawSchoolId !== "string") {
+    return undefined;
+  }
+
+  const trimmedSchoolId = rawSchoolId.trim();
+  return trimmedSchoolId.length > 0 ? trimmedSchoolId : undefined;
+}
+
 function ensureSchoolManager(context: RequestContext) {
   if (!context.user) {
     throw new HttpError(401, "Only authenticated users can access manager features.");
@@ -81,9 +95,12 @@ function ensureSchoolManager(context: RequestContext) {
   return context.user;
 }
 
-async function getManagedSchoolForUserId(userId: string) {
+async function getManagedSchoolForUserId(userId: string, schoolId?: string) {
   const school = await prisma.school.findFirst({
-    where: { adminId: userId },
+    where: {
+      adminId: userId,
+      ...(schoolId ? { id: schoolId } : {}),
+    },
     include: {
       accounts: {
         where: { userId },
@@ -95,10 +112,16 @@ async function getManagedSchoolForUserId(userId: string) {
         },
       },
     },
+    orderBy: [{ createdAt: "asc" }],
   });
 
   if (!school) {
-    throw new HttpError(403, "No managed school is assigned to this account.");
+    throw new HttpError(
+      403,
+      schoolId
+        ? "Selected school is not managed by this account."
+        : "No managed school is assigned to this account.",
+    );
   }
 
   return school;
@@ -109,7 +132,8 @@ export const updateMyManagedSchool = async (
   context: RequestContext,
 ) => {
   const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const selectedSchoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, selectedSchoolId);
 
   const {
     name,

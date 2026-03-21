@@ -152,9 +152,26 @@ type ManagerCourseInstructorDetails = {
   assignedInstructors: ManagerInstructorListItem[];
 } | null;
 
-async function getManagedSchoolForUserId(userId: string) {
+function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
+  if (!rawArgs || typeof rawArgs !== "object") {
+    return undefined;
+  }
+
+  const rawSchoolId = (rawArgs as { schoolId?: unknown }).schoolId;
+  if (typeof rawSchoolId !== "string") {
+    return undefined;
+  }
+
+  const trimmedSchoolId = rawSchoolId.trim();
+  return trimmedSchoolId.length > 0 ? trimmedSchoolId : undefined;
+}
+
+async function getManagedSchoolForUserId(userId: string, schoolId?: string) {
   const school = await prisma.school.findFirst({
-    where: { adminId: userId },
+    where: {
+      adminId: userId,
+      ...(schoolId ? { id: schoolId } : {}),
+    },
     include: {
       accounts: {
         where: { userId },
@@ -166,10 +183,16 @@ async function getManagedSchoolForUserId(userId: string) {
         },
       },
     },
+    orderBy: [{ createdAt: "asc" }],
   });
 
   if (!school) {
-    throw new HttpError(403, "No managed school is assigned to this account.");
+    throw new HttpError(
+      403,
+      schoolId
+        ? "Selected school is not managed by this account."
+        : "No managed school is assigned to this account.",
+    );
   }
 
   return school;
@@ -227,16 +250,17 @@ export const getMyManagedSchool = async (
 };
 
 export const getManagerSyllabusCatalog = async (
-  _args: unknown,
+  rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{
   courseOpeningCandidates: SyllabusCatalogItem[];
   editableDrafts: SyllabusCatalogItem[];
 }> => {
   const user = ensureSyllabusOperator(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school =
     user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id)
+      ? await getManagedSchoolForUserId(user.id, schoolId)
       : null;
 
   const versions = await prisma.syllabusVersion.findMany({
@@ -313,9 +337,10 @@ export const getSyllabusVersionDetails = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<SyllabusVersionDetails> => {
   const user = ensureSyllabusOperator(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school =
     user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id)
+      ? await getManagedSchoolForUserId(user.id, schoolId)
       : null;
   const { syllabusVersionId } = ensureArgsSchemaOrThrowHttpError(
     syllabusVersionDetailsSchema,
@@ -382,9 +407,10 @@ export const createDraftSyllabusFromScratch = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
   const user = ensureSyllabusOperator(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school =
     user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id)
+      ? await getManagedSchoolForUserId(user.id, schoolId)
       : null;
   const { name, lessons } = ensureArgsSchemaOrThrowHttpError(
     createDraftFromScratchSchema,
@@ -431,9 +457,10 @@ export const createDraftSyllabusFromTemplate = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
   const user = ensureSyllabusOperator(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school =
     user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id)
+      ? await getManagedSchoolForUserId(user.id, schoolId)
       : null;
   const { templateVersionId, name } = ensureArgsSchemaOrThrowHttpError(
     createDraftFromTemplateSchema,
@@ -507,9 +534,10 @@ export const saveDraftSyllabusRevision = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusVersionId: string; version: number }> => {
   const user = ensureSyllabusOperator(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school =
     user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id)
+      ? await getManagedSchoolForUserId(user.id, schoolId)
       : null;
   const { sourceVersionId, lessons } = ensureArgsSchemaOrThrowHttpError(
     saveDraftRevisionSchema,
@@ -581,9 +609,10 @@ export const publishDraftSyllabusVersion = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ syllabusVersionId: string; version: number }> => {
   const user = ensureSyllabusOperator(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school =
     user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id)
+      ? await getManagedSchoolForUserId(user.id, schoolId)
       : null;
   const { sourceVersionId } = ensureArgsSchemaOrThrowHttpError(
     publishDraftSchema,
@@ -654,14 +683,15 @@ export const publishDraftSyllabusVersion = async (
 };
 
 export const getManagerCoursesForEnrollment = async (
-  _args: unknown,
+  rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerCourseListItem[]> => {
   const user = ensureSyllabusOperator(context);
   if (user.role === UserRole.SYSTEM_ADMIN) {
     return [];
   }
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
 
   const courses = await prisma.course.findMany({
     where: {
@@ -709,14 +739,15 @@ export const getManagerCoursesForEnrollment = async (
 };
 
 export const getManagerStudentsForEnrollment = async (
-  _args: unknown,
+  rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerStudentListItem[]> => {
   const user = ensureSyllabusOperator(context);
   if (user.role === UserRole.SYSTEM_ADMIN) {
     return [];
   }
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
 
   const students = await prisma.student.findMany({
     where: {
@@ -753,14 +784,15 @@ export const getManagerStudentsForEnrollment = async (
 };
 
 export const getManagerInstructorsForAssignment = async (
-  _args: unknown,
+  rawArgs: unknown,
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<ManagerInstructorListItem[]> => {
   const user = ensureSyllabusOperator(context);
   if (user.role === UserRole.SYSTEM_ADMIN) {
     return [];
   }
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
 
   const instructors = await prisma.instructor.findMany({
     where: {
@@ -804,7 +836,8 @@ export const getManagerCourseEnrollmentDetails = async (
   if (user.role === UserRole.SYSTEM_ADMIN) {
     return null;
   }
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     managerCourseEnrollmentDetailsSchema,
     rawArgs,
@@ -880,7 +913,8 @@ export const enrollStudentInCourse = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ courseId: string; studentId: string }> => {
   const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
   const { courseId, studentId } = ensureArgsSchemaOrThrowHttpError(
     enrollStudentInCourseSchema,
     rawArgs,
@@ -963,7 +997,8 @@ export const getManagerCourseInstructorDetails = async (
   if (user.role === UserRole.SYSTEM_ADMIN) {
     return null;
   }
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     managerCourseInstructorDetailsSchema,
     rawArgs,
@@ -1039,7 +1074,8 @@ export const assignInstructorToCourse = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ courseId: string; instructorId: string }> => {
   const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
   const { courseId, instructorId } = ensureArgsSchemaOrThrowHttpError(
     assignInstructorToCourseSchema,
     rawArgs,
@@ -1111,7 +1147,8 @@ export const createCourseFromFinalSyllabus = async (
   context: { user?: { id: string; role?: UserRole | null } | null },
 ): Promise<{ courseId: string }> => {
   const user = ensureSchoolManager(context);
-  const school = await getManagedSchoolForUserId(user.id);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
   const {
     syllabusVersionId,
     startDate,

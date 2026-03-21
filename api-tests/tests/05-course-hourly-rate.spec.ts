@@ -9,6 +9,7 @@ import { prisma } from '../src/wasp-server-stub.js';
 import { ctx, SEED } from '../src/testHelpers';
 
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
+const SECONDARY_MANAGER_SCHOOL_ID = 'seed-school-cloudbase-annex';
 
 describe('4.8 course hourly-rate baseline (API)', () => {
   beforeEach(async () => {
@@ -34,6 +35,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
 
     await updateMyManagedSchool(
       {
+        schoolId: school.id,
         name: school.name,
         websiteUrl: school.websiteUrl ?? '',
         phone: school.phone ?? '',
@@ -47,6 +49,94 @@ describe('4.8 course hourly-rate baseline (API)', () => {
       },
       ctx.schoolManager,
     );
+
+    const secondarySchool = await prisma.school.findUnique({
+      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
+      select: {
+        id: true,
+        name: true,
+        websiteUrl: true,
+        phone: true,
+        logoUrl: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        stateProvince: true,
+        postalCode: true,
+      },
+    });
+
+    if (!secondarySchool) {
+      throw new Error('Secondary test school not found.');
+    }
+
+    await updateMyManagedSchool(
+      {
+        schoolId: secondarySchool.id,
+        name: secondarySchool.name,
+        websiteUrl: secondarySchool.websiteUrl ?? '',
+        phone: secondarySchool.phone ?? '',
+        logoUrl: secondarySchool.logoUrl ?? '',
+        addressLine1: secondarySchool.addressLine1,
+        addressLine2: secondarySchool.addressLine2 ?? '',
+        city: secondarySchool.city,
+        stateProvince: secondarySchool.stateProvince ?? '',
+        postalCode: secondarySchool.postalCode,
+        defaultHourlyRate: null,
+      },
+      ctx.schoolManager,
+    );
+  });
+
+  it('[STD-CRS-003] updates only the selected managed school when schoolId is provided', async () => {
+    const secondarySchool = await prisma.school.findUnique({
+      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
+      select: {
+        id: true,
+        name: true,
+        websiteUrl: true,
+        phone: true,
+        logoUrl: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        stateProvince: true,
+        postalCode: true,
+      },
+    });
+
+    if (!secondarySchool) {
+      throw new Error('Secondary test school not found.');
+    }
+
+    await updateMyManagedSchool(
+      {
+        schoolId: secondarySchool.id,
+        name: secondarySchool.name,
+        websiteUrl: secondarySchool.websiteUrl ?? '',
+        phone: secondarySchool.phone ?? '',
+        logoUrl: secondarySchool.logoUrl ?? '',
+        addressLine1: secondarySchool.addressLine1,
+        addressLine2: secondarySchool.addressLine2 ?? '',
+        city: secondarySchool.city,
+        stateProvince: secondarySchool.stateProvince ?? '',
+        postalCode: secondarySchool.postalCode,
+        defaultHourlyRate: 333,
+      },
+      ctx.schoolManager,
+    );
+
+    const primary = await prisma.school.findUnique({
+      where: { id: SEED.schools.cloudbase },
+      select: { defaultHourlyRate: true },
+    });
+    const secondary = await prisma.school.findUnique({
+      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
+      select: { defaultHourlyRate: true },
+    });
+
+    expect(primary?.defaultHourlyRate).toBeNull();
+    expect(secondary?.defaultHourlyRate).toBe(333);
   });
 
   it('[STD-CRS-003] uses school default hourly rate when course hourly rate is omitted', async () => {
@@ -72,6 +162,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
 
     await updateMyManagedSchool(
       {
+        schoolId: school.id,
         name: school.name,
         websiteUrl: school.websiteUrl ?? '',
         phone: school.phone ?? '',
@@ -130,6 +221,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
         startDate: new Date('2026-04-03T00:00:00.000Z').toISOString(),
         minCapacity: 3,
         maxCapacity: 10,
+        hourlyRate: 140,
       },
       ctx.schoolManager,
     );

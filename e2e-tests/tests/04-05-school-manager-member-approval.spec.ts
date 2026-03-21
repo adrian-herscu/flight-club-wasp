@@ -241,4 +241,37 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await page.getByTestId("manager-requests-status-filter-approved").click();
     await expect(studentPendingSection).toHaveCount(0);
   });
+
+  test("[4.6][STD-SCH-010] manager with two schools can switch the current school to manage", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: schoolManagerUser,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager/school");
+    await page.waitForURL("**/school-manager/school");
+    await page.waitForLoadState("networkidle");
+
+    const schoolsPanel = page.getByTestId("manager-schools-list");
+    await expect(schoolsPanel).toBeVisible();
+
+    const currentPanelText = (await schoolsPanel.textContent()) ?? "";
+    const targetSchoolName = currentPanelText.includes("Cloudbase Annex")
+      ? "Cloudbase Paragliding"
+      : "Cloudbase Annex";
+    const targetAccountId =
+      targetSchoolName === "Cloudbase Annex"
+        ? "seed-account-manager-cloudbase-annex"
+        : "seed-account-manager-cloudbase";
+
+    // Use sidebar school selector
+    const sidebarSelector = page.locator("aside").getByRole("combobox").first();
+    await sidebarSelector.click();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+
+    await expect(schoolsPanel).toContainText(targetSchoolName);
+    await expect(schoolsPanel).toContainText(targetAccountId);
+  });
 });

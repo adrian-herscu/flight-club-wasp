@@ -466,6 +466,7 @@ export const en = {
     invalidDefaultHourlyRate: "Invalid default hourly rate",
     defaultHourlyRatePositiveInteger: "Default hourly rate must be a positive whole number.",
     defaultHourlyRateUpdatedMessage: "Default hourly rate saved successfully.",
+    selectManagedSchool: "Select school to manage",
   },
 
   user: {

@@ -466,6 +466,7 @@ export const he = {
     invalidDefaultHourlyRate: "תעריף שעתי ברירת מחדל לא תקין",
     defaultHourlyRatePositiveInteger: "תעריף שעתי ברירת מחדל חייב להיות מספר שלם חיובי.",
     defaultHourlyRateUpdatedMessage: "תעריף שעתי ברירת מחדל נשמר בהצלחה.",
+    selectManagedSchool: "בחר בית ספר לניהול",
   },
 
   user: {

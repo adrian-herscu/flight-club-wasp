@@ -11,9 +11,9 @@ export default defineConfig({
     globalSetup: ['./global-setup.ts'],
     // Load .env.test before any test file or setup file runs
     setupFiles: ['./src/setup.ts'],
-    // Run tests sequentially within each file to avoid DB race conditions.
-    // Cross-file parallelism (default) is fine since each file cleans its own data.
+    // Run tests sequentially to avoid DB race conditions across files.
     sequence: { concurrent: false },
+    fileParallelism: false,
   },
   resolve: {
     alias: {

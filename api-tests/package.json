@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Operation-level API tests for Flight Club. Imports Wasp operations directly and calls them against a real test database — no browser, no Wasp server required.",
   "scripts": {
-    "db:reset": "cd ../app && DATABASE_URL=$(grep 'DATABASE_URL' .wasp/out/server/.env | cut -d= -f2-) npx prisma migrate reset --force --schema=.wasp/out/db/schema.prisma",
+    "db:reset": "cd ../app && DATABASE_URL=$(grep 'DATABASE_URL' .wasp/out/server/.env | cut -d= -f2-) npx prisma migrate reset --force --schema=schema.prisma",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

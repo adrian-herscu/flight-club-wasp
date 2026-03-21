@@ -7,7 +7,15 @@ import DefaultLayout from "../admin/layout/DefaultLayout";
 import { Button } from "../client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import { Input } from "../client/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../client/components/ui/select";
 import { toast } from "../client/hooks/use-toast";
+import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as any;
 
@@ -49,6 +57,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
   const schools = useMemo(() => (data as ManagedSchool[] | undefined) ?? [], [data]);
+  const { selectedSchool, selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(schools);
   const [hourlyRateDraftBySchoolId, setHourlyRateDraftBySchoolId] = useState<Record<string, string>>({});
   const [savingSchoolId, setSavingSchoolId] = useState<string | null>(null);
 
@@ -82,6 +91,7 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
     setSavingSchoolId(school.id);
     try {
       await updateMyManagedSchool({
+        schoolId: school.id,
         name: school.name,
         websiteUrl: school.websiteUrl ?? "",
         phone: school.phone ?? "",
@@ -145,9 +155,10 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
             <CardHeader>
               <CardTitle>{t("admin.schools")}</CardTitle>
             </CardHeader>
+
           </Card>
 
-          {schools.map((school) => (
+          {(selectedSchool ? [selectedSchool] : []).map((school) => (
           <div key={school.id} className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>

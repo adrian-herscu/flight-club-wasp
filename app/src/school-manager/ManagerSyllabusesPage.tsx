@@ -18,10 +18,12 @@ import {
 } from "../client/components/ui/select";
 import { Textarea } from "../client/components/ui/textarea";
 import { toast } from "../client/hooks/use-toast";
+import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
   createDraftSyllabusFromScratch,
   createDraftSyllabusFromTemplate,
+  getMyManagedSchool,
   getManagerSyllabusCatalog,
   getSyllabusVersionDetails,
   publishDraftSyllabusVersion,
@@ -69,6 +71,11 @@ type ManagerSyllabusCatalog = {
   editableDrafts: CatalogItem[];
 };
 
+type ManagedSchool = {
+  id: string;
+  name: string;
+};
+
 type SyllabusesSection = "catalog" | "create" | "details" | "editor";
 const validSections: SyllabusesSection[] = ["catalog", "create", "details", "editor"];
 
@@ -83,19 +90,26 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
+  const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
+  const { selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(managedSchools);
+
   const {
     data: catalogData,
     isLoading,
     error,
     refetch: refetchCatalog,
-  } = useQuery(getManagerSyllabusCatalog);
+  } = useQuery(getManagerSyllabusCatalog, { schoolId: selectedSchoolId });
 
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const {
     data: versionDetailsData,
     isLoading: isVersionLoading,
     refetch: refetchVersion,
-  } = useQuery(getSyllabusVersionDetails, { syllabusVersionId: selectedVersionId });
+  } = useQuery(getSyllabusVersionDetails, {
+    schoolId: selectedSchoolId,
+    syllabusVersionId: selectedVersionId,
+  });
 
   const catalog = catalogData as ManagerSyllabusCatalog | undefined;
   const versionDetails = versionDetailsData as SyllabusVersionDetails;
@@ -194,6 +208,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     setIsCreatingFromTemplate(true);
     try {
       const created = await createDraftSyllabusFromTemplate({
+        schoolId: selectedSchoolId,
         templateVersionId,
         name: newSyllabusName.trim(),
       });
@@ -245,6 +260,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     setIsCreatingFromScratch(true);
     try {
       const created = await createDraftSyllabusFromScratch({
+        schoolId: selectedSchoolId,
         name: scratchName.trim(),
         lessons: lessonDrafts.map((lesson, index) => ({
           ...lesson,
@@ -313,6 +329,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     setIsSavingRevision(true);
     try {
       const result = await saveDraftSyllabusRevision({
+        schoolId: selectedSchoolId,
         sourceVersionId: selectedDraftId,
         lessons: lessonDrafts.map((lesson, index) => ({
           ...lesson,
@@ -357,7 +374,10 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
     setIsPublishing(true);
     try {
-      const result = await publishDraftSyllabusVersion({ sourceVersionId: selectedDraftId });
+      const result = await publishDraftSyllabusVersion({
+        schoolId: selectedSchoolId,
+        sourceVersionId: selectedDraftId,
+      });
       await refetchCatalog();
       setSelectedVersionId(result.syllabusVersionId);
       await refetchVersion();
@@ -407,6 +427,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       {error && <p className="text-sm text-red-500">{error.message}</p>}
 
       <div className="sticky top-0 z-20 mb-2 backdrop-blur supports-backdrop-filter:bg-background/70">
+
+
         <div
           className="relative flex overflow-x-auto"
           style={{

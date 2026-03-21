@@ -9,15 +9,29 @@ import { Button } from "../client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import { Input } from "../client/components/ui/input";
 import { Label } from "../client/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../client/components/ui/select";
 import { Textarea } from "../client/components/ui/textarea";
 import { toast } from "../client/hooks/use-toast";
+import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
   approveSchoolMemberRequest,
+  getMyManagedSchool,
   getPendingSchoolMemberRequests,
   rejectSchoolMemberRequest,
   useQuery,
 } = operations as any;
+
+type ManagedSchool = {
+  id: string;
+  name: string;
+};
 
 type MemberRequestItem = {
   id: string;
@@ -46,7 +60,13 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     return <Navigate to="/" replace />;
   }
 
-  const { data, isLoading, refetch } = useQuery(getPendingSchoolMemberRequests);
+  const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
+  const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
+  const { selectedSchool, selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(managedSchools);
+
+  const { data, isLoading, refetch } = useQuery(getPendingSchoolMemberRequests, {
+    schoolId: selectedSchoolId,
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
   const [isRejectingId, setIsRejectingId] = useState<string | null>(null);
@@ -120,7 +140,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const handleApprove = async (requestId: string) => {
     setIsApprovingId(requestId);
     try {
-      await approveSchoolMemberRequest({ requestId });
+      await approveSchoolMemberRequest({ requestId, schoolId: selectedSchoolId });
       await refetch();
       toast({
         title: t("admin.requestApproved"),
@@ -142,6 +162,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     try {
       await rejectSchoolMemberRequest({
         requestId,
+        schoolId: selectedSchoolId,
         rejectionReason: rejectionReasons[requestId],
       });
       await refetch();
@@ -280,6 +301,14 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
           <CardTitle>{pageTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+
+
+          {!isLoading && selectedSchool && (
+            <p className="text-sm text-muted-foreground">
+              {t("dashboard.schoolName")}: {selectedSchool.name}
+            </p>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="member-request-search">{t("admin.filterByNameOrPhone")}</Label>
             <Input
