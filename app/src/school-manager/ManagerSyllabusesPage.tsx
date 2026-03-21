@@ -9,6 +9,7 @@ import DefaultLayout from "../admin/layout/DefaultLayout";
 import { Button } from "../client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import { Input } from "../client/components/ui/input";
+import { Slider } from "../client/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -78,6 +79,18 @@ type ManagedSchool = {
 
 type SyllabusesSection = "catalog" | "create" | "details" | "editor";
 const validSections: SyllabusesSection[] = ["catalog", "create", "details", "editor"];
+
+const formatDuration = (minutes: number): string => {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}m`;
+};
 
 const initialLesson = (position = 1): LessonDraft => ({
   position,
@@ -632,30 +645,60 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        <Input
-                          placeholder={t("syllabus.lessonNamePlaceholder")}
-                          value={lesson.name}
-                          onChange={(event) =>
-                            updateLessonDraft(index, { name: event.target.value })
-                          }
-                        />
-                        <Textarea
-                          placeholder={t("syllabus.lessonDescPlaceholder")}
-                          value={lesson.description}
-                          onChange={(event) =>
-                            updateLessonDraft(index, { description: event.target.value })
-                          }
-                        />
-                        <Input
-                          type="number"
-                          min={1}
-                          value={lesson.durationMinutes}
-                          onChange={(event) =>
-                            updateLessonDraft(index, {
-                              durationMinutes: Number(event.target.value) || 1,
-                            })
-                          }
-                        />
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium">{t("syllabus.lessonNamePlaceholder")}</label>
+                          <Input
+                            placeholder={t("syllabus.lessonNamePlaceholder")}
+                            value={lesson.name}
+                            onChange={(event) =>
+                              updateLessonDraft(index, { name: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium">{t("syllabus.lessonDescPlaceholder")}</label>
+                          <Textarea
+                            placeholder={t("syllabus.lessonDescPlaceholder")}
+                            value={lesson.description}
+                            onChange={(event) =>
+                              updateLessonDraft(index, { description: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium">{t("syllabus.lessonDurationLabel")}</label>
+                          <div className="space-y-2">
+                            <Slider
+                              value={[lesson.durationMinutes]}
+                              onValueChange={(value: number[]) =>
+                                updateLessonDraft(index, {
+                                  durationMinutes: value[0],
+                                })
+                              }
+                              min={15}
+                              max={480}
+                              step={15}
+                              className="w-full"
+                            />
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold text-primary">
+                                {formatDuration(lesson.durationMinutes)}
+                              </span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={480}
+                                value={lesson.durationMinutes}
+                                onChange={(event) =>
+                                  updateLessonDraft(index, {
+                                    durationMinutes: Math.max(1, Math.min(480, Number(event.target.value) || 1)),
+                                  })
+                                }
+                                className="h-8 w-20"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -758,30 +801,60 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        <Input
-                          value={lesson.name}
-                          placeholder={t("syllabus.lessonNamePlaceholder")}
-                          onChange={(event) =>
-                            updateLessonDraft(index, { name: event.target.value })
-                          }
-                        />
-                        <Textarea
-                          value={lesson.description}
-                          placeholder={t("syllabus.lessonDescPlaceholder")}
-                          onChange={(event) =>
-                            updateLessonDraft(index, { description: event.target.value })
-                          }
-                        />
-                        <Input
-                          type="number"
-                          min={1}
-                          value={lesson.durationMinutes}
-                          onChange={(event) =>
-                            updateLessonDraft(index, {
-                              durationMinutes: Number(event.target.value) || 1,
-                            })
-                          }
-                        />
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium">{t("syllabus.lessonNamePlaceholder")}</label>
+                          <Input
+                            value={lesson.name}
+                            placeholder={t("syllabus.lessonNamePlaceholder")}
+                            onChange={(event) =>
+                              updateLessonDraft(index, { name: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium">{t("syllabus.lessonDescPlaceholder")}</label>
+                          <Textarea
+                            value={lesson.description}
+                            placeholder={t("syllabus.lessonDescPlaceholder")}
+                            onChange={(event) =>
+                              updateLessonDraft(index, { description: event.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium">{t("syllabus.lessonDurationLabel")}</label>
+                          <div className="space-y-2">
+                            <Slider
+                              value={[lesson.durationMinutes]}
+                              onValueChange={(value: number[]) =>
+                                updateLessonDraft(index, {
+                                  durationMinutes: value[0],
+                                })
+                              }
+                              min={15}
+                              max={480}
+                              step={15}
+                              className="w-full"
+                            />
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold text-primary">
+                                {formatDuration(lesson.durationMinutes)}
+                              </span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={480}
+                                value={lesson.durationMinutes}
+                                onChange={(event) =>
+                                  updateLessonDraft(index, {
+                                    durationMinutes: Math.max(1, Math.min(480, Number(event.target.value) || 1)),
+                                  })
+                                }
+                                className="h-8 w-20"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
