@@ -567,12 +567,6 @@ export const getPendingSchoolManagerRequests = async (
   return prisma.registrationRequest.findMany({
     where: {
       requestedRole: RegistrationRequestRole.SCHOOL_MANAGER,
-      status: {
-        in: [
-          RegistrationRequestStatus.PENDING,
-          RegistrationRequestStatus.APPROVED,
-        ],
-      },
     },
     include: {
       requester: {
