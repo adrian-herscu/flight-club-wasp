@@ -534,11 +534,16 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                     <p className="text-sm font-medium">
                       {course.syllabusName} (v{course.syllabusVersion})
                     </p>
-                    <p className="text-muted-foreground text-xs">
+                    <p
+                      className="text-muted-foreground text-xs"
+                      data-testid={`manager-course-summary-${course.courseId}`}
+                    >
                       {t("syllabus.enrolledStudents", { count: course.enrolledCount })} • {" "}
                       {course.hourlyRate != null
-                        ? t("syllabus.courseHourlyRateValue", { rate: course.hourlyRate })
-                        : t("syllabus.noHourlyRate")} • {" "}
+                        ? t("syllabus.totalPriceValue", {
+                            price: course.hourlyRate * course.enrolledCount,
+                          })
+                        : t("syllabus.noTotalPrice")} • {" "}
                       {course.startDate
                         ? new Date(course.startDate).toLocaleDateString()
                         : t("syllabus.startDate")}
