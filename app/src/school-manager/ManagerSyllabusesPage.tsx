@@ -122,6 +122,8 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const syllabusesBasePath =
+    user.role === UserRole.SYSTEM_ADMIN ? "/system-admin/syllabuses" : "/school-manager/syllabuses";
 
   const goToSection = (section: SyllabusesSection) => {
     hasChangedSectionRef.current = true;
@@ -129,7 +131,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     params.set("section", section);
     navigate(
       {
-        pathname: "/admin/syllabuses",
+        pathname: syllabusesBasePath,
         search: `?${params.toString()}`,
       },
       { replace: false },
@@ -146,12 +148,12 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     params.set("section", "catalog");
     navigate(
       {
-        pathname: "/admin/syllabuses",
+        pathname: syllabusesBasePath,
         search: `?${params.toString()}`,
       },
       { replace: true },
     );
-  }, [location.search, navigate]);
+  }, [location.search, navigate, syllabusesBasePath]);
 
   useEffect(() => {
     if (!hasChangedSectionRef.current) return;

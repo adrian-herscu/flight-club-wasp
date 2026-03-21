@@ -4,7 +4,7 @@ import { logUserIn } from "./utils";
 test.describe("4.2 authentication and access control", () => {
 
   test("[4.2][STD-AUTH-003] unauthenticated users are redirected to login for protected routes", async ({ page }) => {
-    await page.goto("/admin/users");
+    await page.goto("/system-admin/users");
     await page.waitForLoadState("networkidle");
 
     await expect(page).toHaveURL(/\/login(?:[?#].*)?$/);
@@ -20,7 +20,7 @@ test.describe("4.2 authentication and access control", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/admin/users");
+    await page.goto("/system-admin/users");
     await page.waitForLoadState("networkidle");
 
     await expect(page).toHaveURL(/\/$/);
@@ -37,7 +37,7 @@ test.describe("4.2 authentication and access control", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/admin/member-requests/instructors");
+    await page.goto("/school-manager/member-requests/instructors");
     await page.waitForLoadState("networkidle");
 
     await expect(page).toHaveURL(/\/$/);

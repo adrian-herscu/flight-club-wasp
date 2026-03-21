@@ -54,10 +54,10 @@ test.describe("4.4 admin approval workflow", () => {
   test("[4.2][STD-AUTH-001] system admin login redirects to dashboard", async ({ page }) => {
     await loginAsSystemAdmin(page);
 
-    await page.goto("/admin");
+    await page.goto("/system-admin");
     await expect(page.getByTestId("admin-dashboard-placeholder")).toBeVisible();
 
-    await expect(page).toHaveURL(/\/admin\/?(?:[?#].*)?$/);
+    await expect(page).toHaveURL(/\/system-admin\/?(?:[?#].*)?$/);
     await expect(page.getByTestId("admin-dashboard-placeholder")).toHaveText("Under construction");
     await expect(page.getByRole("heading", { name: "Users" })).toBeHidden();
   });
@@ -65,8 +65,8 @@ test.describe("4.4 admin approval workflow", () => {
   test("[4.11][STD-NAV-003] system admin sees seeded users without applying status filter", async ({ page }) => {
     await loginAsSystemAdmin(page);
 
-    await page.goto("/admin/users");
-    await page.waitForURL("**/admin/users");
+    await page.goto("/system-admin/users");
+    await page.waitForURL("**/system-admin/users");
     await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
     await expect(page.getByText("seed+system_admin.01@example.test")).toBeVisible();
   });
@@ -74,8 +74,8 @@ test.describe("4.4 admin approval workflow", () => {
   test("[4.11][4.7][STD-NAV-003][STD-SYL-001][STD-SYL-002] system admin can access syllabuses from sidebar and view catalog", async ({ page }) => {
     await loginAsSystemAdmin(page);
 
-    await page.goto("/admin");
-    await expect(page.getByRole("heading", { name: /Admin/ }).or(page.getByTestId("admin-dashboard-placeholder"))).toBeVisible();
+    await page.goto("/system-admin");
+    await expect(page.getByTestId("admin-dashboard-placeholder")).toBeVisible();
 
     await expect(
       page.getByRole("link", {
@@ -83,12 +83,14 @@ test.describe("4.4 admin approval workflow", () => {
       }),
     ).toBeVisible();
 
-    await page.goto("/admin/syllabuses?section=catalog");
-    await page.waitForURL("**/admin/syllabuses?section=catalog");
-    await expect(page.getByText("Visibility and usage policy")).toBeVisible();
+    await page.goto("/system-admin/syllabuses?section=catalog");
+    await page.waitForURL("**/system-admin/syllabuses?section=catalog");
+    await expect(page).toHaveURL(/\/system-admin\/syllabuses\?section=catalog/);
+    await expect(page.getByRole("heading", { name: "404" })).toHaveCount(0);
+    await expect(page.getByText(/visibility and usage policy/i)).toBeVisible();
     await expect(
       page.getByText("Only school managers can access this resource."),
-    ).toBeHidden();
+    ).toHaveCount(0);
   });
 
   test("[4.4][STD-ADM-001][STD-ADM-002] system admin can create and view pending school requests", async ({ page }) => {
@@ -99,8 +101,8 @@ test.describe("4.4 admin approval workflow", () => {
 
     await loginAsSystemAdmin(page);
 
-    await page.goto("/admin/school-requests");
-    await page.waitForURL("**/admin/school-requests");
+    await page.goto("/system-admin/school-requests");
+    await page.waitForURL("**/system-admin/school-requests");
     await expect(page.locator("[data-testid='schools-panel-pending-section']")).toBeVisible();
 
     const pendingCard = page.locator("[data-testid='schools-panel-pending-section']").getByText(uniqueSchoolName).first();
@@ -117,8 +119,8 @@ test.describe("4.4 admin approval workflow", () => {
     // Login as admin and approve
     await loginAsSystemAdmin(page);
 
-    await page.goto("/admin/school-requests");
-    await page.waitForURL("**/admin/school-requests");
+    await page.goto("/system-admin/school-requests");
+    await page.waitForURL("**/system-admin/school-requests");
     await expect(page.locator("[data-testid='schools-panel-pending-section']")).toBeVisible();
 
     const pendingCard = page.locator("[data-testid='schools-panel-pending-section']").getByText(uniqueSchoolName).first();

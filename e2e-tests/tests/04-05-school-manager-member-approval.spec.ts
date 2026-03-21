@@ -44,8 +44,8 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await page.waitForURL(/registration|\/$/);
   };
   test.skip("[4.6][STD-SCH-001][STD-SCH-002][inactive] manager can view school profile", async ({ page }) => {
-    await page.goto("/admin/school");
-    await page.waitForURL("**/admin/school");
+    await page.goto("/school-manager/school");
+    await page.waitForURL("**/school-manager/school");
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByRole("heading", { name: "My School" })).toBeVisible();
@@ -58,8 +58,8 @@ test.describe("4.5 school-manager member approval workflow", () => {
   test.skip("[4.7][STD-SYL-001][STD-SYL-002][inactive] manager can discover final syllabuses with policy hints", async ({
     page,
   }) => {
-    await page.goto("/admin/syllabuses");
-    await page.waitForURL("**/admin/syllabuses");
+    await page.goto("/school-manager/syllabuses");
+    await page.waitForURL("**/school-manager/syllabuses");
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByText("Visibility and usage policy")).toBeVisible();
@@ -83,10 +83,10 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
 
-    await page.goto("/admin/syllabuses?section=catalog");
-    await page.waitForURL("**/admin/syllabuses?section=catalog");
+    await page.goto("/school-manager/syllabuses?section=catalog");
+    await page.waitForURL("**/school-manager/syllabuses?section=catalog");
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveURL(/\/admin\/syllabuses\?section=catalog/);
+    await expect(page).toHaveURL(/\/school-manager\/syllabuses\?section=catalog/);
 
     const cookieAcceptButton = page.getByRole("button", { name: /Accept all/i });
     if (await cookieAcceptButton.count()) {
@@ -135,7 +135,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
 
     expect((geometry as any).asideFound).toBe(true);
     expect((geometry as any).mainFound).toBe(true);
-    expect((geometry as any).pathname).toBe("/admin/syllabuses");
+    expect((geometry as any).pathname).toBe("/school-manager/syllabuses");
 
     expect(Math.abs((geometry as any).asideRight - (geometry as any).viewportWidth)).toBeLessThanOrEqual(2);
     expect((geometry as any).mainLeft).toBeGreaterThanOrEqual(0);
@@ -154,11 +154,11 @@ test.describe("4.5 school-manager member approval workflow", () => {
       document.documentElement.dir = "rtl";
     });
 
-    await page.goto("/admin/syllabuses?section=catalog");
-    await page.waitForURL("**/admin/syllabuses?section=catalog");
+    await page.goto("/school-manager/syllabuses?section=catalog");
+    await page.waitForURL("**/school-manager/syllabuses?section=catalog");
     await page.waitForLoadState("networkidle");
     await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
-    await expect(page).toHaveURL(/\/admin\/syllabuses\?section=catalog/);
+    await expect(page).toHaveURL(/\/school-manager\/syllabuses\?section=catalog/);
     await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
   });
 
@@ -180,10 +180,10 @@ test.describe("4.5 school-manager member approval workflow", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/admin/member-requests/instructors");
-    await page.waitForURL("**/admin/member-requests/instructors");
+    await page.goto("/school-manager/member-requests/instructors");
+    await page.waitForURL("**/school-manager/member-requests/instructors");
       await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /instructor/i }).first()).toBeVisible();
+    await expect(page.getByTestId("manager-requests-instructors-pending-section")).toBeVisible();
 
     const instructorPendingSection = page.getByTestId("manager-requests-instructors-pending-section");
     const pendingCards = instructorPendingSection.getByTestId("manager-member-request-card");
@@ -228,9 +228,9 @@ test.describe("4.5 school-manager member approval workflow", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/admin/member-requests/students");
-    await page.waitForURL("**/admin/member-requests/students");
-    await expect(page.getByRole("heading", { name: /student/i }).first()).toBeVisible();
+    await page.goto("/school-manager/member-requests/students");
+    await page.waitForURL("**/school-manager/member-requests/students");
+    await expect(page.getByTestId("manager-requests-students-pending-section")).toBeVisible();
 
     const studentPendingSection = page.locator(
       "[data-testid='manager-requests-students-pending-section']",

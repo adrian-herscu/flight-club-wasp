@@ -1,10 +1,9 @@
 import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { logout } from "wasp/client/auth";
-import { Link as WaspRouterLink } from "wasp/client/router";
 import { type User } from "wasp/entities";
-import { isAdmin } from "../shared/admin";
-import { userMenuItems } from "./constants";
+import { getMenuItemsForUser } from "./constants";
 
 export const UserMenuItems = ({
   user,
@@ -14,23 +13,23 @@ export const UserMenuItems = ({
   onItemClick?: () => void;
 }) => {
   const { t } = useTranslation();
+  const menuItems = getMenuItemsForUser(user?.role ?? null);
 
   return (
     <>
-      {userMenuItems.map((item) => {
+      {menuItems.map((item) => {
         if (item.isAuthRequired && !user) return null;
-        if (item.isAdminOnly && !isAdmin(user)) return null;
 
         return (
           <li key={item.nameKey}>
-            <WaspRouterLink
+            <Link
               to={item.to}
               onClick={onItemClick}
               className="text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium leading-7 transition-colors"
             >
               <item.icon size="1.1rem" />
               {t(item.nameKey)}
-            </WaspRouterLink>
+            </Link>
           </li>
         );
       })}

@@ -5,18 +5,21 @@ type DashboardUserScenario = {
   testName: string;
   email: string;
   triggerName: RegExp;
+  expectedUrl: RegExp;
 };
 
 const dashboardUserScenarios: DashboardUserScenario[] = [
   {
-    testName: "[4.11][STD-NAV-008] admin user menu shows Admin Dashboard link that navigates to /admin",
+    testName: "[4.11][STD-NAV-008] system admin user menu shows Dashboard link that navigates to /system-admin",
     email: "seed+system_admin.01@example.test",
     triggerName: /system_admin_01|seed\+system_admin\.01@example\.test/i,
+    expectedUrl: /\/system-admin\/?$/,
   },
   {
-    testName: "[4.11][STD-NAV-008] school manager user menu shows Admin Dashboard link that navigates to /admin",
+    testName: "[4.11][STD-NAV-008] school manager user menu shows Dashboard link that navigates to /school-manager",
     email: "seed+school_manager.01@example.test",
     triggerName: /school_manager_01|seed\+school_manager\.01@example\.test/i,
+    expectedUrl: /\/school-manager\/?$/,
   },
 ];
 
@@ -58,11 +61,11 @@ test.describe("4.2 authentication and access control - account menu", () => {
         triggerName: scenario.triggerName,
       });
 
-      const dashboardLink = page.getByRole("menuitem").filter({ hasText: /admin dashboard/i });
+      const dashboardLink = page.getByRole("menuitem").filter({ hasText: /dashboard/i });
       await expect(dashboardLink).toBeVisible();
 
       await dashboardLink.click();
-      await expect(page).toHaveURL(/\/admin\/?$/);
+      await expect(page).toHaveURL(scenario.expectedUrl);
     });
   });
 

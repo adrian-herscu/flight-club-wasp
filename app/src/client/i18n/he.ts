@@ -474,6 +474,7 @@ export const he = {
     mySchool: "בית הספר שלי",
     syllabuses: "תכניות הלימודים",
     adminDashboard: "לוח בקרה ניהולי",
+    dashboard: "לוח בקרה",
     accountInformation: "מידע חשבון",
     emailAddress: "כתובת דוא״ל",
     fullName: "שם מלא",

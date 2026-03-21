@@ -100,8 +100,10 @@ test.describe("4.3 registration and role requests", () => {
         expectedRedirectPath: "/",
       });
 
-      await page.goto("/admin/member-requests/instructors");
-      await expect(page.getByRole("heading", { name: /instructor/i }).first()).toBeVisible();
+      await page.goto("/school-manager/member-requests/instructors");
+      await expect(
+        page.getByTestId("manager-requests-instructors-pending-section").first(),
+      ).toBeVisible();
 
       const pendingSection = page.locator("[data-testid='manager-requests-instructors-pending-section']");
       const pendingCard = pendingSection

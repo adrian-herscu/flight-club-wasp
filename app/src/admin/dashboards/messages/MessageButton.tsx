@@ -6,7 +6,7 @@ const MessageButton = () => {
     <li className="relative" x-data="{ dropdownOpen: false, notifying: true }">
       <WaspRouterLink
         className="h-8.5 w-8.5 border-stroke bg-gray hover:text-primary dark:border-strokedark dark:bg-meta-4 relative flex items-center justify-center rounded-full border-[0.5px] dark:text-white"
-        to={routes.AdminMessagesRoute.to}
+        to={routes.SystemAdminMessagesRoute.to}
       >
         <span className="z-1 bg-meta-1 absolute -inset-e-0.5 -top-0.5 h-2 w-2 rounded-full">
           {/* TODO: only animate if there are new messages */}

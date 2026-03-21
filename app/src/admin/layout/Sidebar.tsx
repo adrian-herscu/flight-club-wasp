@@ -55,6 +55,70 @@ const SchoolContextBadge = () => {
   );
 };
 
+type NavItem = {
+  nameKey: string;
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  matchPrefix?: string;
+};
+
+const SIDEBAR_NAV: Record<string, NavItem[]> = {
+  SYSTEM_ADMIN: [
+    { nameKey: "admin.dashboard", to: "/system-admin", icon: LayoutDashboard },
+    { nameKey: "admin.users", to: "/system-admin/users", icon: Sheet },
+    { nameKey: "admin.schools", to: "/system-admin/school-requests", icon: ClipboardList },
+    {
+      nameKey: "admin.syllabuses",
+      to: "/system-admin/syllabuses?section=catalog",
+      icon: GraduationCap,
+      matchPrefix: "/system-admin/syllabuses",
+    },
+    { nameKey: "admin.calendar", to: "/system-admin/calendar", icon: Calendar },
+  ],
+  SCHOOL_MANAGER: [
+    { nameKey: "admin.dashboard", to: "/school-manager", icon: LayoutDashboard },
+    {
+      nameKey: "admin.filterInstructors",
+      to: "/school-manager/member-requests/instructors",
+      icon: ClipboardList,
+    },
+    {
+      nameKey: "admin.filterStudents",
+      to: "/school-manager/member-requests/students",
+      icon: ClipboardList,
+    },
+    { nameKey: "admin.schools", to: "/school-manager/school", icon: School },
+    {
+      nameKey: "admin.courses",
+      to: "/school-manager/courses",
+      icon: BookOpen,
+      matchPrefix: "/school-manager/courses",
+    },
+    {
+      nameKey: "admin.syllabuses",
+      to: "/school-manager/syllabuses?section=catalog",
+      icon: GraduationCap,
+      matchPrefix: "/school-manager/syllabuses",
+    },
+    { nameKey: "admin.calendar", to: "/school-manager/calendar", icon: Calendar },
+  ],
+  INSTRUCTOR: [
+    { nameKey: "admin.dashboard", to: "/instructor", icon: LayoutDashboard },
+  ],
+  STUDENT: [
+    { nameKey: "admin.dashboard", to: "/student", icon: LayoutDashboard },
+  ],
+};
+
+/** Roles that see the "Extra Components" section (UI Elements, etc.) */
+const SHOW_EXTRA_COMPONENTS = new Set(["SYSTEM_ADMIN", "SCHOOL_MANAGER"]);
+
+/** Per-role route for the UI Buttons extra page */
+const UI_BUTTONS_ROUTE: Record<string, string> = {
+  SYSTEM_ADMIN: "/system-admin/ui/buttons",
+  SCHOOL_MANAGER: "/school-manager/ui/buttons",
+};
+
 const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -67,14 +131,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   const [sidebarExpanded, setSidebarExpanded] = useState(
     storedSidebarExpanded === null ? false : storedSidebarExpanded === "true",
   );
+
   const navItemBaseClass =
     "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out";
-  const navItemClassName = ({ isActive }: { isActive: boolean }) =>
-    cn(navItemBaseClass, {
-      "bg-accent text-accent-foreground": isActive,
-    });
 
-  // close on click outside
+  const navItemClassName = ({ isActive }: { isActive: boolean }) =>
+    cn(navItemBaseClass, { "bg-accent text-accent-foreground": isActive });
+
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
       if (!sidebar.current || !trigger.current) return;
@@ -90,7 +153,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
     return () => document.removeEventListener("click", clickHandler);
   });
 
-  // close if the esc key is pressed
   useEffect(() => {
     const keyHandler = ({ keyCode }: KeyboardEvent) => {
       if (!sidebarOpen || keyCode !== 27) return;
@@ -109,6 +171,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
     }
   }, [sidebarExpanded]);
 
+  const navItems = userRole ? (SIDEBAR_NAV[userRole] ?? []) : [];
+  const showExtras = userRole ? SHOW_EXTRA_COMPONENTS.has(userRole) : false;
+  const uiButtonsRoute = userRole ? (UI_BUTTONS_ROUTE[userRole] ?? "/") : "/";
+
   return (
     <aside
       ref={sidebar}
@@ -116,16 +182,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
         "bg-muted absolute top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden duration-300 ease-linear lg:static lg:translate-x-0",
         {
           "ltr:left-0 rtl:right-0 border-e ltr:translate-x-0 rtl:translate-x-0": sidebarOpen,
-          "ltr:left-0 rtl:right-0 ltr:border-e rtl:border-s max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full": !sidebarOpen,
+          "ltr:left-0 rtl:right-0 ltr:border-e rtl:border-s max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full":
+            !sidebarOpen,
         },
       )}
     >
-      {/* <!-- SIDEBAR HEADER --> */}
+      {/* SIDEBAR HEADER */}
       <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
         <NavLink to="/">
           <img src={Logo} alt="Logo" width={50} />
         </NavLink>
-
         <button
           ref={trigger}
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -136,169 +202,51 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
           <X />
         </button>
       </div>
-      {/* <!-- SIDEBAR HEADER --> */}
 
       {userRole === "SCHOOL_MANAGER" && <SchoolContextBadge />}
 
       <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
-        {/* <!-- Sidebar Menu --> */}
         <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">
-          {/* <!-- Menu Group --> */}
+          {/* Main menu */}
           <div>
             <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
               {t("nav.menu")}
             </h3>
-
             <ul className="mb-6 flex flex-col gap-1.5">
-              {/* <!-- Menu Item Dashboard --> */}
-              <NavLink
-                to="/admin"
-                end
-                className={navItemClassName}
-              >
-                <LayoutDashboard />
-                {t("admin.dashboard")}
-              </NavLink>
-
-              {/* <!-- Menu Item Dashboard --> */}
-
-              {/* <!-- Menu Item Users --> */}
-              {userRole === "SYSTEM_ADMIN" && (
-                <li>
+              {navItems.map((item) => (
+                <li key={item.to}>
                   <NavLink
-                    to="/admin/users"
-                    end
-                    className={navItemClassName}
-                  >
-                    <Sheet />
-                    {t("admin.users")}
-                  </NavLink>
-                </li>
-              )}
-              {/* <!-- Menu Item Users --> */}
-
-              {userRole === "SYSTEM_ADMIN" && (
-                <li>
-                  <NavLink
-                    to="/admin/school-requests"
-                    end
-                    className={navItemClassName}
-                  >
-                    <ClipboardList />
-                    {t("admin.schools")}
-                  </NavLink>
-                </li>
-              )}
-
-              {userRole === "SCHOOL_MANAGER" && (
-                <li>
-                  <NavLink
-                    to="/admin/member-requests/instructors"
-                    end
-                    className={navItemClassName}
-                  >
-                    <ClipboardList />
-                    {t("admin.filterInstructors")}
-                  </NavLink>
-                </li>
-              )}
-
-              {userRole === "SCHOOL_MANAGER" && (
-                <li>
-                  <NavLink
-                    to="/admin/member-requests/students"
-                    end
-                    className={navItemClassName}
-                  >
-                    <ClipboardList />
-                    {t("admin.filterStudents")}
-                  </NavLink>
-                </li>
-              )}
-
-              {/* <!-- Menu Item School --> */}
-              {userRole === "SCHOOL_MANAGER" && (
-                <li>
-                  <NavLink
-                    to="/admin/school"
-                    end
-                    className={navItemClassName}
-                  >
-                    <School />
-                    {t("admin.schools")}
-                  </NavLink>
-                </li>
-              )}
-              {/* <!-- Menu Item School --> */}
-
-              {/* <!-- Menu Item Courses --> */}
-              {userRole === "SCHOOL_MANAGER" && (
-                <li>
-                  <NavLink
-                    to="/admin/courses"
-                    className={() =>
-                      cn(navItemBaseClass, {
-                        "bg-accent text-accent-foreground":
-                          pathname === "/admin/courses" ||
-                          pathname.startsWith("/admin/courses/"),
-                      })
+                    to={item.to}
+                    end={!item.matchPrefix}
+                    className={
+                      item.matchPrefix
+                        ? () =>
+                            cn(navItemBaseClass, {
+                              "bg-accent text-accent-foreground":
+                                pathname === item.matchPrefix ||
+                                pathname.startsWith(item.matchPrefix + "/") ||
+                                pathname.startsWith(item.matchPrefix + "?"),
+                            })
+                        : navItemClassName
                     }
                   >
-                    <BookOpen />
-                    {t("admin.courses")}
+                    <item.icon />
+                    {t(item.nameKey)}
                   </NavLink>
                 </li>
-              )}
-
-              {/* <!-- Menu Item Syllabuses --> */}
-              {(userRole === "SCHOOL_MANAGER" || userRole === "SYSTEM_ADMIN") && (
-                <li>
-                  <NavLink
-                    to="/admin/syllabuses?section=catalog"
-                    className={() =>
-                      cn(navItemBaseClass, {
-                        "bg-accent text-accent-foreground":
-                          pathname === "/admin/syllabuses" ||
-                          pathname.startsWith("/admin/syllabuses/"),
-                      })
-                    }
-                  >
-                    <GraduationCap />
-                    {t("admin.syllabuses")}
-                  </NavLink>
-                </li>
-              )}
-              {/* <!-- Menu Item Syllabuses --> */}
-
+              ))}
             </ul>
           </div>
 
-          {/* <!-- Others Group --> */}
-          <div>
-            <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
-              {t("admin.extraComponents")}
-            </h3>
-
-            <ul className="mb-6 flex flex-col gap-1.5">
-              {/* <!-- Menu Item Calendar --> */}
-              <li>
-                <NavLink
-                  to="/admin/calendar"
-                  end
-                  className={navItemClassName}
-                >
-                  <Calendar />
-                  {t("admin.calendar")}
-                </NavLink>
-              </li>
-              {/* <!-- Menu Item Calendar --> */}
-
-              {/* <!-- Menu Item Ui Elements --> */}
-              <SidebarLinkGroup
-                activeCondition={pathname === "/ui" || pathname.includes("ui")}
-              >
-                {(handleClick, open) => {
-                  return (
+          {/* Extra components section */}
+          {showExtras && (
+            <div>
+              <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
+                {t("admin.extraComponents")}
+              </h3>
+              <ul className="mb-6 flex flex-col gap-1.5">
+                <SidebarLinkGroup activeCondition={pathname.includes("ui")}>
+                  {(handleClick, open) => (
                     <React.Fragment>
                       <NavLink
                         to="#"
@@ -307,9 +255,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                         })}
                         onClick={(e) => {
                           e.preventDefault();
-                          if (!sidebarExpanded) {
-                            setSidebarExpanded(true);
-                          }
+                          if (!sidebarExpanded) setSidebarExpanded(true);
                           handleClick();
                         }}
                       >
@@ -317,7 +263,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                         UI Elements
                         {open ? <ChevronUp /> : <ChevronDown />}
                       </NavLink>
-                      {/* <!-- Dropdown Menu Start --> */}
                       <div
                         className={cn("translate transform overflow-hidden", {
                           hidden: !open,
@@ -326,7 +271,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                         <ul className="mt-4 mb-5.5 flex flex-col gap-2.5 pl-6">
                           <li>
                             <NavLink
-                              to="/admin/ui/buttons"
+                              to={uiButtonsRoute}
                               end
                               className={({ isActive }) =>
                                 cn(
@@ -340,16 +285,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
                           </li>
                         </ul>
                       </div>
-                      {/* <!-- Dropdown Menu End --> */}
                     </React.Fragment>
-                  );
-                }}
-              </SidebarLinkGroup>
-              {/* <!-- Menu Item Ui Elements --> */}
-            </ul>
-          </div>
+                  )}
+                </SidebarLinkGroup>
+              </ul>
+            </div>
+          )}
         </nav>
-        {/* <!-- Sidebar Menu --> */}
       </div>
     </aside>
   );

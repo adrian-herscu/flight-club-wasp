@@ -1,7 +1,7 @@
 import { FC, ReactNode, useState } from "react";
 import { Navigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
-import { isAdmin } from "../../shared/admin";
+import { hasDashboardAccess } from "../../shared/roles";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -13,7 +13,7 @@ interface Props {
 const DefaultLayout: FC<Props> = ({ children, user }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (!isAdmin(user)) {
+  if (!hasDashboardAccess(user)) {
     return <Navigate to="/" replace />;
   }
 

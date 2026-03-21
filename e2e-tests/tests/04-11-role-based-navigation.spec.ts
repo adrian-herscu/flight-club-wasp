@@ -28,7 +28,13 @@ const clickSidebarLinkAndExpectUrl = async (
   expectedUrl: RegExp,
 ) => {
   const sidebar = page.locator("aside");
-  const link = sidebar.getByRole("link", { name: linkName }).first();
+  let link = sidebar.getByRole("link", { name: linkName }).first();
+  const isVisible = await link.isVisible().catch(() => false);
+  if (!isVisible) {
+    await sidebar.hover();
+    await page.mouse.wheel(0, 600);
+    link = sidebar.getByRole("link", { name: linkName }).first();
+  }
   await expect(link).toBeVisible();
   await link.click();
   await expect(page).toHaveURL(expectedUrl);
@@ -64,11 +70,18 @@ const roleScenarios: RoleScenario[] = [
       { name: "Syllabuses", visible: true },
     ],
     navSteps: [
-      { linkName: "Dashboard", expectedUrl: /\/admin\/?$/ },
-      { linkName: "Users", expectedUrl: /\/admin\/users\/?$/ },
-      { linkName: "Schools", expectedUrl: /\/admin\/school-requests\/?$/ },
-      { linkName: "Syllabuses", expectedUrl: /\/admin\/syllabuses\?section=catalog$/ },
-      { linkName: "Calendar", expectedUrl: /\/admin\/calendar\/?$/ },
+      { linkName: "Dashboard", expectedUrl: /\/system-admin\/?$/ },
+      { linkName: "Users", expectedUrl: /\/system-admin\/users\/?$/ },
+      { linkName: "Schools", expectedUrl: /\/system-admin\/school-requests\/?$/ },
+      {
+        linkName: "Syllabuses",
+        expectedUrl: /\/system-admin\/syllabuses\?section=catalog$/,
+        additionalAssertions: async (page) => {
+          await expect(page.getByRole("heading", { name: "404" })).toHaveCount(0);
+          await expect(page.getByText(/visibility and usage policy/i)).toBeVisible();
+        },
+      },
+      { linkName: "Calendar", expectedUrl: /\/system-admin\/calendar\/?$/ },
     ],
   },
   {
@@ -84,18 +97,18 @@ const roleScenarios: RoleScenario[] = [
       { name: "Syllabuses", visible: true },
     ],
     navSteps: [
-      { linkName: "Dashboard", expectedUrl: /\/admin\/?$/ },
+      { linkName: "Dashboard", expectedUrl: /\/school-manager\/?$/ },
       {
         linkName: "Instructors",
-        expectedUrl: /\/admin\/member-requests\/instructors\/?$/,
+        expectedUrl: /\/school-manager\/member-requests\/instructors\/?$/,
       },
       {
         linkName: "Students",
-        expectedUrl: /\/admin\/member-requests\/students\/?$/,
+        expectedUrl: /\/school-manager\/member-requests\/students\/?$/,
       },
       {
         linkName: "Schools",
-        expectedUrl: /\/admin\/school\/?$/,
+        expectedUrl: /\/school-manager\/school\/?$/,
         additionalAssertions: async (page) => {
           await expect(page.getByRole("heading", { name: "Schools" }).first()).toBeVisible();
           await expect(page.getByTestId("manager-schools-list")).toBeVisible();
@@ -103,7 +116,7 @@ const roleScenarios: RoleScenario[] = [
       },
       {
         linkName: "Courses",
-        expectedUrl: /\/admin\/courses\/?$/,
+        expectedUrl: /\/school-manager\/courses\/?$/,
         additionalAssertions: async (page) => {
           await expect(
             page.getByRole("heading", { name: /open course from final syllabus/i }).first(),
@@ -116,8 +129,8 @@ const roleScenarios: RoleScenario[] = [
           await expect(startDateDateTimeInput).toHaveCount(0);
         },
       },
-      { linkName: "Syllabuses", expectedUrl: /\/admin\/syllabuses\?section=catalog$/ },
-      { linkName: "Calendar", expectedUrl: /\/admin\/calendar\/?$/ },
+      { linkName: "Syllabuses", expectedUrl: /\/school-manager\/syllabuses\?section=catalog$/ },
+      { linkName: "Calendar", expectedUrl: /\/school-manager\/calendar\/?$/ },
     ],
   },
 ];
@@ -134,12 +147,15 @@ test.describe("4.11 role-based navigation", () => {
         expectedRedirectPath: "/",
       });
 
-      await page.goto("/admin");
+      await page.goto(scenario.email.includes("system_admin") ? "/system-admin" : "/school-manager");
       await page.waitForLoadState("networkidle");
 
       await expectSidebarOnScreen(page);
 
       const sidebar = page.locator("aside");
+      const dashboardRoot = scenario.email.includes("system_admin")
+        ? "/system-admin"
+        : "/school-manager";
       for (const rule of scenario.visibilityRules) {
         const link = sidebar.getByRole("link", { name: rule.name });
         if (rule.visible) {
@@ -150,6 +166,9 @@ test.describe("4.11 role-based navigation", () => {
       }
 
       for (const step of scenario.navSteps) {
+        await page.goto(dashboardRoot);
+        await page.waitForLoadState("networkidle");
+        await expectSidebarOnScreen(page);
         await clickSidebarLinkAndExpectUrl(page, step.linkName, step.expectedUrl);
         await step.additionalAssertions?.(page);
       }
@@ -158,7 +177,7 @@ test.describe("4.11 role-based navigation", () => {
       await expect(uiElementsLink).toBeVisible();
       await uiElementsLink.click();
       await expect(sidebar.getByRole("link", { name: "Buttons" }).first()).toBeVisible();
-      await clickSidebarLinkAndExpectUrl(page, "Buttons", /\/admin\/ui\/buttons\/?$/);
+      await clickSidebarLinkAndExpectUrl(page, "Buttons", scenario.email.includes("system_admin") ? /\/system-admin\/ui\/buttons\/?$/ : /\/school-manager\/ui\/buttons\/?$/);
     });
   });
 

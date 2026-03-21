@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Outlet, useLocation } from "react-router";
 import { useAuth } from "wasp/client/auth";
 import { routes } from "wasp/client/router";
+import { isDashboardPath } from "../shared/roles";
 import { Toaster } from "../client/components/ui/toaster";
 import "./Main.css";
 import NavBar from "./components/NavBar/NavBar";
@@ -40,8 +41,8 @@ export default function App() {
     );
   }, [location]);
 
-  const isAdminDashboard = useMemo(() => {
-    return location.pathname.startsWith("/admin");
+  const isDashboard = useMemo(() => {
+    return isDashboardPath(location.pathname);
   }, [location]);
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function App() {
   return (
     <>
       <div className="bg-background text-foreground min-h-screen">
-        {isAdminDashboard ? (
+        {isDashboard ? (
           <Outlet />
         ) : (
           <>

@@ -1,8 +1,8 @@
 import { ChevronDown, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { logout } from "wasp/client/auth";
-import { Link as WaspRouterLink } from "wasp/client/router";
 import { type User as UserEntity } from "wasp/entities";
 import {
   DropdownMenu,
@@ -10,8 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../client/components/ui/dropdown-menu";
-import { isAdmin } from "../shared/admin";
-import { userMenuItems } from "./constants";
+import { getMenuItemsForUser } from "./constants";
 
 export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
   const { t } = useTranslation();
@@ -20,6 +19,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
     fullName?: string | null;
     email?: string | null;
   };
+  const menuItems = getMenuItemsForUser(user?.role ?? null);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -33,13 +33,12 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        {userMenuItems.map((item) => {
+        {menuItems.map((item) => {
           if (item.isAuthRequired && !user) return null;
-          if (item.isAdminOnly && !isAdmin(user)) return null;
 
           return (
             <DropdownMenuItem key={item.nameKey}>
-              <WaspRouterLink
+              <Link
                 to={item.to}
                 onClick={() => {
                   setOpen(false);
@@ -48,7 +47,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
               >
                 <item.icon size="1.1rem" />
                 {t(item.nameKey)}
-              </WaspRouterLink>
+              </Link>
             </DropdownMenuItem>
           );
         })}

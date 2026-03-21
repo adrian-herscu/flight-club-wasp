@@ -127,7 +127,7 @@ page AdminSchoolRequestsPage {
   authRequired: true,
   component: import AdminSchoolRequestsPage from "@src/admin/dashboards/school-requests/SchoolRequestsDashboardPage"
 }
-route AdminSchoolRequestsRoute { path: "/admin/school-requests", to: AdminSchoolRequestsPage }
+route AdminSchoolRequestsRoute { path: "/system-admin/school-requests", to: AdminSchoolRequestsPage }
 
 query getPendingSchoolManagerRequests {
   fn: import { getPendingSchoolManagerRequests } from "@src/registration/operations",
@@ -144,17 +144,17 @@ action rejectSchoolManagerRequest {
   entities: [User, RegistrationRequest, RegistrationRequestDecision]
 }
 
-page ManagerInstructorRequestsPage {
+page SchoolManagerInstructorRequestsPage {
   authRequired: true,
   component: import ManagerRequestsPage from "@src/school-manager/ManagerRequestsDashboardPage"
 }
-route ManagerInstructorRequestsRoute { path: "/admin/member-requests/instructors", to: ManagerInstructorRequestsPage }
+route ManagerInstructorRequestsRoute { path: "/school-manager/member-requests/instructors", to: SchoolManagerInstructorRequestsPage }
 
-page ManagerStudentRequestsPage {
+page SchoolManagerStudentRequestsPage {
   authRequired: true,
   component: import ManagerRequestsPage from "@src/school-manager/ManagerRequestsDashboardPage"
 }
-route ManagerStudentRequestsRoute { path: "/admin/member-requests/students", to: ManagerStudentRequestsPage }
+route ManagerStudentRequestsRoute { path: "/school-manager/member-requests/students", to: SchoolManagerStudentRequestsPage }
 
 query getPendingSchoolMemberRequests {
   fn: import { getPendingSchoolMemberRequests } from "@src/registration/operations",
@@ -191,23 +191,23 @@ action updateIsUserAdminById {
 //#endregion
 
 //#region School Manager
-page ManagerSchoolPage {
+page SchoolManagerSchoolPage {
   authRequired: true,
   component: import ManagerSchoolPage from "@src/school-manager/ManagerSchoolPage"
 }
-route ManagerSchoolRoute { path: "/admin/school", to: ManagerSchoolPage }
+route ManagerSchoolRoute { path: "/school-manager/school", to: SchoolManagerSchoolPage }
 
-page ManagerSyllabusesPage {
+page SchoolManagerSyllabusesPage {
   authRequired: true,
   component: import ManagerSyllabusesPage from "@src/school-manager/ManagerSyllabusesPage"
 }
-route ManagerSyllabusesRoute { path: "/admin/syllabuses", to: ManagerSyllabusesPage }
+route ManagerSyllabusesRoute { path: "/school-manager/syllabuses", to: SchoolManagerSyllabusesPage }
 
-page ManagerCoursesPage {
+page SchoolManagerCoursesPage {
   authRequired: true,
   component: import ManagerCoursesPage from "@src/school-manager/ManagerCoursesPage"
 }
-route ManagerCoursesRoute { path: "/admin/courses", to: ManagerCoursesPage }
+route ManagerCoursesRoute { path: "/school-manager/courses", to: SchoolManagerCoursesPage }
 
 query getMyManagedSchool {
   fn: import { getMyManagedSchool } from "@src/school-manager/operations",
@@ -291,35 +291,71 @@ action updateMyManagedSchool {
 //#endregion
 
 //#region Admin Dashboard
-page AdminDashboardPage {
+page SystemAdminDashboardPage {
   authRequired: true,
   component: import AdminDashboard from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
 }
-route AdminRoute { path: "/admin", to: AdminDashboardPage }
+route SystemAdminRoute { path: "/system-admin", to: SystemAdminDashboardPage }
 
-page AdminUsersPage {
+page SchoolManagerDashboardPage {
   authRequired: true,
-  component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage"
+  component: import AdminDashboard from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
 }
-route AdminUsersRoute { path: "/admin/users", to: AdminUsersPage }
+route SchoolManagerRoute { path: "/school-manager", to: SchoolManagerDashboardPage }
 
-page AdminSettingsPage {
-  authRequired: true,
-  component: import AdminSettings from "@src/admin/elements/settings/SettingsPage"
-}
-route AdminSettingsRoute { path: "/admin/settings", to: AdminSettingsPage }
-
-page AdminCalendarPage {
+page SchoolManagerCalendarPage {
   authRequired: true,
   component: import AdminCalendar from "@src/admin/elements/calendar/CalendarPage"
 }
-route AdminCalendarRoute { path: "/admin/calendar", to: AdminCalendarPage }
+route SchoolManagerCalendarRoute { path: "/school-manager/calendar", to: SchoolManagerCalendarPage }
 
-page AdminUIButtonsPage {
+page SchoolManagerUIButtonsPage {
   authRequired: true,
   component: import AdminUI from "@src/admin/elements/ui-elements/ButtonsPage"
 }
-route AdminUIButtonsRoute { path: "/admin/ui/buttons", to: AdminUIButtonsPage }
+route SchoolManagerUIButtonsRoute { path: "/school-manager/ui/buttons", to: SchoolManagerUIButtonsPage }
+
+page InstructorDashboardPage {
+  authRequired: true,
+  component: import InstructorDashboardPage from "@src/portal/instructor/DashboardPage"
+}
+route InstructorRoute { path: "/instructor", to: InstructorDashboardPage }
+
+page StudentDashboardPage {
+  authRequired: true,
+  component: import StudentDashboardPage from "@src/portal/student/DashboardPage"
+}
+route StudentRoute { path: "/student", to: StudentDashboardPage }
+
+page SystemAdminUsersPage {
+  authRequired: true,
+  component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage"
+}
+route SystemAdminUsersRoute { path: "/system-admin/users", to: SystemAdminUsersPage }
+
+page SystemAdminSettingsPage {
+  authRequired: true,
+  component: import AdminSettings from "@src/admin/elements/settings/SettingsPage"
+}
+route SystemAdminSettingsRoute { path: "/system-admin/settings", to: SystemAdminSettingsPage }
+
+page SystemAdminCalendarPage {
+  authRequired: true,
+  component: import AdminCalendar from "@src/admin/elements/calendar/CalendarPage"
+}
+route SystemAdminCalendarRoute { path: "/system-admin/calendar", to: SystemAdminCalendarPage }
+
+page SystemAdminSyllabusesPage {
+  authRequired: true,
+  component: import ManagerSyllabusesPage from "@src/school-manager/ManagerSyllabusesPage"
+}
+route SystemAdminSyllabusesRoute { path: "/system-admin/syllabuses", to: SystemAdminSyllabusesPage }
+
+page SystemAdminUIButtonsPage {
+  authRequired: true,
+  component: import AdminUI from "@src/admin/elements/ui-elements/ButtonsPage"
+}
+route SystemAdminUIButtonsRoute { path: "/system-admin/ui/buttons", to: SystemAdminUIButtonsPage }
 
 page NotFoundPage {
   component: import { NotFoundPage } from "@src/client/components/NotFoundPage"
@@ -328,9 +364,9 @@ route NotFoundRoute { path: "*", to: NotFoundPage }
 //#endregion
 
 //#region Contact Form Messages
-page AdminMessagesPage {
+page SystemAdminMessagesPage {
   authRequired: true,
   component: import AdminMessages from "@src/admin/dashboards/messages/MessagesPage"
 }
-route AdminMessagesRoute { path: "/admin/messages", to: AdminMessagesPage }
+route SystemAdminMessagesRoute { path: "/system-admin/messages", to: SystemAdminMessagesPage }
 //#endregion

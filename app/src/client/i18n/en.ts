@@ -474,6 +474,7 @@ export const en = {
     mySchool: "My School",
     syllabuses: "Syllabuses",
     adminDashboard: "Admin Dashboard",
+    dashboard: "Dashboard",
     accountInformation: "Account Information",
     emailAddress: "Email address",
     fullName: "Full name",
