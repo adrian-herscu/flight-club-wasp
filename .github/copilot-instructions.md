@@ -6,6 +6,7 @@
 
 # ALWAYS
 - Prefer the vscode built in tools and configured MCP servers instead of CLI tools
+- Forcefully reset the db whenever you are changing the schema or seeding, or if you encounter any unexpected issues with the db state.
 
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
