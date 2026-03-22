@@ -188,6 +188,11 @@ action updateIsUserAdminById {
   fn: import { updateIsUserAdminById } from "@src/user/operations",
   entities: [User]
 }
+
+action updateMyUserProfile {
+  fn: import { updateMyUserProfile } from "@src/user/operations",
+  entities: [User]
+}
 //#endregion
 
 //#region School Manager

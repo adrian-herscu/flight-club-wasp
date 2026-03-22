@@ -503,11 +503,18 @@ export const he = {
     accountInformation: "מידע חשבון",
     emailAddress: "כתובת דוא״ל",
     fullName: "שם מלא",
+    phone: "טלפון",
     about: "אודות",
     coolCustomer: "אני לקוח מעניין.",
     profile: "פרופיל",
     account: "חשבון",
     preferences: "העדפות",
+    saveDetails: "שמור פרטים",
+    saving: "שומר...",
+    savedSuccess: "הפרופיל עודכן",
+    savedSuccessMessage: "הפרטים שלך נשמרו בהצלחה.",
+    saveError: "עדכון נכשל",
+    saveErrorMessage: "לא ניתן לשמור את הפרטים שלך.",
   },
 
   dashboard: {

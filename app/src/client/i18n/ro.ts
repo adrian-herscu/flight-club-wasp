@@ -502,11 +502,18 @@ export const ro = {
     accountInformation: "Informații cont",
     emailAddress: "Adresă de email",
     fullName: "Nume complet",
+    phone: "Telefon",
     about: "Despre",
     coolCustomer: "Sunt un client grozav.",
     profile: "Profil",
     account: "Cont",
     preferences: "Preferințe",
+    saveDetails: "Salvează detalii",
+    saving: "Se salvează...",
+    savedSuccess: "Profil actualizat",
+    savedSuccessMessage: "Detaliile tale au fost salvate cu succes.",
+    saveError: "Actualizare eșuată",
+    saveErrorMessage: "Nu s-au putut salva detaliile tale.",
   },
 
   dashboard: {

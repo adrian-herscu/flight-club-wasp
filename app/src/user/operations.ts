@@ -4,6 +4,7 @@ import { HttpError, prisma } from "wasp/server";
 import {
   type GetPaginatedUsers,
   type UpdateIsUserAdminById,
+  type UpdateMyUserProfile,
 } from "wasp/server/operations";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -180,4 +181,36 @@ export const getPaginatedUsers: GetPaginatedUsers<
     })),
     totalPages,
   };
+};
+
+const updateMyUserProfileInputSchema = z.object({
+  fullName: z.string().min(1).max(255).nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
+});
+
+type UpdateMyUserProfileInput = z.infer<typeof updateMyUserProfileInputSchema>;
+
+export const updateMyUserProfile: UpdateMyUserProfile<
+  UpdateMyUserProfileInput,
+  User
+> = async (rawArgs, context) => {
+  if (!context.user) {
+    throw new HttpError(
+      401,
+      "Only authenticated users are allowed to perform this operation",
+    );
+  }
+
+  const { fullName, phone } = ensureArgsSchemaOrThrowHttpError(
+    updateMyUserProfileInputSchema,
+    rawArgs,
+  );
+
+  return context.entities.User.update({
+    where: { id: context.user.id },
+    data: {
+      ...(fullName !== undefined && { fullName }),
+      ...(phone !== undefined && { phone }),
+    },
+  });
 };

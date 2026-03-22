@@ -503,11 +503,18 @@ export const en = {
     accountInformation: "Account Information",
     emailAddress: "Email address",
     fullName: "Full name",
+    phone: "Phone",
     about: "About",
     coolCustomer: "I'm a cool customer.",
     profile: "Profile",
     account: "Account",
     preferences: "Preferences",
+    saveDetails: "Save details",
+    saving: "Saving...",
+    savedSuccess: "Profile updated",
+    savedSuccessMessage: "Your details were saved successfully.",
+    saveError: "Update failed",
+    saveErrorMessage: "Unable to save your details.",
   },
 
   dashboard: {
