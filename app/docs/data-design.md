@@ -53,6 +53,7 @@ Implemented via constraints/relations/triggers in migrations.
 7. `CourseInterest` cascades on `Course` delete (user's interest is deleted when the course is removed).
 8. **Global immutability (append-only tables):** `BEFORE UPDATE` and `BEFORE DELETE` triggers on all key domain tables (`School`, `Instructor`, `Student`, `Syllabus`, `SyllabusVersion`, `SyllabusLesson`, `SyllabusPrerequisite`, `Course`, `CourseLesson`, `StudentLessonEvaluation`, `CourseInterest`, `Account`, `Transaction`, and several SaaS tables) raise an exception unconditionally — rows can be inserted but never modified or deleted at the DB level.
 9. **Audit logging:** `AFTER INSERT` triggers on `Transaction`, `AssignedInstructor`, `EnrolledStudent`, and `CourseLesson` write a row to `AuditLog`.
+10. **Member-role provenance enforcement:** `UserSchoolRole` rows for `INSTRUCTOR` and `STUDENT` must reference a non-null `sourceRegistrationRequestId` that points to an `APPROVED` `RegistrationRequest` with matching requester (`requesterId = userId`), target school (`targetSchoolId = schoolId`), and role (`requestedRole = role`). Enforcement is trigger-based on `UserSchoolRole` inserts/updates, with one explicit exception for FK-driven historical cleanup when a referenced `RegistrationRequest` is deleted and `sourceRegistrationRequestId` is nullified by `ON DELETE SET NULL`.
 
 ---
 
