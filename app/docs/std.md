@@ -122,6 +122,8 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-SYL-007 | FC-010 | UI clearly distinguishes draft, final, and obsolete versions. | P1 | Gap | No active status-distinction test. |
 | STD-SYL-008 | FC-016 | Manager syllabus page remains usable in RTL layout. | P1 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) — `rtl layout: sidebar stays anchored to right on syllabuses page` |
 | STD-SYL-009 | FC-016 | Manager syllabus page labels translate correctly in Hebrew. | P1 | Partial | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) checks that English policy text is absent, but does not assert concrete translated labels/actions. |
+| STD-SYL-011 | FC-010 | Manager can delete a single editable draft syllabus after explicit confirmation. | P0 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — `manager can delete a single draft from catalog after confirmation` |
+| STD-SYL-012 | FC-010 | Manager can delete all editable drafts in scope after explicit confirmation. | P1 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — `manager can delete all editable drafts from catalog after confirmation` |
 
 ## 4.8 Course creation and management
 

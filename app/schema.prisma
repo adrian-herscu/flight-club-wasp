@@ -124,6 +124,7 @@ model User {
   schoolRoles               UserSchoolRole[]      @relation("UserSchoolRoleMembership")
   grantedSchoolRoles        UserSchoolRole[]      @relation("UserSchoolRoleGrantedBy")
   reviewedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionReviewer")
+  hiddenSyllabusDrafts      HiddenSyllabusDraft[]            @relation("HiddenSyllabusDraftDeletedBy")
 }
 
 model RegistrationRequest {
@@ -348,9 +349,24 @@ model SyllabusVersion {
 
   lessons                   SyllabusLesson[]
   courses                   Course[]
+  hiddenDrafts              HiddenSyllabusDraft[]
 
   @@unique([syllabusId, version])
   @@index([syllabusId, status])
+}
+
+model HiddenSyllabusDraft {
+  id                        String          @id @default(uuid())
+  createdAt                 DateTime        @default(now())
+
+  deletedBy                 User            @relation("HiddenSyllabusDraftDeletedBy", fields: [deletedByUserId], references: [id])
+  deletedByUserId           String
+
+  syllabusVersion           SyllabusVersion @relation(fields: [syllabusVersionId], references: [id])
+  syllabusVersionId         String
+
+  @@unique([deletedByUserId, syllabusVersionId])
+  @@index([deletedByUserId, createdAt])
 }
 
 model SyllabusLesson {

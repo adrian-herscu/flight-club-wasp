@@ -216,12 +216,12 @@ query getMyManagedSchool {
 
 query getManagerSyllabusCatalog {
   fn: import { getManagerSyllabusCatalog } from "@src/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, HiddenSyllabusDraft]
 }
 
 query getSyllabusVersionDetails {
   fn: import { getSyllabusVersionDetails } from "@src/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, HiddenSyllabusDraft]
 }
 
 action createDraftSyllabusFromScratch {
@@ -242,6 +242,16 @@ action saveDraftSyllabusRevision {
 action publishDraftSyllabusVersion {
   fn: import { publishDraftSyllabusVersion } from "@src/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
+}
+
+action deleteDraftSyllabusVersion {
+  fn: import { deleteDraftSyllabusVersion } from "@src/school-manager/syllabusDraftDeleteOperations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, HiddenSyllabusDraft]
+}
+
+action deleteAllEditableDraftSyllabusVersions {
+  fn: import { deleteAllEditableDraftSyllabusVersions } from "@src/school-manager/syllabusDraftDeleteOperations",
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, HiddenSyllabusDraft]
 }
 
 action createCourseFromFinalSyllabus {

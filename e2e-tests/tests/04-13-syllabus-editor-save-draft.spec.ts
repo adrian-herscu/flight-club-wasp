@@ -151,4 +151,57 @@ test.describe("4.13 Syllabus editor - save draft revision", () => {
       });
     },
   );
+
+  test(
+    "[STD-SYL-011] manager can delete a single draft from catalog after confirmation",
+    async ({ page }) => {
+      const draftName = `E2E delete one ${Date.now()}`;
+
+      await test.step("Create a draft from FINAL template", async () => {
+        await createDraftFromTemplate(page, draftName);
+      });
+
+      await test.step("Open catalog and start single-draft delete", async () => {
+        await navigateToSyllabusesSection(page, "catalog");
+        const targetDraft = page.locator("li").filter({ hasText: draftName }).first();
+        await expect(targetDraft).toBeVisible();
+        await targetDraft.getByRole("button", { name: /^Delete$/ }).click();
+      });
+
+      await test.step("Confirm deletion in popup and verify draft disappears", async () => {
+        await expect(page.getByRole("heading", { name: "Delete draft?" })).toBeVisible();
+        await page.getByRole("button", { name: "Delete draft" }).click();
+
+        await expect(page.locator("li").filter({ hasText: draftName })).toHaveCount(0);
+      });
+    },
+  );
+
+  test(
+    "[STD-SYL-012] manager can delete all editable drafts from catalog after confirmation",
+    async ({ page }) => {
+      const draftNameA = `E2E delete all A ${Date.now()}`;
+      const draftNameB = `E2E delete all B ${Date.now()}`;
+
+      await test.step("Create two drafts from FINAL template", async () => {
+        await createDraftFromTemplate(page, draftNameA);
+        await createDraftFromTemplate(page, draftNameB);
+      });
+
+      await test.step("Open catalog and trigger delete-all action", async () => {
+        await navigateToSyllabusesSection(page, "catalog");
+        await expect(page.locator("li").filter({ hasText: draftNameA }).first()).toBeVisible();
+        await expect(page.locator("li").filter({ hasText: draftNameB }).first()).toBeVisible();
+        await page.getByRole("button", { name: "Delete all drafts" }).click();
+      });
+
+      await test.step("Confirm delete-all and verify created drafts are removed", async () => {
+        await expect(page.getByRole("heading", { name: "Delete all drafts?" })).toBeVisible();
+        await page.getByRole("button", { name: "Confirm delete all" }).click();
+
+        await expect(page.locator("li").filter({ hasText: draftNameA })).toHaveCount(0);
+        await expect(page.locator("li").filter({ hasText: draftNameB })).toHaveCount(0);
+      });
+    },
+  );
 });

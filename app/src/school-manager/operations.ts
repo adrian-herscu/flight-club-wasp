@@ -307,6 +307,16 @@ export const getManagerSyllabusCatalog = async (
     orderBy: [{ syllabus: { name: "asc" } }, { version: "desc" }],
   });
 
+  const hiddenDraftRows = await prisma.hiddenSyllabusDraft.findMany({
+    where: {
+      deletedByUserId: user.id,
+    },
+    select: {
+      syllabusVersionId: true,
+    },
+  });
+  const hiddenDraftIds = new Set(hiddenDraftRows.map((row) => row.syllabusVersionId));
+
   const mapped = versions.map<SyllabusCatalogItem>((version) => ({
     syllabusId: version.syllabus.id,
     syllabusName: version.syllabus.name,
@@ -325,6 +335,7 @@ export const getManagerSyllabusCatalog = async (
     editableDrafts: mapped.filter(
       (item) =>
         item.status === SyllabusVersionStatus.DRAFT &&
+        !hiddenDraftIds.has(item.syllabusVersionId) &&
         (user.role === UserRole.SYSTEM_ADMIN
           ? item.schoolId === null
           : item.schoolId === school?.id),
@@ -369,6 +380,24 @@ export const getSyllabusVersionDetails = async (
 
   if (!version) {
     throw new HttpError(404, "Syllabus version not found.");
+  }
+
+  if (version.status === SyllabusVersionStatus.DRAFT) {
+    const hiddenDraft = await prisma.hiddenSyllabusDraft.findUnique({
+      where: {
+        deletedByUserId_syllabusVersionId: {
+          deletedByUserId: user.id,
+          syllabusVersionId: version.id,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (hiddenDraft) {
+      throw new HttpError(404, "Syllabus version not found.");
+    }
   }
 
   if (user.role === UserRole.SCHOOL_MANAGER) {

@@ -11,6 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "../client/components/u
 import { Input } from "../client/components/ui/input";
 import { Slider } from "../client/components/ui/slider";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../client/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,6 +32,8 @@ import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 const {
   createDraftSyllabusFromScratch,
   createDraftSyllabusFromTemplate,
+  deleteAllEditableDraftSyllabusVersions,
+  deleteDraftSyllabusVersion,
   getMyManagedSchool,
   getManagerSyllabusCatalog,
   getSyllabusVersionDetails,
@@ -149,6 +159,10 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [draftPendingDelete, setDraftPendingDelete] = useState<CatalogItem | null>(null);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
+  const [isDeletingDraft, setIsDeletingDraft] = useState(false);
+  const [isDeletingAllDrafts, setIsDeletingAllDrafts] = useState(false);
   const syllabusesBasePath =
     user.role === UserRole.SYSTEM_ADMIN ? "/system-admin/syllabuses" : "/school-manager/syllabuses";
 
@@ -438,6 +452,87 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
+  const handleDeleteDraft = async () => {
+    if (!draftPendingDelete) {
+      return;
+    }
+
+    setIsDeletingDraft(true);
+    try {
+      const result = await deleteDraftSyllabusVersion({
+        schoolId: selectedSchoolId,
+        sourceVersionId: draftPendingDelete.syllabusVersionId,
+      });
+
+      await refetchCatalog();
+
+      if (selectedVersionId === result.deletedSyllabusVersionId) {
+        setSelectedVersionId(null);
+        await refetchVersion();
+      }
+
+      setDraftPendingDelete(null);
+
+      toast({
+        title: t("syllabus.draftDeleted"),
+        description: t("syllabus.draftDeleted_desc"),
+      });
+    } catch (deleteError: unknown) {
+      toast({
+        title: t("syllabus.deleteDraftFailed"),
+        description:
+          deleteError instanceof Error
+            ? deleteError.message
+            : t("syllabus.unableDeleteDraft"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingDraft(false);
+    }
+  };
+
+  const handleDeleteAllDrafts = async () => {
+    setIsDeletingAllDrafts(true);
+    try {
+      const result = await deleteAllEditableDraftSyllabusVersions({
+        schoolId: selectedSchoolId,
+      });
+
+      await refetchCatalog();
+
+      if (selectedVersionId) {
+        setSelectedVersionId(null);
+        await refetchVersion();
+      }
+
+      setIsDeleteAllDialogOpen(false);
+
+      toast({
+        title: t("syllabus.draftsDeleted"),
+        description:
+          result.skippedInUseCount > 0
+            ? t("syllabus.draftsDeletedWithSkipped_desc", {
+                deletedCount: result.deletedCount,
+                skippedCount: result.skippedInUseCount,
+              })
+            : t("syllabus.draftsDeleted_desc", {
+                count: result.deletedCount,
+              }),
+      });
+    } catch (deleteError: unknown) {
+      toast({
+        title: t("syllabus.deleteAllDraftsFailed"),
+        description:
+          deleteError instanceof Error
+            ? deleteError.message
+            : t("syllabus.unableDeleteAllDrafts"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAllDrafts(false);
+    }
+  };
+
   const updateLessonDraft = (index: number, patch: Partial<LessonDraft>) => {
     setLessonDrafts((current) =>
       current.map((lesson, lessonIndex) =>
@@ -562,7 +657,20 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("syllabus.editableSchoolDrafts")}</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle>{t("syllabus.editableSchoolDrafts")}</CardTitle>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={editableDrafts.length === 0 || isDeletingAllDrafts}
+                  onClick={() => setIsDeleteAllDialogOpen(true)}
+                >
+                  {isDeletingAllDrafts
+                    ? t("syllabus.deleting")
+                    : t("syllabus.deleteAllDraftsButton")}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {editableDrafts.length === 0 ? (
@@ -571,19 +679,30 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
                 <ul className="space-y-2">
                   {editableDrafts.map((item: CatalogItem) => (
                     <li key={item.syllabusVersionId}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedVersionId(item.syllabusVersionId);
-                          goToSection("details");
-                        }}
-                        className="hover:bg-accent w-full rounded-md border p-3 text-start"
-                      >
-                        <p className="text-sm font-medium">{item.syllabusName}</p>
-                        <p className="text-muted-foreground text-xs">
-                          draft v{item.version} • {item.lessonCount} lessons
-                        </p>
-                      </button>
+                      <div className="flex items-stretch gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedVersionId(item.syllabusVersionId);
+                            goToSection("details");
+                          }}
+                          className="hover:bg-accent w-full rounded-md border p-3 text-start"
+                        >
+                          <p className="text-sm font-medium">{item.syllabusName}</p>
+                          <p className="text-muted-foreground text-xs">
+                            draft v{item.version} • {item.lessonCount} lessons
+                          </p>
+                        </button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="self-center"
+                          onClick={() => setDraftPendingDelete(item)}
+                        >
+                          {t("syllabus.deleteDraftButton")}
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -910,6 +1029,73 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           </CardContent>
         </Card>
       )}
+
+      <Dialog
+        open={draftPendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingDraft) {
+            setDraftPendingDelete(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("syllabus.confirmDeleteDraftTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("syllabus.confirmDeleteDraft_desc", {
+                name: draftPendingDelete?.syllabusName ?? "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDeletingDraft}
+              onClick={() => setDraftPendingDelete(null)}
+            >
+              {t("syllabus.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletingDraft}
+              onClick={handleDeleteDraft}
+            >
+              {isDeletingDraft ? t("syllabus.deleting") : t("syllabus.confirmDeleteDraftButton")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("syllabus.confirmDeleteAllDraftsTitle")}</DialogTitle>
+            <DialogDescription>{t("syllabus.confirmDeleteAllDrafts_desc")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDeletingAllDrafts}
+              onClick={() => setIsDeleteAllDialogOpen(false)}
+            >
+              {t("syllabus.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletingAllDrafts}
+              onClick={handleDeleteAllDrafts}
+            >
+              {isDeletingAllDrafts
+                ? t("syllabus.deleting")
+                : t("syllabus.confirmDeleteAllDraftsButton")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </DefaultLayout>
   );
