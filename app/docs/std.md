@@ -104,9 +104,9 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-SCH-001 | FC-009 | Manager can open school profile page for their authorized school. | P1 | Inactive | PRD-relevant skipped test exists in [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) (`manager can view school profile`). |
+| STD-SCH-001 | FC-009 | Manager can open school profile page for their authorized school. | P1 | Covered | [04-14-school-profile-edit.spec.ts](../../e2e-tests/tests/04-14-school-profile-edit.spec.ts) — `[STD-SCH-003]` includes route access and page visibility setup; school selection context is managed from the shared sidebar selector. |
 | STD-SCH-002 | FC-009 | School profile shows contact details, address, currency, and optional branding fields. | P1 | Inactive | PRD-relevant skipped test exists in [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) (`manager can view school profile`). |
-| STD-SCH-003 | FC-009 | Manager can update school profile fields and see saved values persist after reload. | P0 | Gap | No active school-profile update test. |
+| STD-SCH-003 | FC-009 | Manager can update school profile fields and see saved values persist after reload. | P0 | Covered | [04-14-school-profile-edit.spec.ts](../../e2e-tests/tests/04-14-school-profile-edit.spec.ts) — `[STD-SCH-003] school manager can edit school details and see persisted values`. |
 | STD-SCH-004 | FC-009 | Unauthorized user cannot update another school's profile. | P0 | Gap | No active authz/scoping test for school-profile edits. |
 
 ## 4.7 Syllabus management
@@ -203,7 +203,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
  | FC-006 Prevent invalid or duplicate role requests | **Covered (API)**; 5 API tests validate duplicate pending requests, approved-role hold, and concurrent race conditions. E2E smoke test also covers basic blocking. |
 | FC-007 Review and decide school-manager requests | **Covered (API+E2E)**; approval/rejection/authz invariants are API-covered with E2E UI smoke retained for panel flow. Remaining gap is explicit UI refresh/filter persistence of rejected state. |
 | FC-008 Review instructor and student requests separately | **Covered (API+E2E)**; instructor/student approval and rejection invariants are API-covered, with E2E route/filter/approve smoke retained. Remaining gap is dedicated E2E rejection-history visibility. |
-| FC-009 Manage school profile data | Missing in active suite. |
+| FC-009 Manage school profile data | Partial; profile edit persistence is covered, while explicit unauthorized cross-school profile-edit denial remains a gap. |
 | FC-010 Manage syllabus lifecycle | Largely missing in active suite. |
 | FC-011 Open a course from a final syllabus version | Missing in active suite. |
 | FC-012 Enroll students in courses | Missing in active suite. |
