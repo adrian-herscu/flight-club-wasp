@@ -6,6 +6,8 @@ import {
   createCourseFromFinalSyllabus,
   enrollStudentInCourse,
   getManagerClosedCourses,
+  getManagerCourseEnrollmentDetails,
+  getManagerCourseInstructorDetails,
   getManagerCoursesForEnrollment,
   getManagerInstructorsForAssignment,
   getManagerStudentsForEnrollment,
@@ -16,6 +18,11 @@ import { prisma } from '../src/wasp-server-stub.js';
 import { ctx, SEED } from '../src/testHelpers';
 
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
+const OUTSIDER_SCHOOL_ID = 'seed-school-outsider-scope';
+const OUTSIDER_STUDENT_USER_ID = 'seed-user-outsider-student';
+const OUTSIDER_STUDENT_ID = 'seed-student-outsider-scope';
+const OUTSIDER_INSTRUCTOR_USER_ID = 'seed-user-outsider-instructor';
+const OUTSIDER_INSTRUCTOR_ID = 'seed-instructor-outsider-scope';
 
 describe('4.8 course close/reopen lifecycle (API)', () => {
   beforeEach(async () => {
@@ -84,6 +91,107 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
         userId: SEED.users.instructor01,
         schoolId: school.id,
         currency: school.currency,
+      },
+    });
+
+    await prisma.school.upsert({
+      where: { id: OUTSIDER_SCHOOL_ID },
+      update: {
+        name: 'Outsider Scope School',
+        addressLine1: '9 Boundary Lane',
+        city: 'Outscope City',
+        postalCode: '99999',
+        country: 'US',
+        currency: 'USD',
+        adminId: SEED.users.systemAdmin01,
+      },
+      create: {
+        id: OUTSIDER_SCHOOL_ID,
+        name: 'Outsider Scope School',
+        addressLine1: '9 Boundary Lane',
+        city: 'Outscope City',
+        postalCode: '99999',
+        country: 'US',
+        currency: 'USD',
+        adminId: SEED.users.systemAdmin01,
+      },
+    });
+
+    await prisma.user.upsert({
+      where: { id: OUTSIDER_STUDENT_USER_ID },
+      update: {
+        email: 'seed+outsider_student@example.test',
+        role: 'STUDENT',
+        fullName: 'Outsider Student',
+      },
+      create: {
+        id: OUTSIDER_STUDENT_USER_ID,
+        email: 'seed+outsider_student@example.test',
+        role: 'STUDENT',
+        fullName: 'Outsider Student',
+      },
+    });
+
+    await prisma.student.upsert({
+      where: { userId: OUTSIDER_STUDENT_USER_ID },
+      update: {},
+      create: {
+        id: OUTSIDER_STUDENT_ID,
+        userId: OUTSIDER_STUDENT_USER_ID,
+      },
+    });
+
+    await prisma.account.upsert({
+      where: {
+        userId_schoolId: {
+          userId: OUTSIDER_STUDENT_USER_ID,
+          schoolId: OUTSIDER_SCHOOL_ID,
+        },
+      },
+      update: {},
+      create: {
+        userId: OUTSIDER_STUDENT_USER_ID,
+        schoolId: OUTSIDER_SCHOOL_ID,
+        currency: 'USD',
+      },
+    });
+
+    await prisma.user.upsert({
+      where: { id: OUTSIDER_INSTRUCTOR_USER_ID },
+      update: {
+        email: 'seed+outsider_instructor@example.test',
+        role: 'INSTRUCTOR',
+        fullName: 'Outsider Instructor',
+      },
+      create: {
+        id: OUTSIDER_INSTRUCTOR_USER_ID,
+        email: 'seed+outsider_instructor@example.test',
+        role: 'INSTRUCTOR',
+        fullName: 'Outsider Instructor',
+      },
+    });
+
+    await prisma.instructor.upsert({
+      where: { userId: OUTSIDER_INSTRUCTOR_USER_ID },
+      update: {},
+      create: {
+        id: OUTSIDER_INSTRUCTOR_ID,
+        userId: OUTSIDER_INSTRUCTOR_USER_ID,
+      },
+    });
+
+    await prisma.account.upsert({
+      where: {
+        userId_schoolId: {
+          userId: OUTSIDER_INSTRUCTOR_USER_ID,
+          schoolId: OUTSIDER_SCHOOL_ID,
+        },
+      },
+      update: {},
+      create: {
+        userId: OUTSIDER_INSTRUCTOR_USER_ID,
+        schoolId: OUTSIDER_SCHOOL_ID,
+        currency: 'USD',
       },
     });
   });
@@ -156,6 +264,158 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     ).rejects.toMatchObject({
       statusCode: 409,
       message: 'Course is closed and cannot accept new instructor assignments.',
+    });
+  });
+
+  it('[STD-ENR-002][STD-ENR-003][STD-ENR-004] manager can enroll student, see roster updates, and duplicates are blocked', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-03T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const students = await getManagerStudentsForEnrollment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    if (!students.length) {
+      throw new Error('Expected seeded students in manager scope.');
+    }
+
+    const studentId = students[0]!.studentId;
+
+    await enrollStudentInCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+        studentId,
+      },
+      ctx.schoolManager,
+    );
+
+    const details = await getManagerCourseEnrollmentDetails(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+      },
+      ctx.schoolManager,
+    );
+
+    expect(details).not.toBeNull();
+    expect(details?.courseId).toBe(created.courseId);
+    expect(details?.enrolledCount).toBeGreaterThanOrEqual(1);
+    expect(details?.enrolledStudents.some((student) => student.studentId === studentId)).toBe(true);
+
+    await expect(
+      enrollStudentInCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          studentId,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Student is already enrolled in this course.',
+    });
+  });
+
+  it('[STD-ASN-002][STD-ASN-003] manager can assign instructor and duplicate assignment is blocked', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-04T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const instructors = await getManagerInstructorsForAssignment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    if (!instructors.length) {
+      throw new Error('Expected seeded instructors in manager scope.');
+    }
+
+    const instructorId = instructors[0]!.instructorId;
+
+    await assignInstructorToCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+        instructorId,
+      },
+      ctx.schoolManager,
+    );
+
+    const details = await getManagerCourseInstructorDetails(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+      },
+      ctx.schoolManager,
+    );
+
+    expect(details).not.toBeNull();
+    expect(details?.courseId).toBe(created.courseId);
+    expect(details?.assignedCount).toBeGreaterThanOrEqual(1);
+    expect(details?.assignedInstructors.some((instructor) => instructor.instructorId === instructorId)).toBe(true);
+
+    await expect(
+      assignInstructorToCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          instructorId,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Instructor is already assigned to this course.',
+    });
+  });
+
+  it('[STD-ENR-005][STD-ASN-006] manager cannot enroll or assign users from outside authorized school scope', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-05T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    await expect(
+      enrollStudentInCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          studentId: OUTSIDER_STUDENT_ID,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Student not found in your school scope.',
+    });
+
+    await expect(
+      assignInstructorToCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          instructorId: OUTSIDER_INSTRUCTOR_ID,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Instructor not found in your school scope.',
     });
   });
 });

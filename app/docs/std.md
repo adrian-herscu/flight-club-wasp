@@ -144,7 +144,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-CRS-001 | FC-011 | Manager can create a course from a final syllabus version. | P0 | Covered (API) | [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) and [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) create courses from FINAL syllabus versions. |
 | STD-CRS-002 | FC-011 | Course creation captures start date and capacity settings. | P0 | Partial | API course-creation tests in [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) provide start date and capacity inputs, and [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) verifies the manager course page exposes a date input; persisted field assertions remain missing. |
 | STD-CRS-003 | FC-011 | Course creation supports default lesson pricing. | P1 | Covered (API) | [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) validates default hourly-rate fallback, missing-rate rejection, and created-course listing under the manager school. |
-| STD-CRS-004 | FC-011 | Attempting to create a course from non-final syllabus fails with clear message. | P0 | Gap | No active negative-path test for syllabus-state enforcement. |
+| STD-CRS-004 | FC-011 | Attempting to create a course from non-final syllabus fails with clear message. | P0 | Covered (API) | [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) — `[STD-CRS-004]` validates non-FINAL syllabus versions are rejected with a clear message. |
 | STD-CRS-005 | FC-011 | Manager can view course metadata and enrollment details after creation. | P1 | Gap | No active course-details test. |
 | STD-CRS-006 | FC-011 | Manager can close an open course and later reopen it from a collapsed closed-courses panel. | P0 | Covered | [04-15-course-close-reopen.spec.ts](../../e2e-tests/tests/04-15-course-close-reopen.spec.ts) — `[STD-CRS-006] manager can close and reopen a course from closed panel`. |
 | STD-CRS-007 | FC-011 / FC-012 / FC-013 | Closed courses reject new enrollments and instructor assignments with clear messages. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-CRS-007] enrollment and assignment are blocked for closed courses`. |
@@ -154,21 +154,21 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
 | STD-ENR-001 | FC-012 | Manager can view eligible students within authorized school context. | P0 | Partial | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) exercises `getManagerStudentsForEnrollment` and confirms seeded students are available in manager scope, but it does not yet prove UI behavior or explicit cross-school scoping. |
-| STD-ENR-002 | FC-012 | Manager can enroll student into selected course. | P0 | Gap | No active enrollment creation test. |
-| STD-ENR-003 | FC-012 | Duplicate enrollment is blocked with understandable error. | P0 | Gap | No active duplicate-enrollment test. |
-| STD-ENR-004 | FC-012 | Course roster updates to show newly enrolled student. | P0 | Gap | No active roster verification test. |
-| STD-ENR-005 | FC-015 | Manager cannot enroll student into a course outside authorized school context. | P0 | Gap | No active cross-school authorization test. |
+| STD-ENR-002 | FC-012 | Manager can enroll student into selected course. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-002]` validates enrollment creation in manager scope. |
+| STD-ENR-003 | FC-012 | Duplicate enrollment is blocked with understandable error. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-003]` validates duplicate enrollment returns 409 with user-facing message. |
+| STD-ENR-004 | FC-012 | Course roster updates to show newly enrolled student. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-004]` validates enrollment details include the newly enrolled student. |
+| STD-ENR-005 | FC-015 | Manager cannot enroll student into a course outside authorized school context. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-005]` validates out-of-scope student enrollment is rejected. |
 
 ## 4.10 Instructor assignment
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
 | STD-ASN-001 | FC-013 | Manager can view eligible instructors within authorized school context. | P0 | Partial | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) exercises `getManagerInstructorsForAssignment` and confirms seeded instructors are available in manager scope, but it does not yet prove UI behavior or explicit cross-school scoping. |
-| STD-ASN-002 | FC-013 | Manager can assign instructor to selected course. | P0 | Gap | No active instructor-assignment test. |
-| STD-ASN-003 | FC-013 | Duplicate assignment is blocked with understandable error. | P0 | Gap | No active duplicate-assignment test. |
+| STD-ASN-002 | FC-013 | Manager can assign instructor to selected course. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ASN-002]` validates assignment creation in manager scope. |
+| STD-ASN-003 | FC-013 | Duplicate assignment is blocked with understandable error. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ASN-003]` validates duplicate assignment returns 409 with user-facing message. |
 | STD-ASN-004 | FC-013 | Schedule conflicts are surfaced as understandable errors. | P0 | Gap | No active conflict-handling test. |
 | STD-ASN-005 | FC-013 | Qualification or business-rule conflicts are surfaced as understandable errors. | P1 | Gap | No active rule-conflict/error-message test. |
-| STD-ASN-006 | FC-015 | Manager cannot assign instructor outside authorized school context. | P0 | Gap | No active cross-school authorization test. |
+| STD-ASN-006 | FC-015 | Manager cannot assign instructor outside authorized school context. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ASN-006]` validates out-of-scope instructor assignment is rejected. |
 
 ## 4.11 Role-based navigation
 
@@ -178,9 +178,9 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-NAV-002 | FC-014 | School manager sees only manager-appropriate sidebar links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
 | STD-NAV-003 | FC-014 | Each visible admin sidebar item loads the expected route. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
 | STD-NAV-004 | FC-014 | Each visible manager sidebar item loads the expected route. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) |
-| STD-NAV-005 | FC-014 | Instructor sees only instructor-appropriate navigation links. | P0 | Gap | No active instructor-role navigation test. |
-| STD-NAV-006 | FC-014 | Student sees only student-appropriate navigation links. | P0 | Gap | No active student-role navigation test. |
-| STD-NAV-007 | FC-014 | Authenticated user without elevated role does not see admin/manager links. | P0 | Gap | No active plain-user navigation visibility test. |
+| STD-NAV-005 | FC-014 | Instructor sees only instructor-appropriate navigation links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-005]` validates instructor sidebar scope. |
+| STD-NAV-006 | FC-014 | Student sees only student-appropriate navigation links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-006]` validates student sidebar scope. |
+| STD-NAV-007 | FC-014 | Authenticated user without elevated role does not see admin/manager links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-007]` validates plain-user visibility boundaries. |
 | STD-NAV-008 | FC-014 | Account menu shows dashboard link for elevated roles. | P1 | Covered | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) |
 
 ## 4.12 Internationalization and RTL
@@ -219,24 +219,24 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | FC-008 Review instructor and student requests separately | **Covered (API+E2E)**; instructor/student approval and rejection invariants are API-covered, with E2E route/filter/approve smoke retained. Remaining gap is dedicated E2E rejection-history visibility. |
 | FC-009 Manage school profile data | Partial; profile edit persistence and multi-school context switching are covered, while explicit unauthorized cross-school profile-edit denial remains a gap. |
 | FC-010 Manage syllabus lifecycle | Partial; template-based draft creation, draft revision, publish-to-final, and draft deletion flows are covered, while from-scratch creation, broader manager catalog coverage, and obsolete-state distinction remain incomplete. |
-| FC-011 Open a course from a final syllabus version | Partial; API coverage exists for creation from FINAL syllabus versions, hourly-rate rules, and close/reopen lifecycle, while non-final rejection messaging and course-details UX remain incomplete. |
-| FC-012 Enroll students in courses | Partial; manager-scope student lookup and closed-course rejection are API-covered, while enrollment happy path, duplicate blocking, roster updates, and cross-school denial remain missing. |
-| FC-013 Assign instructors to courses | Partial; manager-scope instructor lookup and closed-course rejection are API-covered, while assignment happy path, duplicate blocking, conflict handling, and cross-school denial remain missing. |
-| FC-014 Navigate admin features by role | Good for admin and manager; missing for instructor, student, and plain authenticated users. |
- | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; 10 API tests validate operation-level 401/403 authorization gates for approveSchoolManagerRequest and approveSchoolMemberRequest across 5 roles; E2E covers route-level denial. School-scope enforcement still needs testing. |
+| FC-011 Open a course from a final syllabus version | Partial; API coverage exists for creation from FINAL syllabus versions, hourly-rate rules, non-FINAL rejection messaging, and close/reopen lifecycle, while course-details UX remains incomplete. |
+| FC-012 Enroll students in courses | Partial; manager-scope lookup, enrollment happy path, duplicate blocking, roster update, cross-school denial, and closed-course rejection are API-covered. Remaining gaps are E2E user-flow and concurrency coverage. |
+| FC-013 Assign instructors to courses | Partial; manager-scope lookup, assignment happy path, duplicate blocking, cross-school denial, and closed-course rejection are API-covered. Remaining gaps are schedule/qualification conflict handling and E2E user-flow coverage. |
+| FC-014 Navigate admin features by role | Covered for admin, school manager, instructor, student, and plain authenticated users in active E2E navigation tests. |
+| FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; approval-action 401/403 role gates remain covered, E2E route denial remains covered, and manager school-scope denial is now API-covered for enrollment/assignment actions. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
 
 ## 6. Highest-Priority Gaps to Implement Next
 
 1. School profile view/edit authorization tests.
 2. Syllabus from-scratch creation, manager catalog breadth, and obsolete-state coverage.
-3. Course creation non-final rejection messaging and course-details UX assertions.
-4. Student enrollment happy path and duplicate/cross-school denial tests.
-5. Instructor assignment happy path and conflict/duplicate/cross-school denial tests.
-6. Instructor, student, and plain-user role-based navigation tests.
-7. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
-8. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
+3. Course-details UX assertions after creation (metadata and enrollment details).
+4. Instructor assignment conflict/error-message coverage (schedule and qualification paths).
+5. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
+6. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
+7. E2E coverage for enrollment/assignment user flows and integrity under concurrency.
+8. Registration request-history visibility and status persistence tests.
 
 ## 7. Notes
 
- - As of March 2026, **43 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, and approval side effects. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.
+ - As of March 2026, **46 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, enrollment/assignment integrity, and approval side effects. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.

@@ -54,6 +54,7 @@ type NavStep = {
 type RoleScenario = {
   testName: string;
   email: string;
+  dashboardRoot: string;
   visibilityRules: VisibilityRule[];
   navSteps: NavStep[];
 };
@@ -62,9 +63,14 @@ const roleScenarios: RoleScenario[] = [
   {
     testName: "[4.11][STD-NAV-001][STD-NAV-003][@smoke] system admin can open each visible sidebar menu route",
     email: "seed+system_admin.01@example.test",
+    dashboardRoot: "/system-admin",
     visibilityRules: [
+      { name: "Dashboard", visible: true },
+      { name: "Users", visible: true },
       { name: "Schools", visible: true },
       { name: "Member Requests", visible: false },
+      { name: "Instructors", visible: false },
+      { name: "Students", visible: false },
       { name: "My School", visible: false },
       { name: "Courses", visible: false },
       { name: "Syllabuses", visible: true },
@@ -86,7 +92,10 @@ const roleScenarios: RoleScenario[] = [
   {
     testName: "[4.11][STD-NAV-002][STD-NAV-004] school manager can open each visible sidebar menu route",
     email: "seed+school_manager.01@example.test",
+    dashboardRoot: "/school-manager",
     visibilityRules: [
+      { name: "Dashboard", visible: true },
+      { name: "Users", visible: false },
       { name: "Schools", visible: true },
       { name: "Member Requests", visible: false },
       { name: "Instructors", visible: true },
@@ -131,6 +140,52 @@ const roleScenarios: RoleScenario[] = [
       { linkName: "Syllabuses", expectedUrl: /\/school-manager\/syllabuses\?section=catalog$/ },
     ],
   },
+  {
+    testName: "[4.11][STD-NAV-005] instructor sees only instructor-appropriate sidebar links",
+    email: "seed+instructor.01@example.test",
+    dashboardRoot: "/instructor",
+    visibilityRules: [
+      { name: "Dashboard", visible: true },
+      { name: "Users", visible: false },
+      { name: "Schools", visible: false },
+      { name: "Instructors", visible: false },
+      { name: "Students", visible: false },
+      { name: "Courses", visible: false },
+      { name: "Syllabuses", visible: false },
+    ],
+    navSteps: [
+      {
+        linkName: "Dashboard",
+        expectedUrl: /\/instructor\/?$/,
+        additionalAssertions: async (page) => {
+          await expect(page.getByTestId("instructor-dashboard-placeholder")).toBeVisible();
+        },
+      },
+    ],
+  },
+  {
+    testName: "[4.11][STD-NAV-006] student sees only student-appropriate sidebar links",
+    email: "seed+student.01@example.test",
+    dashboardRoot: "/student",
+    visibilityRules: [
+      { name: "Dashboard", visible: true },
+      { name: "Users", visible: false },
+      { name: "Schools", visible: false },
+      { name: "Instructors", visible: false },
+      { name: "Students", visible: false },
+      { name: "Courses", visible: false },
+      { name: "Syllabuses", visible: false },
+    ],
+    navSteps: [
+      {
+        linkName: "Dashboard",
+        expectedUrl: /\/student\/?$/,
+        additionalAssertions: async (page) => {
+          await expect(page.getByTestId("student-dashboard-placeholder")).toBeVisible();
+        },
+      },
+    ],
+  },
 ];
 
 test.describe("4.11 role-based navigation", () => {
@@ -145,15 +200,12 @@ test.describe("4.11 role-based navigation", () => {
         expectedRedirectPath: "/",
       });
 
-      await page.goto(scenario.email.includes("system_admin") ? "/system-admin" : "/school-manager");
+      await page.goto(scenario.dashboardRoot);
       await page.waitForLoadState("networkidle");
 
       await expectSidebarOnScreen(page);
 
       const sidebar = page.locator("aside");
-      const dashboardRoot = scenario.email.includes("system_admin")
-        ? "/system-admin"
-        : "/school-manager";
       for (const rule of scenario.visibilityRules) {
         const link = sidebar.getByRole("link", { name: rule.name });
         if (rule.visible) {
@@ -164,13 +216,35 @@ test.describe("4.11 role-based navigation", () => {
       }
 
       for (const step of scenario.navSteps) {
-        await page.goto(dashboardRoot);
+        await page.goto(scenario.dashboardRoot);
         await page.waitForLoadState("networkidle");
         await expectSidebarOnScreen(page);
         await clickSidebarLinkAndExpectUrl(page, step.linkName, step.expectedUrl);
         await step.additionalAssertions?.(page);
       }
     });
+  });
+
+  test("[4.11][STD-NAV-007] authenticated plain user does not see admin/manager sidebar links", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+user.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/registration",
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator("aside")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Users" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Schools" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Instructors" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Students" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Courses" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Syllabuses" })).toHaveCount(0);
   });
 
 });
