@@ -134,6 +134,8 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-CRS-003 | FC-011 | Course creation supports default lesson pricing. | P1 | Gap | No active pricing-field test. |
 | STD-CRS-004 | FC-011 | Attempting to create a course from non-final syllabus fails with clear message. | P0 | Gap | No active negative-path test for syllabus-state enforcement. |
 | STD-CRS-005 | FC-011 | Manager can view course metadata and enrollment details after creation. | P1 | Gap | No active course-details test. |
+| STD-CRS-006 | FC-011 | Manager can close an open course and later reopen it from a collapsed closed-courses panel. | P0 | Covered | [04-15-course-close-reopen.spec.ts](../../e2e-tests/tests/04-15-course-close-reopen.spec.ts) — `[STD-CRS-006] manager can close and reopen a course from closed panel`. |
+| STD-CRS-007 | FC-011 / FC-012 / FC-013 | Closed courses reject new enrollments and instructor assignments with clear messages. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-CRS-007] enrollment and assignment are blocked for closed courses`. |
 
 ## 4.9 Student enrollment
 

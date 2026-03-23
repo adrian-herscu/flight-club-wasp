@@ -1,4 +1,4 @@
-import { Prisma, SyllabusVersionStatus, UserRole } from "@prisma/client";
+import { CourseLifecycleStatus, Prisma, SyllabusVersionStatus, UserRole } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -84,6 +84,18 @@ const createCourseFromFinalSyllabusSchema = z.object({
 type CreateCourseFromFinalSyllabusInput = z.infer<
   typeof createCourseFromFinalSyllabusSchema
 >;
+
+const closeCourseSchema = z.object({
+  courseId: z.string().min(1),
+});
+
+type CloseCourseInput = z.infer<typeof closeCourseSchema>;
+
+const reopenCourseSchema = z.object({
+  courseId: z.string().min(1),
+});
+
+type ReopenCourseInput = z.infer<typeof reopenCourseSchema>;
 
 type SyllabusCatalogItem = {
   syllabusId: string;
@@ -225,6 +237,49 @@ function ensureSyllabusOperator(context: {
   }
 
   return context.user as { id: string; role: Extract<UserRole, "SCHOOL_MANAGER" | "SYSTEM_ADMIN"> };
+}
+
+async function getLatestCourseLifecycleStatusByCourseIds(courseIds: string[]) {
+  if (courseIds.length === 0) {
+    return new Map<string, CourseLifecycleStatus>();
+  }
+
+  const lifecycleEvents = await prisma.courseLifecycleEvent.findMany({
+    where: {
+      courseId: {
+        in: courseIds,
+      },
+    },
+    select: {
+      courseId: true,
+      status: true,
+      createdAt: true,
+    },
+    orderBy: [{ createdAt: "desc" }],
+  });
+
+  const statusByCourseId = new Map<string, CourseLifecycleStatus>();
+  for (const event of lifecycleEvents) {
+    if (!statusByCourseId.has(event.courseId)) {
+      statusByCourseId.set(event.courseId, event.status);
+    }
+  }
+
+  return statusByCourseId;
+}
+
+async function isCourseClosed(courseId: string) {
+  const latestEvent = await prisma.courseLifecycleEvent.findFirst({
+    where: {
+      courseId,
+    },
+    select: {
+      status: true,
+    },
+    orderBy: [{ createdAt: "desc" }],
+  });
+
+  return latestEvent?.status === CourseLifecycleStatus.CLOSED;
 }
 
 export const getMyManagedSchool = async (
@@ -758,14 +813,82 @@ export const getManagerCoursesForEnrollment = async (
     orderBy: [{ startDate: "asc" }, { createdAt: "desc" }],
   });
 
-  return courses.map((course) => ({
-    courseId: course.id,
-    syllabusName: course.syllabusVersion.syllabus.name,
-    syllabusVersion: course.syllabusVersion.version,
-    startDate: course.startDate,
-    hourlyRate: course.hourlyRate,
-    enrolledCount: course._count.enrolledStudents,
-  }));
+  const latestStatusByCourseId = await getLatestCourseLifecycleStatusByCourseIds(
+    courses.map((course) => course.id),
+  );
+
+  return courses
+    .filter((course) => latestStatusByCourseId.get(course.id) !== CourseLifecycleStatus.CLOSED)
+    .map((course) => ({
+      courseId: course.id,
+      syllabusName: course.syllabusVersion.syllabus.name,
+      syllabusVersion: course.syllabusVersion.version,
+      startDate: course.startDate,
+      hourlyRate: course.hourlyRate,
+      enrolledCount: course._count.enrolledStudents,
+    }));
+};
+
+export const getManagerClosedCourses = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<ManagerCourseListItem[]> => {
+  const user = ensureSyllabusOperator(context);
+  if (user.role === UserRole.SYSTEM_ADMIN) {
+    return [];
+  }
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+
+  const courses = await prisma.course.findMany({
+    where: {
+      OR: [
+        {
+          schoolId: school.id,
+        },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      syllabusVersion: {
+        include: {
+          syllabus: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          enrolledStudents: true,
+        },
+      },
+    },
+    orderBy: [{ startDate: "asc" }, { createdAt: "desc" }],
+  });
+
+  const latestStatusByCourseId = await getLatestCourseLifecycleStatusByCourseIds(
+    courses.map((course) => course.id),
+  );
+
+  return courses
+    .filter((course) => latestStatusByCourseId.get(course.id) === CourseLifecycleStatus.CLOSED)
+    .map((course) => ({
+      courseId: course.id,
+      syllabusName: course.syllabusVersion.syllabus.name,
+      syllabusVersion: course.syllabusVersion.version,
+      startDate: course.startDate,
+      hourlyRate: course.hourlyRate,
+      enrolledCount: course._count.enrolledStudents,
+    }));
 };
 
 export const getManagerStudentsForEnrollment = async (
@@ -976,6 +1099,10 @@ export const enrollStudentInCourse = async (
     throw new HttpError(404, "Course not found in your school scope.");
   }
 
+  if (await isCourseClosed(course.id)) {
+    throw new HttpError(409, "Course is closed and cannot accept new enrollments.");
+  }
+
   const student = await prisma.student.findFirst({
     where: {
       id: studentId,
@@ -1114,11 +1241,19 @@ export const assignInstructorToCourse = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      syllabusVersion: {
-        syllabus: {
+      OR: [
+        {
           schoolId: school.id,
         },
-      },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
     },
     select: {
       id: true,
@@ -1127,6 +1262,13 @@ export const assignInstructorToCourse = async (
 
   if (!course) {
     throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  if (await isCourseClosed(course.id)) {
+    throw new HttpError(
+      409,
+      "Course is closed and cannot accept new instructor assignments.",
+    );
   }
 
   const instructor = await prisma.instructor.findFirst({
@@ -1244,4 +1386,110 @@ export const createCourseFromFinalSyllabus = async (
   return {
     courseId: created.id,
   };
+};
+
+export const closeCourse = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
+  const user = ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { courseId } = ensureArgsSchemaOrThrowHttpError(
+    closeCourseSchema,
+    rawArgs,
+  ) as CloseCourseInput;
+
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [
+        {
+          schoolId: school.id,
+        },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  if (await isCourseClosed(course.id)) {
+    return { courseId: course.id, status: CourseLifecycleStatus.CLOSED };
+  }
+
+  await prisma.courseLifecycleEvent.create({
+    data: {
+      courseId: course.id,
+      changedByUserId: user.id,
+      status: CourseLifecycleStatus.CLOSED,
+    },
+  });
+
+  return { courseId: course.id, status: CourseLifecycleStatus.CLOSED };
+};
+
+export const reopenCourse = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; role?: UserRole | null } | null },
+): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
+  const user = ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { courseId } = ensureArgsSchemaOrThrowHttpError(
+    reopenCourseSchema,
+    rawArgs,
+  ) as ReopenCourseInput;
+
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [
+        {
+          schoolId: school.id,
+        },
+        {
+          schoolId: null,
+          syllabusVersion: {
+            syllabus: {
+              schoolId: school.id,
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, "Course not found in your school scope.");
+  }
+
+  if (!(await isCourseClosed(course.id))) {
+    return { courseId: course.id, status: CourseLifecycleStatus.REOPENED };
+  }
+
+  await prisma.courseLifecycleEvent.create({
+    data: {
+      courseId: course.id,
+      changedByUserId: user.id,
+      status: CourseLifecycleStatus.REOPENED,
+    },
+  });
+
+  return { courseId: course.id, status: CourseLifecycleStatus.REOPENED };
 };

@@ -56,6 +56,32 @@ export const logUserIn = async ({
     )
     .catch(() => null);
 
+  const currentPath = new URL(page.url()).pathname;
+  if (currentPath === "/login") {
+    const loginResponse = await page.request.post("http://127.0.0.1:3001/auth/email/login", {
+      data: {
+        email: user.email,
+        password: user.password ?? DEFAULT_PASSWORD,
+      },
+    });
+
+    if (!loginResponse.ok()) {
+      throw new Error(`Login failed with status ${loginResponse.status()}`);
+    }
+
+    const loginPayload = (await loginResponse.json()) as { sessionId?: string };
+    if (!loginPayload.sessionId) {
+      throw new Error("Login response did not contain sessionId.");
+    }
+
+    await page.evaluate((sessionId) => {
+      localStorage.setItem("sessionId", sessionId);
+      localStorage.setItem("wasp:sessionId", sessionId);
+    }, loginPayload.sessionId);
+
+    await page.goto(expectedRedirectPath);
+  }
+
   // Also wait a bit for any redirects
   await page.waitForLoadState("networkidle").catch(() => {});
 };

@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "wasp-start-dev",
+			"type": "shell",
+			"command": "wasp start | tee -a wasp-dev.log",
+			"isBackground": true
+		}
+	]
+}

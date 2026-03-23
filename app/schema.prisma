@@ -56,6 +56,11 @@ enum CourseInterestStatus {
   CANCELLED
 }
 
+enum CourseLifecycleStatus {
+  CLOSED
+  REOPENED
+}
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
@@ -125,6 +130,7 @@ model User {
   grantedSchoolRoles        UserSchoolRole[]      @relation("UserSchoolRoleGrantedBy")
   reviewedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionReviewer")
   hiddenSyllabusDrafts      HiddenSyllabusDraft[]            @relation("HiddenSyllabusDraftDeletedBy")
+  courseLifecycleEvents     CourseLifecycleEvent[]           @relation("CourseLifecycleChangedBy")
 }
 
 model RegistrationRequest {
@@ -405,6 +411,7 @@ model Course {
   courseLessons             CourseLesson[]
   assignedInstructors       AssignedInstructor[]
   enrolledStudents          EnrolledStudent[]
+  lifecycleEvents           CourseLifecycleEvent[]
 
   @@index([startDate])
   @@index([syllabusVersionId, startDate])
@@ -476,6 +483,22 @@ model StudentLessonEvaluation {
   @@unique([studentId, courseLessonId])
   @@index([instructorId])
   @@index([status])
+}
+
+model CourseLifecycleEvent {
+  id                        String                 @id @default(uuid())
+  createdAt                 DateTime               @default(now())
+
+  course                    Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                  String
+
+  changedBy                 User                   @relation("CourseLifecycleChangedBy", fields: [changedByUserId], references: [id])
+  changedByUserId           String
+
+  status                    CourseLifecycleStatus
+
+  @@index([courseId, createdAt])
+  @@index([changedByUserId, createdAt])
 }
 
 model GptResponse {

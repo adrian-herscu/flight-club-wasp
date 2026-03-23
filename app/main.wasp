@@ -72,7 +72,7 @@ route LandingPageRoute { path: "/", to: LandingPage }
 
 query getLandingSchoolsWithCourses {
   fn: import { getLandingSchoolsWithCourses } from "@src/landing-page/operations",
-  entities: [School, Syllabus, SyllabusVersion]
+  entities: [School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]
 }
 
 page LoginPage {
@@ -266,7 +266,12 @@ action createCourseFromFinalSyllabus {
 
 query getManagerCoursesForEnrollment {
   fn: import { getManagerCoursesForEnrollment } from "@src/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, Course, EnrolledStudent]
+  entities: [User, School, Syllabus, SyllabusVersion, Course, EnrolledStudent, CourseLifecycleEvent]
+}
+
+query getManagerClosedCourses {
+  fn: import { getManagerClosedCourses } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, EnrolledStudent, CourseLifecycleEvent]
 }
 
 query getManagerStudentsForEnrollment {
@@ -291,12 +296,22 @@ query getManagerCourseInstructorDetails {
 
 action enrollStudentInCourse {
   fn: import { enrollStudentInCourse } from "@src/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent, Account]
+  entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent, Account, CourseLifecycleEvent]
 }
 
 action assignInstructorToCourse {
   fn: import { assignInstructorToCourse } from "@src/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, Course, Instructor, AssignedInstructor, Account]
+  entities: [User, School, Syllabus, SyllabusVersion, Course, Instructor, AssignedInstructor, Account, CourseLifecycleEvent]
+}
+
+action closeCourse {
+  fn: import { closeCourse } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]
+}
+
+action reopenCourse {
+  fn: import { reopenCourse } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]
 }
 
 action updateMyManagedSchool {

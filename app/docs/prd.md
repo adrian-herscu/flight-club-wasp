@@ -125,6 +125,8 @@ The project should continue to evolve within the existing Wasp application struc
   - School managers must be able to create courses only from final syllabus versions.
   - Course setup must support start date, capacity bounds, and default lesson pricing.
   - Managers must be able to view course enrollment details and course-level metadata.
+  - Managers must be able to close a course and reopen it later from a dedicated closed-courses panel.
+  - Closed courses must be hidden from public landing-page discovery and must reject new enrollments and instructor assignments until reopened.
 
 - **Instructor assignment and student enrollment** (Priority: High)
 

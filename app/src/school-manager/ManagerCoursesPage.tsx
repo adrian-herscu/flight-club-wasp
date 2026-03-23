@@ -6,6 +6,14 @@ import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
 import { Button } from "../client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../client/components/ui/dialog";
 import { Input } from "../client/components/ui/input";
 import {
   Select,
@@ -19,8 +27,10 @@ import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
   assignInstructorToCourse,
+  closeCourse,
   createCourseFromFinalSyllabus,
   enrollStudentInCourse,
+  getManagerClosedCourses,
   getManagerCourseInstructorDetails,
   getManagerCourseEnrollmentDetails,
   getManagerCoursesForEnrollment,
@@ -28,6 +38,7 @@ const {
   getManagerSyllabusCatalog,
   getManagerInstructorsForAssignment,
   getManagerStudentsForEnrollment,
+  reopenCourse,
   useQuery,
 } = operations as any;
 
@@ -52,6 +63,7 @@ type EnrollmentCourseItem = {
   syllabusVersion: number;
   startDate: string | null;
   hourlyRate: number | null;
+  status: "OPEN" | "CLOSED";
   enrolledCount: number;
 };
 
@@ -106,6 +118,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const coursesForEnrollment = (coursesForEnrollmentData as EnrollmentCourseItem[] | undefined) ?? [];
 
   const {
+    data: closedCoursesData,
+    refetch: refetchClosedCourses,
+  } = useQuery(getManagerClosedCourses, { schoolId: selectedSchoolId });
+  const closedCourses = (closedCoursesData as EnrollmentCourseItem[] | undefined) ?? [];
+
+  const {
     data: studentsForEnrollmentData,
     refetch: refetchStudentsForEnrollment,
   } = useQuery(getManagerStudentsForEnrollment, { schoolId: selectedSchoolId });
@@ -143,6 +161,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
   const [isAssigningInstructor, setIsAssigningInstructor] = useState(false);
+  const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+  const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
+  const [isClosingCourse, setIsClosingCourse] = useState(false);
+  const [isReopeningCourse, setIsReopeningCourse] = useState(false);
+  const [pendingCloseCourse, setPendingCloseCourse] = useState<EnrollmentCourseItem | null>(null);
+  const [pendingReopenCourse, setPendingReopenCourse] = useState<EnrollmentCourseItem | null>(null);
   const [newCourseTemplateVersionId, setNewCourseTemplateVersionId] = useState<string>("");
   const [newCourseStartDate, setNewCourseStartDate] = useState<string>("");
   const [newCourseMinCapacity, setNewCourseMinCapacity] = useState<string>("");
@@ -259,6 +283,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       await Promise.all([
         refetchCourseEnrollmentDetails(),
         refetchCoursesForEnrollment(),
+        refetchClosedCourses(),
         refetchStudentsForEnrollment(),
       ]);
 
@@ -311,6 +336,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       await Promise.all([
         refetchCourseInstructorDetails(),
         refetchCoursesForEnrollment(),
+        refetchClosedCourses(),
         refetchInstructorsForAssignment(),
       ]);
 
@@ -409,6 +435,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
       await Promise.all([
         refetchCoursesForEnrollment(),
+        refetchClosedCourses(),
         refetchCourseEnrollmentDetails(),
         refetchCourseInstructorDetails(),
       ]);
@@ -434,6 +461,96 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       });
     } finally {
       setIsCreatingCourse(false);
+    }
+  };
+
+  const handleOpenCloseCourseDialog = (course: EnrollmentCourseItem) => {
+    setPendingCloseCourse(course);
+    setIsCloseDialogOpen(true);
+  };
+
+  const handleOpenReopenCourseDialog = (course: EnrollmentCourseItem) => {
+    setPendingReopenCourse(course);
+    setIsReopenDialogOpen(true);
+  };
+
+  const handleCloseCourse = async () => {
+    if (!pendingCloseCourse) {
+      return;
+    }
+
+    setIsClosingCourse(true);
+    try {
+      await closeCourse({
+        schoolId: selectedSchoolId,
+        courseId: pendingCloseCourse.courseId,
+      });
+
+      await Promise.all([
+        refetchCoursesForEnrollment(),
+        refetchClosedCourses(),
+        refetchCourseEnrollmentDetails(),
+        refetchCourseInstructorDetails(),
+      ]);
+
+      toast({
+        title: t("syllabus.courseClosed"),
+        description: t("syllabus.courseClosed_desc"),
+      });
+
+      setIsCloseDialogOpen(false);
+      setPendingCloseCourse(null);
+    } catch (closeCourseError: unknown) {
+      toast({
+        title: t("syllabus.closeCourseFailed"),
+        description:
+          closeCourseError instanceof Error
+            ? closeCourseError.message
+            : t("syllabus.unableCloseCourse"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsClosingCourse(false);
+    }
+  };
+
+  const handleReopenCourse = async () => {
+    if (!pendingReopenCourse) {
+      return;
+    }
+
+    setIsReopeningCourse(true);
+    try {
+      await reopenCourse({
+        schoolId: selectedSchoolId,
+        courseId: pendingReopenCourse.courseId,
+      });
+
+      await Promise.all([
+        refetchCoursesForEnrollment(),
+        refetchClosedCourses(),
+        refetchCourseEnrollmentDetails(),
+        refetchCourseInstructorDetails(),
+      ]);
+
+      toast({
+        title: t("syllabus.courseReopened"),
+        description: t("syllabus.courseReopened_desc"),
+      });
+
+      setIsReopenDialogOpen(false);
+      setPendingReopenCourse(null);
+    } catch (reopenCourseError: unknown) {
+      toast({
+        title: t("syllabus.reopenCourseFailed"),
+        description:
+          reopenCourseError instanceof Error
+            ? reopenCourseError.message
+            : t("syllabus.unableReopenCourse"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsReopeningCourse(false);
     }
   };
 
@@ -531,9 +648,19 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               <ul className="space-y-2">
                 {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
                   <li key={course.courseId} className="rounded-md border p-3">
-                    <p className="text-sm font-medium">
-                      {course.syllabusName} (v{course.syllabusVersion})
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium">
+                        {course.syllabusName} (v{course.syllabusVersion})
+                      </p>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleOpenCloseCourseDialog(course)}
+                      >
+                        {t("syllabus.closeCourseButton")}
+                      </Button>
+                    </div>
                     <p
                       className="text-muted-foreground text-xs"
                       data-testid={`manager-course-summary-${course.courseId}`}
@@ -552,6 +679,44 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 ))}
               </ul>
             )}
+
+            <details className="mt-4 rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">
+                {t("syllabus.closedCoursesPanel", { count: closedCourses.length })}
+              </summary>
+
+              <div className="mt-3">
+                {closedCourses.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">{t("syllabus.noClosedCourses")}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {closedCourses.map((course: EnrollmentCourseItem) => (
+                      <li key={course.courseId} className="rounded-md border p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-medium">
+                            {course.syllabusName} (v{course.syllabusVersion})
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenReopenCourseDialog(course)}
+                          >
+                            {t("syllabus.reopenCourseButton")}
+                          </Button>
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                          {t("syllabus.enrolledStudents", { count: course.enrolledCount })} • {" "}
+                          {course.startDate
+                            ? new Date(course.startDate).toLocaleDateString()
+                            : t("syllabus.startDate")}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </details>
           </CardContent>
         </Card>
       </div>
@@ -717,6 +882,75 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("syllabus.confirmCloseCourseTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("syllabus.confirmCloseCourse_desc", {
+                name: pendingCloseCourse
+                  ? `${pendingCloseCourse.syllabusName} (v${pendingCloseCourse.syllabusVersion})`
+                  : "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCloseDialogOpen(false);
+                setPendingCloseCourse(null);
+              }}
+            >
+              {t("syllabus.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleCloseCourse}
+              disabled={isClosingCourse}
+            >
+              {isClosingCourse ? t("syllabus.closingCourse") : t("syllabus.confirmCloseCourseButton")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isReopenDialogOpen} onOpenChange={setIsReopenDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("syllabus.confirmReopenCourseTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("syllabus.confirmReopenCourse_desc", {
+                name: pendingReopenCourse
+                  ? `${pendingReopenCourse.syllabusName} (v${pendingReopenCourse.syllabusVersion})`
+                  : "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsReopenDialogOpen(false);
+                setPendingReopenCourse(null);
+              }}
+            >
+              {t("syllabus.cancel")}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleReopenCourse}
+              disabled={isReopeningCourse}
+            >
+              {isReopeningCourse ? t("syllabus.reopeningCourse") : t("syllabus.confirmReopenCourseButton")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DefaultLayout>
   );
 };
