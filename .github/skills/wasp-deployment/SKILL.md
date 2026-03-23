@@ -1,3 +1,8 @@
+---
+name: wasp-deployment
+description: Railway deployment workflow for this Wasp app. Use when preparing, validating, or troubleshooting deployments from app/, checking Railway environment variables, auth callbacks, CI token health, or production smoke checks.
+---
+
 # Skill: Wasp Railway Deployment
 
 Use this skill when asked to deploy/update the Wasp app on Railway.
@@ -64,7 +69,7 @@ These must be set on the `flight-club-wasp-server` service in Railway. Wasp auto
 	- Leftover files under `src/` still typechecked; remove or fix orphan imports/usages.
 - **Config declaration drift (`main.wasp`)**:
 	- This repo uses `app/main.wasp` as source of truth.
-	- If deployment/dev behavior is inconsistent after config changes, verify `app/main.wasp` declarations and restart `wasp start` before re-checking.
+	- If deployment/dev behavior is inconsistent after config changes, verify `app/main.wasp` declarations and restart using `npm run wasp:restart` in `e2e-tests` (ensuring previous instances are killed) before re-checking. Logs are written to `app/wasp-dev.log`.
 - **Railway upload timeout / connection reset**:
 	- Usually platform/network-side. Retry deployment later or use CI redeploy.
 

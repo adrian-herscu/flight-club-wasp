@@ -25,6 +25,16 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 ## 3. Status Legend
 
+| Status | Meaning |
+|---|---|
+| Covered | Active tests directly verify the required behavior. |
+| Partial | Active tests verify part of the behavior, but one or more required assertions or paths remain unproven. |
+| Gap | No active test currently verifies the required behavior. |
+| Inactive | Coverage exists only in skipped or otherwise inactive tests and does not count as active validation. |
+
+## 4.1 Public discovery
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
 | STD-PUB-001 | FC-001 | Anonymous visitor sees landing page schools section and at least one school card when seeded data exists. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `anonymous users can see schools and courses on landing` |
 | STD-PUB-002 | FC-001 | Anonymous visitor sees visible course items under schools on landing page. | P0 | Covered | [04-01-public-discovery.spec.ts](../../e2e-tests/tests/04-01-public-discovery.spec.ts) — `anonymous users can see schools and courses on landing` |
@@ -108,6 +118,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-SCH-002 | FC-009 | School profile shows contact details, address, currency, and optional branding fields. | P1 | Inactive | PRD-relevant skipped test exists in [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) (`manager can view school profile`). |
 | STD-SCH-003 | FC-009 | Manager can update school profile fields and see saved values persist after reload. | P0 | Covered | [04-14-school-profile-edit.spec.ts](../../e2e-tests/tests/04-14-school-profile-edit.spec.ts) — `[STD-SCH-003] school manager can edit school details and see persisted values`. |
 | STD-SCH-004 | FC-009 | Unauthorized user cannot update another school's profile. | P0 | Gap | No active authz/scoping test for school-profile edits. |
+| STD-SCH-010 | FC-009 | Manager with access to multiple schools can switch the current school context before managing school data. | P1 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) — `manager with two schools can switch the current school to manage`. |
 
 ## 4.7 Syllabus management
 
@@ -116,12 +127,13 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-SYL-001 | FC-010 | Manager can browse syllabus catalog including relevant system and school syllabuses. | P0 | Partial | [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts) covers admin visibility; [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) has only skipped manager catalog coverage. |
 | STD-SYL-002 | FC-010 | Catalog communicates visibility and usage policy. | P1 | Partial | Admin catalog policy is checked in [04-04-admin-approval-workflow.spec.ts](../../e2e-tests/tests/04-04-admin-approval-workflow.spec.ts); manager-specific active validation is missing. |
 | STD-SYL-003 | FC-010 | Manager can create draft syllabus from scratch. | P0 | Gap | No active creation-flow test. |
-| STD-SYL-004 | FC-010 | Manager can create draft syllabus from template. | P1 | Gap | No active template-based creation test. |
-| STD-SYL-005 | FC-010 | Manager can save revisions to draft syllabus content. | P0 | Gap | No active draft revision test. |
-| STD-SYL-006 | FC-010 | Manager can publish draft syllabus into final version. | P0 | Gap | No active publish-flow test. |
-| STD-SYL-007 | FC-010 | UI clearly distinguishes draft, final, and obsolete versions. | P1 | Gap | No active status-distinction test. |
+| STD-SYL-004 | FC-010 | Manager can create draft syllabus from template. | P1 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) creates drafts from a template and verifies navigation to syllabus details with a DRAFT badge. |
+| STD-SYL-005 | FC-010 | Manager can save revisions to draft syllabus content. | P0 | Covered (API+E2E) | API: [06-syllabus-draft-revision-regression.spec.ts](../../api-tests/tests/06-syllabus-draft-revision-regression.spec.ts) validates saving a new DRAFT revision after editing a manager-owned FINAL version; E2E: [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) edits lessons, adds/removes lessons, and saves a new draft revision. |
+| STD-SYL-006 | FC-010 | Manager can publish draft syllabus into final version. | P0 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) publishes a manager-owned draft and verifies the FINAL state before continuing with draft-revision workflow. |
+| STD-SYL-007 | FC-010 | UI clearly distinguishes draft, final, and obsolete versions. | P1 | Partial | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) asserts visible DRAFT and FINAL states; obsolete-state distinction remains unproven. |
 | STD-SYL-008 | FC-016 | Manager syllabus page remains usable in RTL layout. | P1 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) — `rtl layout: sidebar stays anchored to right on syllabuses page` |
 | STD-SYL-009 | FC-016 | Manager syllabus page labels translate correctly in Hebrew. | P1 | Partial | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) checks that English policy text is absent, but does not assert concrete translated labels/actions. |
+| STD-SYL-010 | FC-010 | Manager can edit a syllabus in the editor and save a new draft revision from manager-owned content. | P0 | Covered (API+E2E) | API: [06-syllabus-draft-revision-regression.spec.ts](../../api-tests/tests/06-syllabus-draft-revision-regression.spec.ts); E2E: [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — edit lesson names, add/remove lessons, and save a new draft revision. |
 | STD-SYL-011 | FC-010 | Manager can delete a single editable draft syllabus after explicit confirmation. | P0 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — `manager can delete a single draft from catalog after confirmation` |
 | STD-SYL-012 | FC-010 | Manager can delete all editable drafts in scope after explicit confirmation. | P1 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — `manager can delete all editable drafts from catalog after confirmation` |
 
@@ -129,9 +141,9 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-CRS-001 | FC-011 | Manager can create a course from a final syllabus version. | P0 | Gap | No active course-creation test. |
-| STD-CRS-002 | FC-011 | Course creation captures start date and capacity settings. | P0 | Gap | No active form-field validation for course creation. |
-| STD-CRS-003 | FC-011 | Course creation supports default lesson pricing. | P1 | Gap | No active pricing-field test. |
+| STD-CRS-001 | FC-011 | Manager can create a course from a final syllabus version. | P0 | Covered (API) | [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) and [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) create courses from FINAL syllabus versions. |
+| STD-CRS-002 | FC-011 | Course creation captures start date and capacity settings. | P0 | Partial | API course-creation tests in [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) provide start date and capacity inputs, and [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) verifies the manager course page exposes a date input; persisted field assertions remain missing. |
+| STD-CRS-003 | FC-011 | Course creation supports default lesson pricing. | P1 | Covered (API) | [05-course-hourly-rate.spec.ts](../../api-tests/tests/05-course-hourly-rate.spec.ts) validates default hourly-rate fallback, missing-rate rejection, and created-course listing under the manager school. |
 | STD-CRS-004 | FC-011 | Attempting to create a course from non-final syllabus fails with clear message. | P0 | Gap | No active negative-path test for syllabus-state enforcement. |
 | STD-CRS-005 | FC-011 | Manager can view course metadata and enrollment details after creation. | P1 | Gap | No active course-details test. |
 | STD-CRS-006 | FC-011 | Manager can close an open course and later reopen it from a collapsed closed-courses panel. | P0 | Covered | [04-15-course-close-reopen.spec.ts](../../e2e-tests/tests/04-15-course-close-reopen.spec.ts) — `[STD-CRS-006] manager can close and reopen a course from closed panel`. |
@@ -141,7 +153,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-ENR-001 | FC-012 | Manager can view eligible students within authorized school context. | P0 | Gap | No active enrollment-flow coverage. |
+| STD-ENR-001 | FC-012 | Manager can view eligible students within authorized school context. | P0 | Partial | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) exercises `getManagerStudentsForEnrollment` and confirms seeded students are available in manager scope, but it does not yet prove UI behavior or explicit cross-school scoping. |
 | STD-ENR-002 | FC-012 | Manager can enroll student into selected course. | P0 | Gap | No active enrollment creation test. |
 | STD-ENR-003 | FC-012 | Duplicate enrollment is blocked with understandable error. | P0 | Gap | No active duplicate-enrollment test. |
 | STD-ENR-004 | FC-012 | Course roster updates to show newly enrolled student. | P0 | Gap | No active roster verification test. |
@@ -151,7 +163,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-ASN-001 | FC-013 | Manager can view eligible instructors within authorized school context. | P0 | Gap | No active assignment-flow coverage. |
+| STD-ASN-001 | FC-013 | Manager can view eligible instructors within authorized school context. | P0 | Partial | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) exercises `getManagerInstructorsForAssignment` and confirms seeded instructors are available in manager scope, but it does not yet prove UI behavior or explicit cross-school scoping. |
 | STD-ASN-002 | FC-013 | Manager can assign instructor to selected course. | P0 | Gap | No active instructor-assignment test. |
 | STD-ASN-003 | FC-013 | Duplicate assignment is blocked with understandable error. | P0 | Gap | No active duplicate-assignment test. |
 | STD-ASN-004 | FC-013 | Schedule conflicts are surfaced as understandable errors. | P0 | Gap | No active conflict-handling test. |
@@ -190,7 +202,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-INT-001 | FC-006 / FC-008 | Decision status changes remain visible after refresh/navigation. | P1 | Partial | Approval-state visibility is checked within-session, but persistence after full refresh is not explicitly validated. |
 | STD-INT-002 | FC-007 / FC-008 | Rejection reason and decision history remain visible to appropriate reviewer. | P1 | Gap | No active rejection-history test. |
 | STD-INT-003 | FC-011 / FC-012 / FC-013 | DB constraint failures are translated into understandable user-facing errors. | P0 | Gap | No active E2E tests for friendly error messaging on invalid syllabus use, duplicate enrollment, duplicate assignment, or conflict failures. |
-| STD-INT-004 | FC-006 | Concurrent duplicate submissions do not create duplicate requests. | P1 | Gap | No active race/idempotency test using parallel submission attempts. |
+| STD-INT-004 | FC-006 | Concurrent duplicate submissions do not create duplicate requests. | P1 | Covered (API) | [02-registration-duplicate-and-role-hold.spec.ts](../../api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts) — `[STD-INT-004] concurrent duplicate submissions produce exactly one pending request`. |
 | STD-INT-005 | FC-012 / FC-013 | Concurrent enrollment/assignment attempts preserve integrity and show deterministic outcomes. | P1 | Gap | No active concurrency/integrity E2E coverage. |
 
 ## 5. Coverage Summary by PRD Story
@@ -205,11 +217,11 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
  | FC-006 Prevent invalid or duplicate role requests | **Covered (API)**; 5 API tests validate duplicate pending requests, approved-role hold, and concurrent race conditions. E2E smoke test also covers basic blocking. |
 | FC-007 Review and decide school-manager requests | **Covered (API+E2E)**; approval/rejection/authz invariants are API-covered with E2E UI smoke retained for panel flow. Remaining gap is explicit UI refresh/filter persistence of rejected state. |
 | FC-008 Review instructor and student requests separately | **Covered (API+E2E)**; instructor/student approval and rejection invariants are API-covered, with E2E route/filter/approve smoke retained. Remaining gap is dedicated E2E rejection-history visibility. |
-| FC-009 Manage school profile data | Partial; profile edit persistence is covered, while explicit unauthorized cross-school profile-edit denial remains a gap. |
-| FC-010 Manage syllabus lifecycle | Largely missing in active suite. |
-| FC-011 Open a course from a final syllabus version | Missing in active suite. |
-| FC-012 Enroll students in courses | Missing in active suite. |
-| FC-013 Assign instructors to courses | Missing in active suite. |
+| FC-009 Manage school profile data | Partial; profile edit persistence and multi-school context switching are covered, while explicit unauthorized cross-school profile-edit denial remains a gap. |
+| FC-010 Manage syllabus lifecycle | Partial; template-based draft creation, draft revision, publish-to-final, and draft deletion flows are covered, while from-scratch creation, broader manager catalog coverage, and obsolete-state distinction remain incomplete. |
+| FC-011 Open a course from a final syllabus version | Partial; API coverage exists for creation from FINAL syllabus versions, hourly-rate rules, and close/reopen lifecycle, while non-final rejection messaging and course-details UX remain incomplete. |
+| FC-012 Enroll students in courses | Partial; manager-scope student lookup and closed-course rejection are API-covered, while enrollment happy path, duplicate blocking, roster updates, and cross-school denial remain missing. |
+| FC-013 Assign instructors to courses | Partial; manager-scope instructor lookup and closed-course rejection are API-covered, while assignment happy path, duplicate blocking, conflict handling, and cross-school denial remain missing. |
 | FC-014 Navigate admin features by role | Good for admin and manager; missing for instructor, student, and plain authenticated users. |
  | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; 10 API tests validate operation-level 401/403 authorization gates for approveSchoolManagerRequest and approveSchoolMemberRequest across 5 roles; E2E covers route-level denial. School-scope enforcement still needs testing. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
@@ -217,8 +229,8 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 ## 6. Highest-Priority Gaps to Implement Next
 
 1. School profile view/edit authorization tests.
-2. Syllabus draft-create / revise / publish workflow tests.
-3. Course creation from final syllabus, including non-final rejection messaging.
+2. Syllabus from-scratch creation, manager catalog breadth, and obsolete-state coverage.
+3. Course creation non-final rejection messaging and course-details UX assertions.
 4. Student enrollment happy path and duplicate/cross-school denial tests.
 5. Instructor assignment happy path and conflict/duplicate/cross-school denial tests.
 6. Instructor, student, and plain-user role-based navigation tests.

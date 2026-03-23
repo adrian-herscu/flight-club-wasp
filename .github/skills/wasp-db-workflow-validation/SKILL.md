@@ -1,3 +1,8 @@
+---
+name: wasp-db-workflow-validation
+description: Database-first workflow validation for this Wasp app. Use when proving business rules with deterministic seeds, SQL workflow scripts, trigger behavior, or end-to-end data invariants before relying on UI coverage.
+---
+
 # Skill: Wasp DB Workflow Validation
 
 Use this skill when you need to prove a business workflow at the DB level (before app/UI code) by combining deterministic seed data + SQL workflow scripts + assertions.

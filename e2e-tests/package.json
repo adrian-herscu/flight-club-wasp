@@ -4,26 +4,20 @@
   "description": "e2e-tests for opensaas.sh",
   "author": "",
   "license": "ISC",
-  "main": "ci-start-app-and-db.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "db:reset": "cd ../app && DATABASE_URL=$(grep 'DATABASE_URL' .wasp/out/server/.env | cut -d= -f2-) npx prisma migrate reset --force --schema=schema.prisma",
-    "e2e:wait": "npx wait-on http://127.0.0.1:3000 tcp:127.0.0.1:3001 -t 600000",
-    "e2e:playwright": "npm run e2e:wait && npx playwright test",
-    "e2e:smoke": "npm run e2e:wait && npx playwright test --project=chromium --grep @smoke --reporter=html,github",
-    "local:e2e:playwright:ui": "SKIP_EMAIL_VERIFICATION_IN_DEV=true npx playwright test --ui",
-
-    "_comment-on-local:e2e:cleanup-stripe": "NOTE: because we are running the stripe webhook listener in the background, we want to make sure we kill the previous processes before starting a new one.",
-    "local:e2e:cleanup-stripe": "PID=$(ps -ef | grep 'stripe listen' | grep -v grep | awk '{print $2}') || true && kill -9 $PID || true",
-    "local:e2e:start": "npm run local:e2e:cleanup-stripe && npm run local:e2e:start-stripe && npm run local:e2e:playwright:ui && npm run local:e2e:cleanup-stripe",
-    "local:e2e:start-stripe": "stripe listen --forward-to localhost:3001/payments-webhook &"
+    "db:reset": "cd ../app && wasp db reset --force",
+    "wasp:kill": "fuser -k 3000/tcp 3001/tcp || true",
+    "wasp:restart": "npm run wasp:kill && npm run db:reset && cd ../app && wasp start | tee -a wasp-dev.log",
+    "e2e:regression": "npx playwright test",
+    "e2e:smoke": "npx playwright test --project=chromium --grep @smoke --reporter=html,github",
+    "e2e:regression:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@playwright/test": "^1.42.1",
     "@prisma/client": "5.19.1",
-    "@wasp.sh/wasp-app-runner": "0.0.10",
     "prisma": "5.19.1"
   },
   "devDependencies": {

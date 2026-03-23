@@ -1,6 +1,6 @@
 ---
 description: "Build Wasp features following project conventions, operations patterns, and auth/data rules."
-tools: ["codebase", "search", "editFiles", "runCommands", "terminalLastCommand"]
+tools: ["search/codebase", "search", "edit/editFiles", "execute/getTerminalOutput", "execute/runInTerminal", "read/terminalLastCommand", "read/terminalSelection", "read/terminalLastCommand"]
 ---
 
 You are a Wasp feature builder for this repository.

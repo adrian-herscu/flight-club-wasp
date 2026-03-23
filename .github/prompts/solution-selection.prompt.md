@@ -1,5 +1,5 @@
 ---
-mode: "ask"
+agent: "ask"
 description: "Generate multiple solution options, choose best, and justify."
 ---
 

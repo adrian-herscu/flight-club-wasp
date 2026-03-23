@@ -1,3 +1,8 @@
+---
+name: e2e-playwright-maintenance
+description: Local Playwright maintenance workflow for this repository. Use when running, fixing, or stabilizing tests under e2e-tests, validating Playwright config, debugging local app startup issues, or investigating flaky browser-based regressions.
+---
+
 # Skill: Local E2E Playwright Run + Maintenance (Desktop)
 
 Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testing panel).
@@ -10,24 +15,23 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
 
 ## Run procedure (desktop)
 0. Provide a concise implementation plan and wait for explicit user approval before making any test/code/config changes.
-1. From `e2e-tests`, run Playwright (`npm run e2e:playwright`) or run from VS Code Testing panel.
-2. Ensure app is already running (`cd app && wasp start`).
-3. `e2e:playwright` uses `wait-on` and fails fast if `http://127.0.0.1:3000` is unavailable.
+1. Prefer the configured test tooling (`runTests` integration) or the VS Code Testing panel for scoped runs; use the package script only when you specifically need the full local shell flow.
+2. Ensure PostgreSQL is running and `DATABASE_URL` in `app/.env.server` points to it.
+3. `e2e-tests/global-setup.ts` handles everything automatically: DB reset, app readiness check, and auto-starting `wasp start` in background if needed.
 
 ## Startup behavior to preserve
 - Keep `baseURL` aligned to `http://127.0.0.1:3000`.
-- Keep startup orchestration outside Playwright config.
-- Keep fast precheck in `e2e-tests/package.json` via `wait-on`.
+- Keep startup orchestration inside `e2e-tests/global-setup.ts`, not in Playwright config or package scripts.
+- `globalSetup` reads `DATABASE_URL` from `app/.wasp/out/server/.env` — do not remove that file path.
 
 ## Maintenance checklist
 1. Validate config after edits:
   - `use.baseURL` is `http://127.0.0.1:3000`
   - no stale `webServer.command` references to deleted scripts
-  - `e2e:playwright` includes `wait-on` precheck
-2. Keep app startup command documented separately (`cd app && wasp start`).
-3. Verify with a fast smoke test first:
+  - `e2e-tests/global-setup.ts` contains both `resetDatabase()` and `ensureAppRunning()`
+2. Verify with a fast smoke test first:
   - run only `04-01-public-discovery.spec.ts` test `has title`
-4. Then run full suite.
+3. Then run full suite.
 
 ## Common failures and fixes
 - `ERR_CONNECTION_REFUSED http://localhost:3000`
@@ -41,7 +45,7 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
   - Fix: stop conflicting DB or use the existing DB intentionally
 - title test passes but tests cannot find `Log in` or cookie-consent buttons
   - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or a declaration import/export mismatch in `main.wasp`
-  - Fix: restart `wasp start`, inspect the browser console, and verify `main.wasp` declaration imports align with component exports
+  - Fix: explicitly restart the dev server to clear ports (e.g. `npm run wasp:restart` inside `e2e-tests`; logs: `app/wasp-dev.log`), inspect the browser console, and verify `main.wasp` declaration imports align with component exports
 - tests pass in CLI but fail in VS Code panel
   - Cause: extension/config mismatch
   - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `e2e-tests`

@@ -1,3 +1,8 @@
+---
+name: wasp-db-seeding
+description: Deterministic database seeding workflow for this Wasp app. Use when adding or updating seed migrations for users, roles, auth identities, or policy fixtures that must be repeatable, idempotent, and usable from tests.
+---
+
 # Skill: Wasp DB Seeding (Users, Roles, Auth)
 
 Use this skill when adding or updating database seeds for this Wasp app, especially for role-based users that must be login-capable.

@@ -1,5 +1,5 @@
 ---
-mode: "agent"
+agent: "agent"
 description: "Deploy this Wasp app to Fly.io using Wasp CLI."
 ---
 

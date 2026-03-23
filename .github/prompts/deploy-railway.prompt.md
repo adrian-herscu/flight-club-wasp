@@ -1,3 +1,8 @@
+---
+agent: "agent"
+description: "Deploy this Wasp app to Railway using Wasp CLI."
+---
+
 Deploy the app to Railway using Wasp CLI.
 
 Inputs:

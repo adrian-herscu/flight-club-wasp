@@ -111,6 +111,7 @@ The project should continue to evolve within the existing Wasp application struc
 - **School profile management** (Priority: Medium)
 
   - School managers must be able to view and maintain school profile details, including contact details, website, logo, address, country, and currency.
+  - School managers with access to more than one school must be able to switch the active school context before viewing or updating school data.
   - School updates must stay scoped to the manager’s authorized school.
 
 - **Syllabus management** (Priority: High)
@@ -390,6 +391,7 @@ The project helps a prospective school community move from discovery to particip
 
   - Managers can access a school profile page for their authorized school.
   - The page shows contact and address fields, currency, and optional branding fields.
+  - Managers with access to multiple schools can switch the active school context before viewing or editing school data.
   - Saved changes persist to the school record for the authorized school only.
   - Unauthorized users cannot update another school’s profile.
 

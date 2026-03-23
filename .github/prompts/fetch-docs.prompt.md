@@ -1,5 +1,5 @@
 ---
-mode: "agent"
+agent: "agent"
 description: "Fetch and reference external LLM-optimized documentation for this Wasp app."
 ---
 

@@ -1,3 +1,8 @@
+---
+name: fetch-wasp-docs
+description: Wasp documentation lookup workflow for this repository. Use when implementing or troubleshooting Wasp features, checking main.wasp syntax, auth setup, operations, jobs, middleware, or generated type/import behavior against authoritative docs.
+---
+
 # Skill: Fetch Wasp LLM Documentation
 
 Use this skill when you need authoritative Wasp framework documentation for implementation details, troubleshooting, or feature exploration.

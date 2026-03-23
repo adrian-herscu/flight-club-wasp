@@ -2,7 +2,7 @@
 
 ## NEVER
 - Start the database unless asked to do so for a specific task.
-- Start the dev server unless asked to do so for a specific task.
+- Start the wasp server for e2e (it is managed within the test suite global setup).
 
 # ALWAYS
 - Prefer the vscode built in tools and configured MCP servers instead of CLI tools
@@ -46,7 +46,7 @@
 ## Auth and user data
 - Keep Wasp-managed auth identity fields out of the Prisma `User` model unless there is an explicit need.
 - Use `AuthUser` identity helpers for nested auth identity fields.
-- If auth config, `main.wasp`, or schema changes cause type/import drift, restart `wasp start`.
+- If auth config, `main.wasp`, or schema changes cause type/import drift, comprehensively restart using `npm run wasp:restart` inside the `e2e-tests` directory. Logs are written to `app/wasp-dev.log`.
 
 ## Database and migrations
 - Define models only in `schema.prisma`.
@@ -65,7 +65,8 @@
 
 ## Testing workflow policy
 - Use the `runTests` tool to run tests instead of CLI commands (e.g., `npm test` or `npx playwright test`); this provides structured output, better VS Code integration, and precise error locations.
-- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant E2E tests first.
+- After any application code change (including `app/main.wasp`, or `app/src/**/*`) and before running any tests, run `wasp build`; fix all build errors before executing tests.
+- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant E2E tests first; watch the `app/wasp-dev.log` file for errors and fix accordingly.
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant E2E tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
 - Scope by impact: for infrastructure/testing-framework changes, run the full E2E suite; otherwise prefer focused tests for the affected area first, then expand only as needed.
@@ -91,16 +92,19 @@
   - `solution-selection`: `.github/prompts/solution-selection.prompt.md`
   - `troubleshoot-wasp`: `.github/prompts/troubleshoot-wasp.prompt.md`
 
+Only treat the prompts listed above as the active repo prompt set. Other prompt files are reference or maintenance assets unless explicitly requested.
+
 ## Skills
 - Local skills live under `.github/skills`.
 - Prefer applying the most relevant skill for making changes in that area.
-- Available skills:
+- Only treat the following as the active repo skill set for normal work:
   - `e2e-playwright-maintenance`: `.github/skills/e2e-playwright-maintenance/SKILL.md`
   - `fetch-wasp-docs`: `.github/skills/fetch-wasp-docs/SKILL.md`
   - `mobile-ux-flight-club`: `.github/skills/mobile-ux-flight-club/SKILL.md`
-  - `pdf`: `.github/skills/pdf/SKILL.md`
   - `shadcn-component-add`: `.github/skills/shadcn-component-add/SKILL.md`
   - `wasp-db-workflow-validation`: `.github/skills/wasp-db-workflow-validation/SKILL.md`
   - `wasp-db-seeding`: `.github/skills/wasp-db-seeding/SKILL.md`
   - `wasp-deployment`: `.github/skills/wasp-deployment/SKILL.md`
+
+Other skills in `.github/skills` are optional reference/library assets and should not override repo-specific workflows unless the task explicitly calls for them.
 

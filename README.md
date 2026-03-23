@@ -27,7 +27,7 @@ Flight Club lets flight schools, instructors, and students find each other and m
 |-----------|---------|
 | `app/` | Wasp web application (TypeScript, React, Prisma, PostgreSQL) |
 | `e2e-tests/` | Playwright end-to-end test suite |
-| `blog/` | Documentation site built with Astro Starlight |
+| `api-tests/` | Vitest operation-level API tests (no browser, no server required) |
 
 ## Quick start
 
@@ -40,8 +40,11 @@ Flight Club lets flight schools, instructors, and students find each other and m
 ### Running locally
 
 ```bash
-# 1. Start the database (keep it running)
+# 1a. Start the Wasp-managed database (only if DATABASE_URL is NOT set in app/.env.server)
 cd app && wasp start db
+
+# 1b. Or start your own PostgreSQL and set DATABASE_URL in app/.env.server
+#     e.g. DATABASE_URL=postgres://postgres:postgres@localhost:5432/flight_club_wasp
 
 # 2. Apply migrations (first run, or after schema changes)
 wasp db migrate-dev
@@ -63,17 +66,47 @@ cp app/.env.client.example app/.env.client
 
 ### Running E2E tests
 
+Canonical policy for change/fix testing workflow:
+[.github/copilot-instructions.md#testing-workflow-policy](.github/copilot-instructions.md#testing-workflow-policy).
+
+E2E runs use a fail-fast contract:
+
+- `e2e-tests/global-setup.ts` prepares test state and app readiness before tests run.
+
 ```bash
-# Start the app first (see above), then in a separate terminal:
 cd e2e-tests && npm install
-npm run e2e:playwright
+npm run e2e:regression
 ```
 
-See [e2e-tests/README.md](e2e-tests/README.md) for full details, including interactive UI mode.
+### E2E run modes
+
+1. Command line (recommended): `cd e2e-tests && npm run e2e:regression`
+2. VS Code Testing panel (Playwright extension: `ms-playwright.playwright`)
+3. Interactive UI mode: `cd e2e-tests && npm run e2e:regression:ui`
+
+### E2E runtime behavior
+
+- `e2e-tests/global-setup.ts` checks readiness for:
+	- `http://127.0.0.1:3000`
+	- `tcp:127.0.0.1:3001`
+- it runs DB reset once per Playwright invocation.
+- if app is not ready after reset, it starts `wasp start` in background and waits until both ports are ready.
+- `e2e-tests/playwright.config.ts` uses `baseURL` `http://127.0.0.1:3000`; app auto-start is handled by `global-setup.ts`, not Playwright config.
+
+### E2E troubleshooting (quick)
+
+- Tests timeout initially: inspect `app/wasp-dev.log` for startup errors.
+- Port conflict: stop conflicting process or align app/test ports.
+- CI failures only: ensure CI starts app and waits for readiness before Playwright.
+
+### E2E environment notes
+
+- `CI` is provided by CI systems.
+- `SKIP_EMAIL_VERIFICATION_IN_DEV` is optional for signup/email-verification flows.
+- `e2e:regression:ui` runs playwright in ui mode.
 
 ## Documentation
 
 - [Product Requirements](app/docs/prd.md)
 - [Data Design](app/docs/data-design.md)
 - [Software Test Design](app/docs/std.md)
-- [E2E Testing Guide](e2e-tests/E2E_TESTING_GUIDE.md)

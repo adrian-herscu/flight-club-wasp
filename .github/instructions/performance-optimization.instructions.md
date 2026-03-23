@@ -1,5 +1,5 @@
 ---
-applyTo: '*'
+applyTo: 'app/main.wasp, app/schema.prisma, app/src/**/*.{ts,tsx,css}, api-tests/src/**/*.ts, api-tests/tests/**/*.ts, e2e-tests/tests/**/*.ts'
 description: 'The most comprehensive, practical, and engineer-authored performance optimization instructions for all languages, frameworks, and stacks. Covers frontend, backend, and database best practices with actionable guidance, scenario-based checklists, troubleshooting, and pro tips.'
 ---
 

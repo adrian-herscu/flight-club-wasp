@@ -1,5 +1,5 @@
 ---
-mode: "agent"
+agent: "agent"
 description: "Diagnose and fix Wasp app errors with a structured flow."
 ---
 
@@ -7,7 +7,7 @@ Diagnose this issue in the Wasp app:
 ${input:problem}
 
 Follow this sequence:
-1. If `main.wasp` or `schema.prisma` changed recently, restart `wasp start` first.
+1. If `main.wasp` or `schema.prisma` changed recently, run `npm run wasp:restart` from `e2e-tests` to cleanly clear ports and restart (logs: `app/wasp-dev.log`).
 2. Validate imports and operation declarations in `main.wasp`.
 3. Validate entities list for each relevant operation/API.
 4. Check auth config alignment (`userEntity`, methods, redirects, env vars).
