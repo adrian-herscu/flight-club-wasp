@@ -10,7 +10,7 @@
   "scripts": {
     "db:reset": "cd ../app && wasp db reset --force",
     "wasp:kill": "fuser -k 3000/tcp 3001/tcp || true",
-    "wasp:restart": "npm run wasp:kill && npm run db:reset && cd ../app && wasp start | tee -a wasp-dev.log",
+    "wasp:restart": "npm run wasp:kill && npm run db:reset && cd ../app && wasp start | tee wasp-dev.log",
     "e2e:regression": "npx playwright test",
     "e2e:smoke": "npx playwright test --project=chromium --grep @smoke --reporter=html,github",
     "e2e:regression:ui": "npx playwright test --ui"
