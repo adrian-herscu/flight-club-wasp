@@ -240,3 +240,4 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 ## 7. Notes
 
  - As of March 2026, **46 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, enrollment/assignment integrity, and approval side effects. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.
+ 
