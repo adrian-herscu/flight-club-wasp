@@ -1,12 +1,12 @@
 # Copilot Instructions for this Wasp app
 
 ## NEVER
-- Start the database unless asked to do so for a specific task.
-- Start the wasp server for e2e (it is managed within the test suite global setup).
+- Start the database unless specifically asked to do so.
+- Start the wasp server for e2e tests (it is managed within the test suite global setup).
+- Invoke `package.json` scripts as part of automated workflows or code generation.
 
-# ALWAYS
-- Prefer the vscode built in tools and configured MCP servers instead of CLI tools
-- Forcefully reset the db whenever you are changing the schema or seeding, or if you encounter any unexpected issues with the db state.
+## ALWAYS
+- Prefer the vscode built in tools and configured MCP servers instead of CLI tools.
 
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
@@ -16,9 +16,8 @@
 
 ## Execution gate (plan first)
 - Before implementing any code/config/test change, provide a concise step-by-step plan.
-- The plan must consider existing `app/docs` and the execution must update them approriately
-- Wait for explicit user approval (e.g., "yes" / "approved") before any state-changing action.
-- State-changing actions include edits, migrations, seeding, code generation, and validating test runs that are part of implementation.
+- The plan for changing/adding/removing user features must consider existing `docs`, especially the `std.md` and `prd.md` files, and the execution must update them appropriately.
+- Wait for explicit user approval (e.g., "yes" / "approved") before any state-changing actions, including edits, migrations, seeding, code generation, and validating test runs that are part of implementation.
 - Read-only investigation (file reads/search, documentation lookup, diagnostics that do not modify project state) may proceed before approval.
 - Treat approval as explicit only when the user clearly confirms (prefer the exact token "approved").
 - If scope changes during execution, stop and re-issue an updated plan for approval before continuing.
@@ -60,8 +59,7 @@
 - After any state-changing code/config/schema edit, use diagnostics integration (Problems diagnostics) and fix compilation/schema errors before finishing.
 
 ## Testing workflow policy
-- Use the `runTests` tool to run tests instead of CLI commands.
-- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant tests first; for E2E tests, watch the `app/wasp-dev.log` file for errors and fix accordingly.
+- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant tests first; for E2E tests, watch the `wasp-dev.log` file for errors and fix accordingly.
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
 - Scope by impact: for infrastructure/testing-framework changes, run all tests; otherwise prefer focused tests for the affected area first, then expand only as needed.

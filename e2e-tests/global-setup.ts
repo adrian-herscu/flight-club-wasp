@@ -1,4 +1,4 @@
-import { execSync, spawn } from 'node:child_process';
+import { execFileSync, execSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as net from 'node:net';
@@ -7,6 +7,7 @@ import * as path from 'node:path';
 const HOST = '127.0.0.1';
 const WEB_PORT = 3000;
 const API_PORT = 3001;
+const WASP_PORTS = [WEB_PORT, API_PORT] as const;
 const STARTUP_TIMEOUT_MS = 10 * 60 * 1000;
 const POLL_INTERVAL_MS = 1000;
 
@@ -128,6 +129,55 @@ function isProcessAlive(pid: number): boolean {
   }
 }
 
+function removePidFile(): void {
+  try {
+    fs.unlinkSync(pidPath);
+  } catch (error) {
+    const typedError = error as NodeJS.ErrnoException;
+    if (typedError.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+function killProcessUsingRecordedPid(): void {
+  const existingPid = readExistingPid();
+  if (!existingPid || !isProcessAlive(existingPid)) {
+    removePidFile();
+    return;
+  }
+
+  console.log(`[e2e][globalSetup] Stopping recorded Wasp process (pid: ${existingPid}).`);
+
+  try {
+    process.kill(existingPid, 'SIGTERM');
+  } catch {
+    removePidFile();
+    return;
+  }
+
+  removePidFile();
+}
+
+function killProcessesUsingWaspPorts(): void {
+  console.log(`[e2e][globalSetup] Killing processes using ports ${WASP_PORTS.join(', ')}.`);
+
+  try {
+    execFileSync('fuser', ['-k', ...WASP_PORTS.map((port) => `${port}/tcp`)], {
+      stdio: 'inherit',
+    });
+  } catch (error) {
+    const typedError = error as NodeJS.ErrnoException & { status?: number };
+    if (typedError.code === 'ENOENT') {
+      throw new Error('[e2e][globalSetup] Required command `fuser` is not available on PATH.');
+    }
+
+    if (typedError.status !== 1) {
+      throw error;
+    }
+  }
+}
+
 function startWaspInBackground(): void {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const out = fs.createWriteStream(logPath, { flags: 'a' });
@@ -149,19 +199,9 @@ function startWaspInBackground(): void {
   console.log(`[e2e][globalSetup] Logs: ${logPath}`);
 }
 
-async function ensureAppRunning(): Promise<void> {
-  if (await isAppAlive()) {
-    console.log('[e2e][globalSetup] App is already running.');
-    return;
-  }
-
-  const existingPid = readExistingPid();
-  if (existingPid && isProcessAlive(existingPid)) {
-    console.log(`[e2e][globalSetup] Found existing Wasp process (pid: ${existingPid}), waiting for readiness...`);
-  } else {
-    console.log('[e2e][globalSetup] App is not running. Starting Wasp server...');
-    startWaspInBackground();
-  }
+async function startWaspAndWaitUntilReady(): Promise<void> {
+  console.log('[e2e][globalSetup] Starting Wasp server...');
+  startWaspInBackground();
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < STARTUP_TIMEOUT_MS) {
@@ -172,10 +212,12 @@ async function ensureAppRunning(): Promise<void> {
     await delay(POLL_INTERVAL_MS);
   }
 
-  throw new Error('[e2e][globalSetup] Timeout waiting for Wasp app to become ready.');
+  throw new Error('[e2e][globalSetup] Timeout waiting for Wasp app to become ready after restart.');
 }
 
 export default async function globalSetup() {
+  killProcessUsingRecordedPid();
+  killProcessesUsingWaspPorts();
   resetDatabase();
-  await ensureAppRunning();
+  await startWaspAndWaitUntilReady();
 }
