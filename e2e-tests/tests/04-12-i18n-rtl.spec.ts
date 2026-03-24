@@ -108,6 +108,23 @@ test.describe("4.12 internationalization and RTL", () => {
       await expect.poll(async () => page.getAttribute("html", "lang")).toBe(lang);
     }
   });
+
+  test("[4.12][STD-I18N-008] landing discovery labels are translated in Romanian", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.setItem("locale", "ro"));
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("heading", { name: "Școli și cursuri disponibile" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Răsfoiește școlile aprobate și cursurile publicate în prezent."),
+    ).toBeVisible();
+    await expect(page.getByPlaceholder("Filtrează după numele cursului…")).toBeVisible();
+    await expect(page.getByPlaceholder("Filtrează după locație…")).toBeVisible();
+    await expect(page.getByTestId("filter-country")).toContainText("Toate țările");
+  });
 });
 
 // ---------------------------------------------------------------------------

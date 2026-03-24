@@ -1,29 +1,32 @@
 import { Ellipsis, SquarePen, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../client/components/ui/dropdown-menu";
+import {
+  UsersDropdownContent,
+  UsersDropdownMenuItem,
+  UsersMenuTriggerButton,
+} from "../../../client/components/patterns/UsersDashboardPatterns";
 
 const DropdownEditDelete = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button>
-          <Ellipsis className="size-4" />
-        </button>
+        <UsersMenuTriggerButton>
+          <Ellipsis size={16} />
+        </UsersMenuTriggerButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem>
-          <SquarePen className="mr-2 size-4" />
+      <UsersDropdownContent>
+        <UsersDropdownMenuItem>
+          <SquarePen size={16} />
           Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Trash2 className="mr-2 size-4" />
+        </UsersDropdownMenuItem>
+        <UsersDropdownMenuItem>
+          <Trash2 size={16} />
           Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
+        </UsersDropdownMenuItem>
+      </UsersDropdownContent>
     </DropdownMenu>
   );
 };

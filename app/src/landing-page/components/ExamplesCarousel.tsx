@@ -1,5 +1,17 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
-import { Card, CardContent } from "../../client/components/ui/card";
+import {
+  ExampleCardAnchor,
+  ExampleCardDescription,
+  ExampleCardImage,
+  ExampleCardName,
+  ExamplePreviewCard,
+  ExamplePreviewCardBody,
+  ExampleCardTextBox,
+  ExamplesCarouselRoot,
+  ExamplesCarouselTitle,
+  ExamplesTrack,
+  ExamplesViewport,
+} from "../../client/components/patterns/LandingPagePatterns";
 
 const EXAMPLES_CAROUSEL_INTERVAL = 3000;
 const EXAMPLES_CAROUSEL_SCROLL_TIMEOUT = 200;
@@ -104,18 +116,10 @@ const ExamplesCarousel = ({ examples }: { examples: ExampleApp[] }) => {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative left-1/2 my-16 flex w-screen -translate-x-1/2 flex-col items-center"
-    >
-      <h2 className="text-muted-foreground mb-6 text-center font-semibold tracking-wide">
-        Used by:
-      </h2>
-      <div className="w-full max-w-full overflow-hidden">
-        <div
-          className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-10 pt-4"
-          ref={scrollContainerRef}
-        >
+    <ExamplesCarouselRoot innerRef={containerRef}>
+      <ExamplesCarouselTitle>Used by:</ExamplesCarouselTitle>
+      <ExamplesViewport>
+        <ExamplesTrack innerRef={scrollContainerRef}>
           {examples.map((example, index) => (
             <ExampleCard
               key={index}
@@ -125,9 +129,9 @@ const ExamplesCarousel = ({ examples }: { examples: ExampleApp[] }) => {
               onMouseEnter={handleMouseEnter}
             />
           ))}
-        </div>
-      </div>
-    </div>
+        </ExamplesTrack>
+      </ExamplesViewport>
+    </ExamplesCarouselRoot>
   );
 };
 
@@ -141,33 +145,17 @@ interface ExampleCardProps {
 const ExampleCard = forwardRef<HTMLDivElement, ExampleCardProps>(
   ({ example, index, isCurrent, onMouseEnter }, ref) => {
     return (
-      <a
-        href={example.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 snap-center"
-        onMouseEnter={() => onMouseEnter(index)}
-      >
-        <Card
-          ref={ref}
-          className="w-[280px] overflow-hidden transition-all duration-200 hover:scale-105 sm:w-[320px] md:w-[350px]"
-          variant={isCurrent ? "default" : "faded"}
-        >
-          <CardContent className="h-full p-0">
-            <img
-              src={example.imageSrc}
-              alt={example.name}
-              className="aspect-video h-auto w-full"
-            />
-            <div className="p-4">
-              <p className="font-bold">{example.name}</p>
-              <p className="text-muted-foreground text-xs">
-                {example.description}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </a>
+      <ExampleCardAnchor href={example.href} onMouseEnter={() => onMouseEnter(index)}>
+        <ExamplePreviewCard cardRef={ref} isCurrent={isCurrent}>
+          <ExamplePreviewCardBody>
+            <ExampleCardImage src={example.imageSrc} alt={example.name} />
+            <ExampleCardTextBox>
+              <ExampleCardName>{example.name}</ExampleCardName>
+              <ExampleCardDescription>{example.description}</ExampleCardDescription>
+            </ExampleCardTextBox>
+          </ExamplePreviewCardBody>
+        </ExamplePreviewCard>
+      </ExampleCardAnchor>
     );
   },
 );

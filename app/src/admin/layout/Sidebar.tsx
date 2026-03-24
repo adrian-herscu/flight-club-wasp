@@ -19,8 +19,23 @@ import {
   SelectValue,
 } from "../../client/components/ui/select";
 import Logo from "../../client/static/logo.webp";
-import { cn } from "../../client/utils";
+import {
+  SchoolContextBadgeBox,
+  SchoolContextBadgeContainer,
+  SchoolLabel,
+  SchoolNameText,
+  SidebarLogoImage,
+  SidebarToggleButton,
+} from "../../client/components/patterns/AdminSidebarPatterns";
 import { useManagedSchoolSelection } from "../../school-manager/useManagedSchoolSelection";
+import {
+  SidebarRoot,
+  SidebarHeader,
+  SidebarContent,
+  SidebarNav,
+  NavMenuSection,
+  NavItem,
+} from "../../client/components/patterns/AdminSidebarPatterns";
 
 const { getMyManagedSchool, useQuery } = operations as any;
 
@@ -47,19 +62,17 @@ const SchoolContextBadge = () => {
   }
 
   return (
-    <div className="px-6 pb-2">
-      <div className="rounded-md border bg-background/60 px-3 py-2">
-        <p className="text-muted-foreground text-xs uppercase tracking-wide">
-          {t("admin.mySchool")}
-        </p>
+    <SchoolContextBadgeContainer>
+      <SchoolContextBadgeBox>
+        <SchoolLabel>{t("admin.mySchool")}</SchoolLabel>
         {isLoading ? (
-          <p className="text-sm font-semibold">{t("admin.loading")}</p>
+          <SchoolNameText>{t("admin.loading")}</SchoolNameText>
         ) : schools.length > 1 ? (
           <Select value={selectedSchoolId ?? ""} onValueChange={setSelectedSchoolId}>
-            <SelectTrigger className="mt-1 h-8 text-xs relative z-50">
+            <SelectTrigger style={{ marginTop: "0.25rem", height: "2rem", fontSize: "0.75rem", position: "relative", zIndex: 50 }}>
               <SelectValue placeholder={t("school.selectManagedSchool")} />
             </SelectTrigger>
-            <SelectContent side="bottom" align="start" className="z-10000">
+            <SelectContent side="bottom" align="start" style={{ zIndex: 10000 }}>
               {schools.map((school) => (
                 <SelectItem key={school.id} value={school.id}>
                   {school.name}
@@ -68,21 +81,21 @@ const SchoolContextBadge = () => {
             </SelectContent>
           </Select>
         ) : (
-          <p className="text-sm font-semibold">{currentSchoolName}</p>
+          <SchoolNameText>{currentSchoolName}</SchoolNameText>
         )}
-      </div>
-    </div>
+      </SchoolContextBadgeBox>
+    </SchoolContextBadgeContainer>
   );
 };
 
-type NavItem = {
+type SidebarEntry = {
   nameKey: string;
   to: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ style?: React.CSSProperties }>;
   matchPrefix?: string;
 };
 
-const SIDEBAR_NAV: Record<string, NavItem[]> = {
+const SIDEBAR_NAV: { [role: string]: SidebarEntry[] } = {
   SYSTEM_ADMIN: [
     { nameKey: "admin.dashboard", to: "/system-admin", icon: LayoutDashboard },
     { nameKey: "admin.users", to: "/system-admin/users", icon: Sheet },
@@ -133,27 +146,53 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
   const location = useLocation();
   const { pathname } = location;
 
-  const trigger = useRef<any>(null);
-  const sidebar = useRef<any>(null);
+  const trigger = useRef(null as HTMLButtonElement | null);
+  const sidebar = useRef(null as HTMLElement | null);
 
   const storedSidebarExpanded = localStorage.getItem("sidebar-expanded");
   const [sidebarExpanded, setSidebarExpanded] = useState(
     storedSidebarExpanded === null ? false : storedSidebarExpanded === "true",
   );
 
-  const navItemBaseClass =
-    "text-muted-foreground hover:bg-accent hover:text-accent-foreground group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium duration-300 ease-in-out";
+  const navItemBaseStyle: React.CSSProperties = {
+    color: "hsl(var(--muted-foreground))",
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.625rem",
+    borderRadius: "0.125rem",
+    paddingLeft: "1rem",
+    paddingRight: "1rem",
+    paddingTop: "0.5rem",
+    paddingBottom: "0.5rem",
+    fontWeight: 500,
+    transition: "all 0.3s ease-in-out",
+  };
 
-  const navItemClassName = ({ isActive }: { isActive: boolean }) =>
-    cn(navItemBaseClass, { "bg-accent text-accent-foreground": isActive });
+  const getNavItemClassName = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
+    ...navItemBaseStyle,
+    ...(isActive && {
+      backgroundColor: "hsl(var(--accent))",
+      color: "hsl(var(--accent-foreground))",
+    }),
+  });
+
+  const getNavItemClassNameForPrefix = (matchesPrefix: boolean): React.CSSProperties => ({
+    ...navItemBaseStyle,
+    ...(matchesPrefix && {
+      backgroundColor: "hsl(var(--accent))",
+      color: "hsl(var(--accent-foreground))",
+    }),
+  });
 
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
+      const targetNode = target as Node | null;
       if (!sidebar.current || !trigger.current) return;
       if (
         !sidebarOpen ||
-        sidebar.current.contains(target) ||
-        trigger.current.contains(target)
+        sidebar.current.contains(targetNode) ||
+        trigger.current.contains(targetNode)
       )
         return;
       setSidebarOpen(false);
@@ -179,74 +218,78 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
       document.querySelector("body")?.classList.remove("sidebar-expanded");
     }
   }, [sidebarExpanded]);
-
   const navItems = userRole ? (SIDEBAR_NAV[userRole] ?? []) : [];
 
   return (
-    <aside
+    <SidebarRoot
       ref={sidebar}
-      className={cn(
-        "bg-muted absolute top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden duration-300 ease-linear lg:static lg:translate-x-0",
-        {
-          "ltr:left-0 rtl:right-0 border-e ltr:translate-x-0 rtl:translate-x-0": sidebarOpen,
-          "ltr:left-0 rtl:right-0 ltr:border-e rtl:border-s max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full":
-            !sidebarOpen,
-        },
-      )}
+      style={{
+        backgroundColor: "hsl(var(--muted))",
+        position: "absolute",
+        top: 0,
+        zIndex: 9999,
+        display: "flex",
+        height: "100vh",
+        width: "18.125rem",
+        flexDirection: "column",
+        overflowY: "hidden",
+        transition: "all 0.3s ease-in-out",
+        borderColor: "hsl(var(--border))",
+      }}
+      sidebarOpen={sidebarOpen}
     >
-      {/* SIDEBAR HEADER */}
-      <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
+      <SidebarHeader>
         <NavLink to="/">
-          <img src={Logo} alt="Logo" width={50} />
+          <SidebarLogoImage src={Logo} alt="Logo" />
         </NavLink>
-        <button
+        <SidebarToggleButton
           ref={trigger}
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-controls="sidebar"
-          aria-expanded={sidebarOpen}
-          className="block lg:hidden"
+          controls="sidebar"
+          expanded={sidebarOpen}
         >
           <X />
-        </button>
-      </div>
+        </SidebarToggleButton>
+      </SidebarHeader>
 
       {userRole === "SCHOOL_MANAGER" && <SchoolContextBadge />}
 
-      <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
-        <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">
+      <SidebarContent>
+        <SidebarNav>
           {/* Main menu */}
-          <div>
-            <h3 className="text-muted-foreground mb-4 ms-4 text-sm font-semibold">
-              {t("nav.menu")}
-            </h3>
-            <ul className="mb-6 flex flex-col gap-1.5">
-              {navItems.map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={!item.matchPrefix}
-                    className={
-                      item.matchPrefix
-                        ? () =>
-                            cn(navItemBaseClass, {
-                              "bg-accent text-accent-foreground":
-                                pathname === item.matchPrefix ||
-                                pathname.startsWith(item.matchPrefix + "/") ||
-                                pathname.startsWith(item.matchPrefix + "?"),
-                            })
-                        : navItemClassName
-                    }
-                  >
-                    <item.icon />
-                    {t(item.nameKey)}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-      </div>
-    </aside>
+          <NavMenuSection
+            title={
+              t("nav.menu")
+            }
+          >
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavItem key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end={!item.matchPrefix}
+                      style={({ isActive }) => {
+                        if (item.matchPrefix) {
+                          const matchesPrefix =
+                            pathname === item.matchPrefix ||
+                            pathname.startsWith(item.matchPrefix + "/") ||
+                            pathname.startsWith(item.matchPrefix + "?");
+                          return getNavItemClassNameForPrefix(matchesPrefix);
+                        }
+                        return getNavItemClassName({ isActive });
+                      }}
+                    >
+                      <Icon />
+                      {t(item.nameKey)}
+                    </NavLink>
+                  </NavItem>
+                );
+              })}
+          </NavMenuSection>
+        </SidebarNav>
+      </SidebarContent>
+    </SidebarRoot>
   );
 };
 

@@ -2,15 +2,23 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
+import {
+  AppCard,
+  AppPageInset,
+  ContentStack,
+  EndAlignedActions,
+  FieldRow,
+  FormStack,
+  InsetBlock,
+  ReadOnlyFieldRow,
+} from "../client/components/patterns/AppStructure";
 import { Button } from "../client/components/ui/button";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "../client/components/ui/card";
 import { Input } from "../client/components/ui/input";
-import { Label } from "../client/components/ui/label";
 import { Separator } from "../client/components/ui/separator";
 import { toast } from "../client/hooks/use-toast";
 
@@ -52,71 +60,48 @@ export default function AccountPage({ user }: { user: AuthUser }) {
   };
 
   return (
-    <div className="mt-10 px-6">
-      <Card className="mb-4 lg:m-8">
+    <AppPageInset>
+      <AppCard>
         <CardHeader>
-          <CardTitle className="text-foreground text-base font-semibold leading-6">
-            {t("user.accountInformation")}
-          </CardTitle>
+          <CardTitle>{t("user.accountInformation")}</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="space-y-0">
+        <CardContent>
+          <ContentStack gap="none">
             {!!currentUser.email && (
               <>
-                <div className="px-6 py-4">
-                  <div className="grid grid-cols-1 items-center sm:grid-cols-3 sm:gap-4">
-                    <span className="text-muted-foreground text-sm font-medium">
-                      {t("user.emailAddress")}
-                    </span>
-                    <div className="text-foreground mt-1 text-sm sm:col-span-2 sm:mt-0">
-                      {currentUser.email}
-                    </div>
-                  </div>
-                </div>
+                <InsetBlock>
+                  <ReadOnlyFieldRow label={t("user.emailAddress")} value={currentUser.email} />
+                </InsetBlock>
                 <Separator />
               </>
             )}
-            <form onSubmit={handleSubmit} className="space-y-5 px-6 py-4">
-              <div className="grid grid-cols-1 items-center sm:grid-cols-3 sm:gap-4">
-                <Label
-                  htmlFor="fullName"
-                  className="text-muted-foreground text-sm font-medium"
-                >
-                  {t("user.fullName")}
-                </Label>
-                <div className="mt-1 sm:col-span-2 sm:mt-0">
+            <InsetBlock>
+              <FormStack onSubmit={handleSubmit} gap="lg">
+                <FieldRow label={t("user.fullName")}>
                   <Input
                     id="fullName"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(event) => setFullName(event.target.value)}
                   />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 items-center sm:grid-cols-3 sm:gap-4">
-                <Label
-                  htmlFor="phone"
-                  className="text-muted-foreground text-sm font-medium"
-                >
-                  {t("user.phone")}
-                </Label>
-                <div className="mt-1 sm:col-span-2 sm:mt-0">
+                </FieldRow>
+                <FieldRow label={t("user.phone")}>
                   <Input
                     id="phone"
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(event) => setPhone(event.target.value)}
                   />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button type="submit" disabled={saving}>
-                  {saving ? t("user.saving") : t("user.saveDetails")}
-                </Button>
-              </div>
-            </form>
-          </div>
+                </FieldRow>
+                <EndAlignedActions>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? t("user.saving") : t("user.saveDetails")}
+                  </Button>
+                </EndAlignedActions>
+              </FormStack>
+            </InsetBlock>
+          </ContentStack>
         </CardContent>
-      </Card>
-    </div>
+      </AppCard>
+    </AppPageInset>
   );
 }

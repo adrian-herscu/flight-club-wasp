@@ -1,14 +1,18 @@
 import { type AuthUser } from "wasp/auth";
 import DefaultLayout from "../../layout/DefaultLayout";
 
+import {
+  DashboardPlaceholderContainer,
+  DashboardPlaceholderText,
+} from "../../../client/components/patterns/AdminDashboardPatterns";
 const Dashboard = ({ user }: { user: AuthUser }) => {
   return (
     <DefaultLayout user={user}>
-      <div className="flex h-full items-center justify-center">
-        <p data-testid="admin-dashboard-placeholder" className="text-muted-foreground text-lg">
+      <DashboardPlaceholderContainer>
+        <DashboardPlaceholderText testId="admin-dashboard-placeholder">
           Under construction
-        </p>
-      </div>
+        </DashboardPlaceholderText>
+      </DashboardPlaceholderContainer>
     </DefaultLayout>
   );
 };

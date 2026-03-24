@@ -5,11 +5,24 @@ import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
+import LabeledInputField from "../../../client/components/patterns/LabeledInputField";
+import {
+  SchoolRequestsActionsRow,
+  SchoolRequestsDashboardCardContent,
+  SchoolRequestsDetailsLogoRow,
+  SchoolRequestsDetailsRow,
+  SchoolRequestsExpandableDetails,
+  SchoolRequestsFilterGroup,
+  SchoolRequestsMutedText,
+  SchoolRequestsPrimaryText,
+  SchoolRequestsRejectionReasonField,
+  SchoolRequestsRequestCardBody,
+  SchoolRequestsRequesterSummary,
+  SchoolRequestsSection,
+  SchoolRequestsSnapshot,
+} from "../../../client/components/patterns/SchoolRequestsDashboardPatterns";
 import { Button } from "../../../client/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../client/components/ui/card";
-import { Input } from "../../../client/components/ui/input";
-import { Label } from "../../../client/components/ui/label";
-import { Textarea } from "../../../client/components/ui/textarea";
+import { Card, CardHeader, CardTitle } from "../../../client/components/ui/card";
 import { toast } from "../../../client/hooks/use-toast";
 
 const {
@@ -140,6 +153,17 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
   const showPendingSection = statusFilter !== "APPROVED";
   const showApprovedSection = statusFilter !== "PENDING";
 
+  const renderRequesterSummary = (request: SchoolRequestItem, submittedLabel: string) => (
+    <SchoolRequestsRequesterSummary
+      requester={request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
+      requesterEmail={request.requester.email ?? "-"}
+      requesterLabel={t("admin.requester")}
+      requesterPhone={request.requester.phone ?? "-"}
+      submittedAt={new Date(request.createdAt).toLocaleString()}
+      submittedLabel={submittedLabel}
+    />
+  );
+
   return (
     <DefaultLayout user={user}>
       <Breadcrumb
@@ -152,20 +176,16 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
         <CardHeader>
           <CardTitle>{t("admin.schoolsPageTitle")}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="school-request-search">{t("admin.filterByNameOrPhone")}</Label>
-            <Input
-              id="school-request-search"
-              placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-          </div>
+        <SchoolRequestsDashboardCardContent>
+          <LabeledInputField
+            id="school-request-search"
+            label={t("admin.filterByNameOrPhone")}
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
+          />
 
-          <div className="space-y-2">
-            <Label>{t("admin.filterByStatus")}</Label>
-            <div className="flex flex-wrap gap-2">
+          <SchoolRequestsFilterGroup label={t("admin.filterByStatus")}>
               <Button
                 type="button"
                 variant={statusFilter === "ALL" ? "default" : "outline"}
@@ -190,91 +210,64 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
               >
                 {t("admin.filterApproved")}
               </Button>
-            </div>
-          </div>
+          </SchoolRequestsFilterGroup>
 
           {isLoading && (
-            <p className="text-sm text-muted-foreground">{t("admin.loadingRequests")}</p>
+            <SchoolRequestsMutedText>{t("admin.loadingRequests")}</SchoolRequestsMutedText>
           )}
 
           {!isLoading && filteredRequests.length === 0 && (
-            <p className="text-sm text-muted-foreground">{t("admin.noMatchingRequests")}</p>
+            <SchoolRequestsMutedText>{t("admin.noMatchingRequests")}</SchoolRequestsMutedText>
           )}
 
           {showPendingSection && (
-          <div className="space-y-3" data-testid="schools-panel-pending-section">
-            <h3 className="text-sm font-semibold">{t("admin.pendingSchoolManagerRequests")}</h3>
+          <SchoolRequestsSection
+            testId="schools-panel-pending-section"
+            title={t("admin.pendingSchoolManagerRequests")}
+          >
 
             {pendingRequests.length === 0 && !isLoading && (
-              <p className="text-sm text-muted-foreground">{t("admin.noPendingSchoolRequests")}</p>
+              <SchoolRequestsMutedText>{t("admin.noPendingSchoolRequests")}</SchoolRequestsMutedText>
             )}
 
             {pendingRequests.map((request) => (
               <Card key={request.id} data-testid="school-request-card">
-                <CardContent className="space-y-3 pt-6">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase text-muted-foreground">{t("admin.requester")}</p>
-                      <p className="text-sm font-medium">
-                        {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{request.requester.email ?? "-"}</p>
-                      <p className="text-sm text-muted-foreground">{request.requester.phone ?? "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase text-muted-foreground">{t("admin.submitted")}</p>
-                      <p className="text-sm">{new Date(request.createdAt).toLocaleString()}</p>
-                    </div>
-                  </div>
+                <SchoolRequestsRequestCardBody>
+                  {renderRequesterSummary(request, t("admin.submitted"))}
 
-                  <div>
-                    <p className="text-xs uppercase text-muted-foreground">{t("admin.requestedSchoolSnapshot")}</p>
-                    <p className="text-sm font-medium">{request.requestedSchoolName ?? "-"}</p>
-                    {request.requestedPhone && (
-                      <p className="text-sm text-muted-foreground">{request.requestedPhone}</p>
-                    )}
-                    {request.requestedLogoUrl && (
-                      <img
-                        src={request.requestedLogoUrl}
-                        alt="logo"
-                        className="mt-1 h-8 w-8 rounded object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {[
-                        request.requestedAddressLine1,
-                        request.requestedAddressLine2,
-                        request.requestedCity,
-                        request.requestedStateProvince,
-                        request.requestedPostalCode,
-                        request.requestedCountry,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("admin.currency")}: {request.requestedCurrency ?? "-"}
-                    </p>
-                  </div>
+                  <SchoolRequestsSnapshot
+                    label={t("admin.requestedSchoolSnapshot")}
+                    schoolName={request.requestedSchoolName ?? "-"}
+                    phone={request.requestedPhone}
+                    logoUrl={request.requestedLogoUrl}
+                    logoAlt="logo"
+                    summaryAddress={[
+                      request.requestedAddressLine1,
+                      request.requestedAddressLine2,
+                      request.requestedCity,
+                      request.requestedStateProvince,
+                      request.requestedPostalCode,
+                      request.requestedCountry,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                    currencyLabel={t("admin.currency")}
+                    currency={request.requestedCurrency ?? "-"}
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`reason-${request.id}`}>{t("admin.rejectionReason")}</Label>
-                    <Textarea
-                      id={`reason-${request.id}`}
-                      value={rejectionReasons[request.id] ?? ""}
-                      onChange={(event) =>
+                  <SchoolRequestsRejectionReasonField
+                    id={`reason-${request.id}`}
+                    label={t("admin.rejectionReason")}
+                    value={rejectionReasons[request.id] ?? ""}
+                    onChange={(value) =>
                         setRejectionReasons((prev) => ({
                           ...prev,
-                          [request.id]: event.target.value,
+                          [request.id]: value,
                         }))
-                      }
-                    />
-                  </div>
+                    }
+                  />
 
-                  <div className="flex flex-wrap justify-end gap-2">
+                  <SchoolRequestsActionsRow>
                     <Button
                       variant="outline"
                       disabled={isRejectingId === request.id}
@@ -288,95 +281,70 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                     >
                       {isApprovingId === request.id ? t("admin.approving") : t("admin.approve")}
                     </Button>
-                  </div>
-                </CardContent>
+                  </SchoolRequestsActionsRow>
+                </SchoolRequestsRequestCardBody>
               </Card>
             ))}
-          </div>
+          </SchoolRequestsSection>
           )}
 
           {showApprovedSection && (
-          <div className="space-y-3" data-testid="schools-panel-approved-section">
-            <h3 className="text-sm font-semibold">{t("admin.approvedSchoolRequests")}</h3>
+          <SchoolRequestsSection
+            testId="schools-panel-approved-section"
+            title={t("admin.approvedSchoolRequests")}
+          >
 
             {approvedRequests.length === 0 && !isLoading && (
-              <p className="text-sm text-muted-foreground">{t("admin.noApprovedSchoolRequests")}</p>
+              <SchoolRequestsMutedText>{t("admin.noApprovedSchoolRequests")}</SchoolRequestsMutedText>
             )}
 
             {approvedRequests.map((request) => (
               <Card key={request.id} data-testid="school-request-card">
-                <CardContent className="space-y-3 pt-6">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase text-muted-foreground">{t("admin.requester")}</p>
-                      <p className="text-sm font-medium">
-                        {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{request.requester.email ?? "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase text-muted-foreground">{t("dashboard.approved")}</p>
-                      <p className="text-sm">{new Date(request.createdAt).toLocaleString()}</p>
-                    </div>
-                  </div>
+                <SchoolRequestsRequestCardBody>
+                  {renderRequesterSummary(request, t("dashboard.approved"))}
 
-                  <p className="text-sm font-medium">
+                  <SchoolRequestsPrimaryText>
                     {request.approvedSchool?.name ?? request.requestedSchoolName ?? "-"}
-                  </p>
+                  </SchoolRequestsPrimaryText>
 
-                  <details className="rounded-md border p-3">
-                    <summary className="cursor-pointer text-sm font-medium">
-                      {t("admin.schoolDetails")}
-                    </summary>
-                    <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                      <p>
-                        <span className="font-medium text-foreground">{t("admin.approvedSchoolDetails")}: </span>
-                        {request.approvedSchool?.name ?? "-"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">{t("admin.address")}: </span>
-                        {[
-                          request.approvedSchool?.addressLine1,
-                          request.approvedSchool?.addressLine2,
-                          request.approvedSchool?.city,
-                          request.approvedSchool?.stateProvince,
-                          request.approvedSchool?.postalCode,
-                          request.approvedSchool?.country,
-                        ]
-                          .filter(Boolean)
-                          .join(", ") || "-"}
-                      </p>
-                      {request.approvedSchool?.phone && (
-                        <p>
-                          <span className="font-medium text-foreground">Phone: </span>
-                          {request.approvedSchool.phone}
-                        </p>
-                      )}
-                      {request.approvedSchool?.logoUrl && (
-                        <div>
-                          <span className="font-medium text-foreground">Logo: </span>
-                          <img
-                            src={request.approvedSchool.logoUrl}
-                            alt="school logo"
-                            className="mt-1 h-10 w-10 rounded object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        </div>
-                      )}
-                      <p>
-                        <span className="font-medium text-foreground">{t("admin.currency")}: </span>
-                        {request.approvedSchool?.currency ?? "-"}
-                      </p>
-                    </div>
-                  </details>
-                </CardContent>
+                  <SchoolRequestsExpandableDetails summary={t("admin.schoolDetails")}>
+                    <SchoolRequestsDetailsRow label={t("admin.approvedSchoolDetails")}>
+                      {request.approvedSchool?.name ?? "-"}
+                    </SchoolRequestsDetailsRow>
+                    <SchoolRequestsDetailsRow label={t("admin.address")}>
+                      {[
+                        request.approvedSchool?.addressLine1,
+                        request.approvedSchool?.addressLine2,
+                        request.approvedSchool?.city,
+                        request.approvedSchool?.stateProvince,
+                        request.approvedSchool?.postalCode,
+                        request.approvedSchool?.country,
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "-"}
+                    </SchoolRequestsDetailsRow>
+                    {request.approvedSchool?.phone && (
+                      <SchoolRequestsDetailsRow label="Phone">
+                        {request.approvedSchool.phone}
+                      </SchoolRequestsDetailsRow>
+                    )}
+                    {request.approvedSchool?.logoUrl && (
+                      <SchoolRequestsDetailsLogoRow
+                        label="Logo"
+                        logoAlt="school logo"
+                        logoUrl={request.approvedSchool.logoUrl}
+                      />
+                    )}
+                    <SchoolRequestsDetailsRow label={t("admin.currency")}>
+                      {request.approvedSchool?.currency ?? "-"}
+                    </SchoolRequestsDetailsRow>
+                  </SchoolRequestsExpandableDetails>
+                </SchoolRequestsRequestCardBody>
               </Card>
             ))}
-          </div>
+          </SchoolRequestsSection>
           )}
-        </CardContent>
+        </SchoolRequestsDashboardCardContent>
       </Card>
     </DefaultLayout>
   );

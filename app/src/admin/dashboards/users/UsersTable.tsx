@@ -8,15 +8,25 @@ import {
   useQuery,
 } from "wasp/client/operations";
 import { type User } from "wasp/entities";
+import {
+  UsersBox,
+  UsersClearTextButton,
+  UsersInlineText,
+  UsersLabel,
+  UsersPageInput,
+  UsersRoleFilterSelectTrigger,
+  UsersRoleSelectTrigger,
+  UsersStatusSelectContent,
+  UsersStatusSelectTrigger,
+  UsersText,
+} from "../../../client/components/patterns/UsersDashboardPatterns";
 import { Button } from "../../../client/components/ui/button";
 import { Checkbox } from "../../../client/components/ui/checkbox";
 import { Input } from "../../../client/components/ui/input";
-import { Label } from "../../../client/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from "../../../client/components/ui/select";
 import useDebounce from "../../../client/hooks/useDebounce";
@@ -38,9 +48,9 @@ function RoleSelect({ id, role }: Pick<User, "id" | "role">) {
       onValueChange={(value) => updateIsUserAdminById({ id, role: value as UserRole })}
       disabled={isCurrentUser}
     >
-      <SelectTrigger className="w-[160px]">
+      <UsersRoleSelectTrigger>
         <SelectValue />
-      </SelectTrigger>
+      </UsersRoleSelectTrigger>
       <SelectContent>
         {USER_ROLES.map((r) => (
           <SelectItem key={r} value={r}>
@@ -103,18 +113,15 @@ const UsersTable = () => {
     subscriptionStatusFilter && subscriptionStatusFilter.length > 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="border-border bg-card rounded-sm border shadow-sm">
-        <div className="bg-muted/40 flex w-full flex-col items-start justify-between gap-3 p-6">
-          <span className="text-sm font-medium">Filters:</span>
-          <div className="flex w-full items-center justify-between gap-3 px-2">
-            <div className="relative flex items-center gap-3">
-              <Label
-                htmlFor="email-filter"
-                className="text-muted-foreground text-sm"
-              >
+    <UsersBox variant="tableRoot">
+      <UsersBox variant="card">
+        <UsersBox variant="filtersPanel">
+          <UsersText variant="filtersTitle">Filters:</UsersText>
+          <UsersBox variant="filtersRow">
+            <UsersBox variant="filtersGroup">
+              <UsersLabel htmlFor="email-filter" variant="muted">
                 {t("admin.emailLabel")}
-              </Label>
+              </UsersLabel>
               <Input
                 type="text"
                 id="email-filter"
@@ -124,64 +131,52 @@ const UsersTable = () => {
                   setEmailFilter(value === "" ? undefined : value);
                 }}
               />
-              <Label
-                htmlFor="status-filter"
-                className="text-muted-foreground ml-2 text-sm"
-              >
+              <UsersLabel htmlFor="status-filter" variant="muted">
                 {t("admin.statusLabel")}
-              </Label>
-              <div className="relative">
+              </UsersLabel>
+              <UsersBox variant="relative">
                 <Select>
-                  <SelectTrigger className="w-full min-w-50">
+                  <UsersStatusSelectTrigger>
                     <SelectValue placeholder={t("admin.statusFilterPlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent className="w-75">
-                    <div className="p-2">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-sm font-medium">
+                  </UsersStatusSelectTrigger>
+                  <UsersStatusSelectContent>
+                    <UsersBox variant="statusContentBody">
+                      <UsersBox variant="statusHeader">
+                        <UsersText variant="statusHeading">
                           {t("admin.subscriptionStatus")}
-                        </span>
+                        </UsersText>
                         {subscriptionStatusFilter.length > 0 && (
-                          <button
-                            onClick={clearAllStatusFilters}
-                            className="text-muted-foreground hover:text-foreground text-xs"
-                          >
+                          <UsersClearTextButton onClick={clearAllStatusFilters}>
                             {t("admin.clearAllFilters")}
-                          </button>
+                          </UsersClearTextButton>
                         )}
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
+                      </UsersBox>
+                      <UsersBox variant="statusOptionsList">
+                        <UsersBox variant="checkboxRow">
                           <Checkbox
                             id="all-statuses"
                             checked={subscriptionStatusFilter.length === 0}
                             onCheckedChange={() => clearAllStatusFilters()}
                           />
-                          <Label
-                            htmlFor="all-statuses"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
+                          <UsersLabel htmlFor="all-statuses" variant="checkbox">
                             {t("admin.allStatuses")}
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
+                          </UsersLabel>
+                        </UsersBox>
+                        <UsersBox variant="checkboxRow">
                           <Checkbox
                             id="has-not-subscribed"
                             checked={subscriptionStatusFilter.includes(null)}
                             onCheckedChange={() => handleStatusToggle(null)}
                           />
-                          <Label
+                          <UsersLabel
                             htmlFor="has-not-subscribed"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            variant="checkbox"
                           >
                             {t("admin.hasNotSubscribed")}
-                          </Label>
-                        </div>
+                          </UsersLabel>
+                        </UsersBox>
                         {SUBSCRIPTION_STATUSES.map((status) => (
-                          <div
-                            key={status}
-                            className="flex items-center space-x-2"
-                          >
+                          <UsersBox key={status} variant="checkboxRow">
                             <Checkbox
                               id={status}
                               checked={subscriptionStatusFilter.includes(
@@ -189,26 +184,20 @@ const UsersTable = () => {
                               )}
                               onCheckedChange={() => handleStatusToggle(status)}
                             />
-                            <Label
-                              htmlFor={status}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
+                            <UsersLabel htmlFor={status} variant="checkbox">
                               {t(`admin.${status.toLowerCase() === "past_due" ? "pastDue" : status.toLowerCase()}`)}
-                            </Label>
-                          </div>
+                            </UsersLabel>
+                          </UsersBox>
                         ))}
-                      </div>
-                    </div>
-                  </SelectContent>
+                      </UsersBox>
+                    </UsersBox>
+                  </UsersStatusSelectContent>
                 </Select>
-              </div>
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="admin-filter"
-                  className="text-muted-foreground ml-2 text-sm"
-                >
+              </UsersBox>
+              <UsersBox variant="roleFilterGroup">
+                <UsersLabel htmlFor="admin-filter" variant="muted">
                   {t("admin.roleLabel")}
-                </Label>
+                </UsersLabel>
                 <Select
                   onValueChange={(value) => {
                     if (value === "all") {
@@ -218,9 +207,9 @@ const UsersTable = () => {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full">
+                  <UsersRoleFilterSelectTrigger>
                     <SelectValue placeholder={t("common.more")} />
-                  </SelectTrigger>
+                  </UsersRoleFilterSelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t("common.more")}</SelectItem>
                     {USER_ROLES.map((r) => (
@@ -230,18 +219,16 @@ const UsersTable = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
+              </UsersBox>
+            </UsersBox>
             {data?.totalPages && (
-              <div className="flex max-w-60 flex-row items-center">
-                <span className="text-md text-foreground mr-2">{t("admin.page")}</span>
-                <Input
-                  type="number"
-                  min={1}
+              <UsersBox variant="pagination">
+                <UsersText variant="pagination">{t("admin.page")}</UsersText>
+                <UsersPageInput
                   defaultValue={currentPage}
+                  min={1}
                   max={data?.totalPages}
-                  onChange={(e) => {
-                    const value = parseInt(e.currentTarget.value);
+                  onChange={(value) => {
                     if (
                       data?.totalPages &&
                       value <= data?.totalPages &&
@@ -250,21 +237,17 @@ const UsersTable = () => {
                       setCurrentPage(value);
                     }
                   }}
-                  className="w-20"
                 />
-                <span className="text-md text-foreground">
-                  {" "}
-                  /{data?.totalPages}{" "}
-                </span>
-              </div>
+                <UsersInlineText variant="pagination">/{data?.totalPages}</UsersInlineText>
+              </UsersBox>
             )}
-          </div>
+          </UsersBox>
           {hasActiveFilters && (
-            <div className="border-border flex items-center gap-2 px-2 pt-2">
-              <span className="text-muted-foreground text-sm font-medium">
+            <UsersBox variant="activeFiltersRow">
+              <UsersText variant="activeFiltersLabel">
                 Active Filters:
-              </span>
-              <div className="flex flex-wrap gap-2">
+              </UsersText>
+              <UsersBox variant="activeFiltersChips">
                 {subscriptionStatusFilter.map((status) => (
                   <Button
                     key={status ?? "null"}
@@ -272,68 +255,61 @@ const UsersTable = () => {
                     size="sm"
                     onClick={() => handleStatusToggle(status)}
                   >
-                    <X className="mr-1 h-3 w-3" />
+                    <X size={12} />
                     {status ?? "Has Not Subscribed"}
                   </Button>
                 ))}
-              </div>
-            </div>
+              </UsersBox>
+            </UsersBox>
           )}
-        </div>
+        </UsersBox>
 
-        <div className="border-border py-4.5 grid grid-cols-9 border-t-4 px-4 md:px-6">
-          <div className="col-span-3 flex items-center">
-            <p className="font-medium">{t("admin.emailFullName")}</p>
-          </div>
-          <div className="col-span-2 flex items-center">
-            <p className="font-medium">{t("admin.subscriptionStatus")}</p>
-          </div>
-          <div className="col-span-2 flex items-center">
-            <p className="font-medium">{t("admin.stripeID")}</p>
-          </div>
-          <div className="col-span-1 flex items-center">
-            <p className="font-medium">{t("admin.role")}</p>
-          </div>
-          <div className="col-span-1 flex items-center">
-            <p className="font-medium"></p>
-          </div>
-        </div>
+        <UsersBox variant="headerRow">
+          <UsersBox variant="headerCell3">
+            <UsersText variant="header">{t("admin.emailFullName")}</UsersText>
+          </UsersBox>
+          <UsersBox variant="headerCell2">
+            <UsersText variant="header">{t("admin.subscriptionStatus")}</UsersText>
+          </UsersBox>
+          <UsersBox variant="headerCell2">
+            <UsersText variant="header">{t("admin.stripeID")}</UsersText>
+          </UsersBox>
+          <UsersBox variant="headerCell1">
+            <UsersText variant="header">{t("admin.role")}</UsersText>
+          </UsersBox>
+          <UsersBox variant="headerCell1">
+            <></>
+          </UsersBox>
+        </UsersBox>
         {isLoading && <LoadingSpinner />}
         {!!data?.users &&
           data?.users?.length > 0 &&
           data.users.map((user) => (
-            <div
-              key={user.id}
-              className="py-4.5 grid grid-cols-9 gap-4 px-4 md:px-6"
-            >
-              <div className="col-span-3 flex items-center">
-                <div className="flex flex-col gap-1">
-                  <p className="text-foreground text-sm">{user.email}</p>
-                  <p className="text-foreground text-sm">{user.fullName}</p>
-                </div>
-              </div>
-              <div className="col-span-2 flex items-center">
-                <p className="text-foreground text-sm">
-                  {user.subscriptionStatus}
-                </p>
-              </div>
-              <div className="col-span-2 flex items-center">
-                <p className="text-muted-foreground text-sm">
-                  {user.paymentProcessorUserId}
-                </p>
-              </div>
-              <div className="col-span-1 flex items-center">
-                <div className="text-foreground text-sm">
+            <UsersBox key={user.id} variant="bodyRow">
+              <UsersBox variant="headerCell3">
+                <UsersBox variant="identityStack">
+                  <UsersText variant="default">{user.email}</UsersText>
+                  <UsersText variant="default">{user.fullName}</UsersText>
+                </UsersBox>
+              </UsersBox>
+              <UsersBox variant="headerCell2">
+                <UsersText variant="default">{user.subscriptionStatus}</UsersText>
+              </UsersBox>
+              <UsersBox variant="headerCell2">
+                <UsersText variant="muted">{user.paymentProcessorUserId}</UsersText>
+              </UsersBox>
+              <UsersBox variant="headerCell1">
+                <UsersBox variant="roleSelectCell">
                   <RoleSelect {...user} />
-                </div>
-              </div>
-              <div className="col-span-1 flex items-center">
+                </UsersBox>
+              </UsersBox>
+              <UsersBox variant="headerCell1">
                 <DropdownEditDelete />
-              </div>
-            </div>
+              </UsersBox>
+            </UsersBox>
           ))}
-      </div>
-    </div>
+      </UsersBox>
+    </UsersBox>
   );
 };
 

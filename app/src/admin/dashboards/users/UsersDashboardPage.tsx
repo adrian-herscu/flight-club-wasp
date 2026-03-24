@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
+import { UsersBox } from "../../../client/components/patterns/UsersDashboardPatterns";
 import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
 import UsersTable from "./UsersTable";
@@ -15,9 +16,9 @@ const Users = ({ user }: { user: AuthUser }) => {
   return (
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.usersPageTitle")} />
-      <div className="flex flex-col gap-10">
+      <UsersBox variant="pageContent">
         <UsersTable />
-      </div>
+      </UsersBox>
     </DefaultLayout>
   );
 };

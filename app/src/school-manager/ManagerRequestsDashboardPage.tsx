@@ -5,18 +5,22 @@ import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
-import { Button } from "../client/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
-import { Input } from "../client/components/ui/input";
-import { Label } from "../client/components/ui/label";
+import LabeledInputField from "../client/components/patterns/LabeledInputField";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../client/components/ui/select";
-import { Textarea } from "../client/components/ui/textarea";
+  ManagerRequestsActionsRow,
+  ManagerRequestsCardBody,
+  ManagerRequestsDashboardCardContent,
+  ManagerRequestsFilterGroup,
+  ManagerRequestsMutedText,
+  ManagerRequestsPrimaryText,
+  ManagerRequestsRejectionReasonField,
+  ManagerRequestsSection,
+  ManagerRequestsSummaryColumn,
+  ManagerRequestsSummaryGrid,
+  ManagerRequestsText,
+} from "../client/components/patterns/ManagerRequestsDashboardPatterns";
+import { Button } from "../client/components/ui/button";
+import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
 import { toast } from "../client/hooks/use-toast";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
@@ -62,7 +66,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
 
   const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
   const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
-  const { selectedSchool, selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(managedSchools);
+  const { selectedSchool, selectedSchoolId } = useManagedSchoolSelection(managedSchools);
 
   const { data, isLoading, refetch } = useQuery(getPendingSchoolMemberRequests, {
     schoolId: selectedSchoolId,
@@ -181,58 +185,56 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
+  const renderRequestSummary = (request: MemberRequestItem) => (
+    <ManagerRequestsSummaryGrid>
+      <ManagerRequestsSummaryColumn label={t("dashboard.requestedRole")}>
+        <ManagerRequestsPrimaryText>{request.requestedRole}</ManagerRequestsPrimaryText>
+      </ManagerRequestsSummaryColumn>
+      <ManagerRequestsSummaryColumn label={t("dashboard.requesterName")}>
+        <ManagerRequestsPrimaryText>
+          {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
+        </ManagerRequestsPrimaryText>
+        <ManagerRequestsMutedText>{request.requester.email ?? "-"}</ManagerRequestsMutedText>
+        <ManagerRequestsMutedText>{request.requester.phone ?? "-"}</ManagerRequestsMutedText>
+      </ManagerRequestsSummaryColumn>
+      <ManagerRequestsSummaryColumn label={t("dashboard.submittedDate")}>
+        <ManagerRequestsText>{new Date(request.createdAt).toLocaleString()}</ManagerRequestsText>
+        <ManagerRequestsMutedText>
+          {t("dashboard.schoolName")}: {request.targetSchool?.name ?? "-"}
+        </ManagerRequestsMutedText>
+      </ManagerRequestsSummaryColumn>
+    </ManagerRequestsSummaryGrid>
+  );
+
   const renderPendingSection = (
     sectionTestId: string,
     title: string,
     sectionRequests: MemberRequestItem[],
   ) => (
-    <div className="space-y-3" data-testid={sectionTestId}>
-      <h3 className="text-sm font-semibold">{title}</h3>
+    <ManagerRequestsSection testId={sectionTestId} title={title}>
 
       {sectionRequests.length === 0 && !isLoading && (
-        <p className="text-sm text-muted-foreground">{t("admin.noMatchingRequests")}</p>
+        <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
       )}
 
       {sectionRequests.map((request) => (
         <Card key={request.id} data-testid="manager-member-request-card">
-          <CardContent className="space-y-3 pt-6">
-            <div className="grid gap-3 md:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase text-muted-foreground">{t("dashboard.requestedRole")}</p>
-                <p className="text-sm font-medium">{request.requestedRole}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-muted-foreground">{t("dashboard.requesterName")}</p>
-                <p className="text-sm font-medium">
-                  {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
-                </p>
-                <p className="text-sm text-muted-foreground">{request.requester.email ?? "-"}</p>
-                <p className="text-sm text-muted-foreground">{request.requester.phone ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-muted-foreground">{t("dashboard.submittedDate")}</p>
-                <p className="text-sm">{new Date(request.createdAt).toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t("dashboard.schoolName")}: {request.targetSchool?.name ?? "-"}
-                </p>
-              </div>
-            </div>
+          <ManagerRequestsCardBody>
+            {renderRequestSummary(request)}
 
-            <div className="space-y-2">
-              <Label htmlFor={`reason-${request.id}`}>{t("admin.rejectionReason")}</Label>
-              <Textarea
-                id={`reason-${request.id}`}
-                value={rejectionReasons[request.id] ?? ""}
-                onChange={(event) =>
-                  setRejectionReasons((prev) => ({
-                    ...prev,
-                    [request.id]: event.target.value,
-                  }))
-                }
-              />
-            </div>
+            <ManagerRequestsRejectionReasonField
+              id={`reason-${request.id}`}
+              label={t("admin.rejectionReason")}
+              value={rejectionReasons[request.id] ?? ""}
+              onChange={(event) =>
+                setRejectionReasons((prev) => ({
+                  ...prev,
+                  [request.id]: event.target.value,
+                }))
+              }
+            />
 
-            <div className="flex flex-wrap justify-end gap-2">
+            <ManagerRequestsActionsRow>
               <Button
                 variant="outline"
                 disabled={isRejectingId === request.id}
@@ -243,11 +245,11 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               <Button disabled={isApprovingId === request.id} onClick={() => handleApprove(request.id)}>
                 {isApprovingId === request.id ? t("admin.approving") : t("admin.approve")}
               </Button>
-            </div>
-          </CardContent>
+            </ManagerRequestsActionsRow>
+          </ManagerRequestsCardBody>
         </Card>
       ))}
-    </div>
+    </ManagerRequestsSection>
   );
 
   const renderApprovedSection = (
@@ -255,41 +257,20 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     title: string,
     sectionRequests: MemberRequestItem[],
   ) => (
-    <div className="space-y-3" data-testid={sectionTestId}>
-      <h3 className="text-sm font-semibold">{title}</h3>
+    <ManagerRequestsSection testId={sectionTestId} title={title}>
 
       {sectionRequests.length === 0 && !isLoading && (
-        <p className="text-sm text-muted-foreground">{t("admin.noMatchingRequests")}</p>
+        <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
       )}
 
       {sectionRequests.map((request) => (
         <Card key={request.id} data-testid="manager-member-request-card">
-          <CardContent className="space-y-3 pt-6">
-            <div className="grid gap-3 md:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase text-muted-foreground">{t("dashboard.requestedRole")}</p>
-                <p className="text-sm font-medium">{request.requestedRole}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-muted-foreground">{t("dashboard.requesterName")}</p>
-                <p className="text-sm font-medium">
-                  {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
-                </p>
-                <p className="text-sm text-muted-foreground">{request.requester.email ?? "-"}</p>
-                <p className="text-sm text-muted-foreground">{request.requester.phone ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-muted-foreground">{t("dashboard.submittedDate")}</p>
-                <p className="text-sm">{new Date(request.createdAt).toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t("dashboard.schoolName")}: {request.targetSchool?.name ?? "-"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
+          <ManagerRequestsCardBody>
+            {renderRequestSummary(request)}
+          </ManagerRequestsCardBody>
         </Card>
       ))}
-    </div>
+    </ManagerRequestsSection>
   );
 
   return (
@@ -300,28 +281,24 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
         <CardHeader>
           <CardTitle>{pageTitle}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <ManagerRequestsDashboardCardContent>
 
 
           {!isLoading && selectedSchool && (
-            <p className="text-sm text-muted-foreground">
+            <ManagerRequestsMutedText>
               {t("dashboard.schoolName")}: {selectedSchool.name}
-            </p>
+            </ManagerRequestsMutedText>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="member-request-search">{t("admin.filterByNameOrPhone")}</Label>
-            <Input
-              id="member-request-search"
-              placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-          </div>
+          <LabeledInputField
+            id="member-request-search"
+            label={t("admin.filterByNameOrPhone")}
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
+          />
 
-          <div className="space-y-2">
-            <Label>{t("admin.filterByStatus")}</Label>
-            <div className="flex flex-wrap gap-2">
+          <ManagerRequestsFilterGroup label={t("admin.filterByStatus")}>
               <Button
                 type="button"
                 variant={statusFilter === "ALL" ? "default" : "outline"}
@@ -346,13 +323,10 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               >
                 {t("admin.filterApproved")}
               </Button>
-            </div>
-          </div>
+          </ManagerRequestsFilterGroup>
 
           {!routeRoleScope && (
-            <div className="space-y-2">
-              <Label>{t("admin.filterByRole")}</Label>
-              <div className="flex flex-wrap gap-2">
+            <ManagerRequestsFilterGroup label={t("admin.filterByRole")}>
                 <Button
                   type="button"
                   variant={roleFilter === "ALL" ? "default" : "outline"}
@@ -377,14 +351,13 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
                 >
                   {t("admin.filterStudents")}
                 </Button>
-              </div>
-            </div>
+            </ManagerRequestsFilterGroup>
           )}
 
-          {isLoading && <p className="text-sm text-muted-foreground">{t("admin.loadingRequests")}</p>}
+          {isLoading && <ManagerRequestsMutedText>{t("admin.loadingRequests")}</ManagerRequestsMutedText>}
 
           {!isLoading && filteredRequests.length === 0 && (
-            <p className="text-sm text-muted-foreground">{t("admin.noMatchingRequests")}</p>
+            <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
           )}
 
           {showPendingSections &&
@@ -418,7 +391,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               `${t("admin.filterStudents")} • ${t("dashboard.approved")}`,
               studentsApprovedRequests,
             )}
-        </CardContent>
+        </ManagerRequestsDashboardCardContent>
       </Card>
     </DefaultLayout>
   );

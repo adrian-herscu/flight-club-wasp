@@ -23,6 +23,7 @@
 - If scope changes during execution, stop and re-issue an updated plan for approval before continuing.
 - If instructions conflict, this execution gate takes precedence for implementation actions.
 - Every implementation plan must explicitly include test-first workflow steps from `## Testing workflow policy` (baseline check, failing test for behavior fixes, then fix and re-run to green).
+- All the above does not apply to copilot instructions/skills/prompts/agents, nor to other documentation (`.md` files).
 
 ## Source of truth
 - Treat `main.wasp` as the source of truth for app structure and Wasp declarations.
@@ -59,6 +60,8 @@
 - After any state-changing code/config/schema edit, use diagnostics integration (Problems diagnostics) and fix compilation/schema errors before finishing.
 
 ## Testing workflow policy
+- After writing or editing any code, run Problems diagnostics and resolve all IDE errors before continuing.
+- Before marking tests as green, confirm there are no IDE errors in the affected scope.
 - Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant tests first; for E2E tests, watch the `wasp-dev.log` file for errors and fix accordingly.
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.

@@ -9,7 +9,14 @@ import {
   CardContent,
   CardHeader,
 } from "../../../client/components/ui/card";
-import { cn } from "../../../client/utils";
+import {
+  AnalyticsCardContentRow,
+  AnalyticsCardDelta,
+  AnalyticsCardIconContainer,
+  AnalyticsCardLabel,
+  AnalyticsCardValue,
+  AnalyticsMetricBlock,
+} from "../../../client/components/patterns/AdminAnalyticsPatterns";
 
 const TotalSignupsCard = ({ dailyStats, isLoading }: DailyStatsProps) => {
   const isDeltaPositive = useMemo(() => {
@@ -19,32 +26,28 @@ const TotalSignupsCard = ({ dailyStats, isLoading }: DailyStatsProps) => {
   return (
     <Card>
       <CardHeader>
-        <div className="h-11.5 w-11.5 bg-muted flex items-center justify-center rounded-full">
-          <UsersRound className="size-6" />
-        </div>
+        <AnalyticsCardIconContainer>
+          <UsersRound style={{ width: "1.5rem", height: "1.5rem" }} />
+        </AnalyticsCardIconContainer>
       </CardHeader>
 
-      <CardContent className="flex justify-between">
-        <div>
-          <h4 className="text-title-md text-foreground font-bold">
-            {dailyStats?.userCount}
-          </h4>
-          <span className="text-muted-foreground text-sm font-medium">
-            Total Signups
-          </span>
-        </div>
+      <CardContent>
+        <AnalyticsCardContentRow>
+          <AnalyticsMetricBlock>
+            <AnalyticsCardValue>{dailyStats?.userCount}</AnalyticsCardValue>
+            <AnalyticsCardLabel>Total Signups</AnalyticsCardLabel>
+          </AnalyticsMetricBlock>
 
-        <span
-          className={cn("flex items-center gap-1 text-sm font-medium", {
-            "text-success": isDeltaPositive && !isLoading,
-            "text-destructive":
-              !isDeltaPositive && !isLoading && dailyStats?.userDelta !== 0,
-            "text-muted-foreground": isLoading || !dailyStats?.userDelta,
-          })}
-        >
-          {isLoading ? "..." : (dailyStats?.userDelta ?? "-")}
-          {!isLoading && (dailyStats?.userDelta ?? 0) > 0 && <ArrowUp />}
-        </span>
+          <AnalyticsCardDelta
+            isPositive={isDeltaPositive}
+            isLoading={isLoading}
+          >
+            {isLoading ? "..." : (dailyStats?.userDelta ?? "-")}
+            {!isLoading && (dailyStats?.userDelta ?? 0) > 0 && (
+              <ArrowUp style={{ width: "1rem", height: "1rem" }} />
+            )}
+          </AnalyticsCardDelta>
+        </AnalyticsCardContentRow>
       </CardContent>
     </Card>
   );

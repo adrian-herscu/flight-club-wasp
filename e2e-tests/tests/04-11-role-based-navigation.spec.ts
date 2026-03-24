@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { ensureSidebarOpen, logUserIn } from "./utils";
 
 const selectLanguage = async (page: Page, languageLabel: string) => {
   await page.getByRole("combobox").click();
@@ -7,6 +7,8 @@ const selectLanguage = async (page: Page, languageLabel: string) => {
 };
 
 const expectSidebarOnScreen = async (page: Page) => {
+  await ensureSidebarOpen(page);
+
   const sidebar = page.locator("aside");
   await expect(sidebar).toBeVisible();
 
@@ -27,6 +29,8 @@ const clickSidebarLinkAndExpectUrl = async (
   linkName: string,
   expectedUrl: RegExp,
 ) => {
+  await ensureSidebarOpen(page);
+
   const sidebar = page.locator("aside");
   let link = sidebar.getByRole("link", { name: linkName }).first();
   const isVisible = await link.isVisible().catch(() => false);

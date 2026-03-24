@@ -1,33 +1,26 @@
+import {
+  AnnouncementBanner,
+  AnnouncementButtonLinkDesktop,
+  AnnouncementButtonLinkMobile,
+  AnnouncementDivider,
+  AnnouncementTextLink,
+} from "../patterns/AnnouncementPatterns";
+
 const ANNOUNCEMENT_URL = "https://github.com/wasp-lang/wasp";
 
 export function Announcement() {
   return (
-    <div className="from-accent to-secondary text-primary-foreground relative flex w-full items-center justify-center gap-3 bg-linear-to-r p-3 text-center font-semibold">
-      <a
-        href={ANNOUNCEMENT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hidden cursor-pointer transition-opacity hover:opacity-90 hover:drop-shadow-sm lg:block"
-      >
+    <AnnouncementBanner>
+      <AnnouncementTextLink href={ANNOUNCEMENT_URL}>
         Support Open-Source Software!
-      </a>
-      <div className="bg-primary-foreground/20 hidden w-0.5 self-stretch lg:block"></div>
-      <a
-        href={ANNOUNCEMENT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-background/20 hover:bg-background/30 hidden cursor-pointer rounded-full px-2.5 py-1 text-xs tracking-wider transition-colors lg:block"
-      >
+      </AnnouncementTextLink>
+      <AnnouncementDivider />
+      <AnnouncementButtonLinkDesktop href={ANNOUNCEMENT_URL}>
         Star Our Repo on Github ⭐️ →
-      </a>
-      <a
-        href={ANNOUNCEMENT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-background/20 hover:bg-background/30 cursor-pointer rounded-full px-2.5 py-1 text-xs transition-colors lg:hidden"
-      >
+      </AnnouncementButtonLinkDesktop>
+      <AnnouncementButtonLinkMobile href={ANNOUNCEMENT_URL}>
         ⭐️ Star the Our Repo and Support Open-Source! ⭐️
-      </a>
-    </div>
+      </AnnouncementButtonLinkMobile>
+    </AnnouncementBanner>
   );
 }

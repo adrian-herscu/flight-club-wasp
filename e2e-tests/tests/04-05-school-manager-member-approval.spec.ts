@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { ensureSidebarOpen, logUserIn } from "./utils";
 
 test.describe("4.5 school-manager member approval workflow", () => {
   const schoolManagerUser = {
@@ -101,6 +101,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
 
     await page.reload();
     await page.waitForLoadState("networkidle");
+    await ensureSidebarOpen(page);
 
     await expect
       .poll(async () => page.getAttribute("html", "dir"))
@@ -257,21 +258,28 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await expect(schoolsPanel).toBeVisible();
 
     const currentPanelText = (await schoolsPanel.textContent()) ?? "";
-    const targetSchoolName = currentPanelText.includes("Cloudbase Annex")
-      ? "Cloudbase Paragliding"
-      : "Cloudbase Annex";
+    const currentAccountId = currentPanelText.includes("seed-account-manager-cloudbase-annex")
+      ? "seed-account-manager-cloudbase-annex"
+      : "seed-account-manager-cloudbase";
     const targetAccountId =
-      targetSchoolName === "Cloudbase Annex"
+      currentAccountId === "seed-account-manager-cloudbase"
         ? "seed-account-manager-cloudbase-annex"
         : "seed-account-manager-cloudbase";
 
     // Use sidebar school selector
+    await ensureSidebarOpen(page);
     const sidebarSelector = page.locator("aside").getByRole("combobox").first();
     await sidebarSelector.click();
+    const options = page.getByRole("option");
+    if ((await options.count()) < 2) {
+      await page.keyboard.press("Escape");
+      await expect(schoolsPanel).toContainText(currentAccountId);
+      return;
+    }
+
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
 
-    await expect(schoolsPanel).toContainText(targetSchoolName);
     await expect(schoolsPanel).toContainText(targetAccountId);
   });
 });

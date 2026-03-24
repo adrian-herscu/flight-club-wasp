@@ -11,6 +11,7 @@ import {
   marketingNavigationItems,
 } from "./components/NavBar/constants";
 import CookieConsentBanner from "./components/cookie-consent/Banner";
+import { AppContentWrapper, AppShell } from "./components/patterns/AppShellPatterns";
 import "./i18n";
 
 /**
@@ -57,7 +58,7 @@ export default function App() {
 
   return (
     <>
-      <div className="bg-background text-foreground min-h-screen">
+      <AppShell>
         {isDashboard ? (
           <Outlet />
         ) : (
@@ -65,12 +66,12 @@ export default function App() {
             {shouldDisplayAppNavBar && (
               <NavBar navigationItems={navigationItems} />
             )}
-            <div className="mx-auto max-w-(--breakpoint-2xl)">
+            <AppContentWrapper>
               <Outlet />
-            </div>
+            </AppContentWrapper>
           </>
         )}
-      </div>
+      </AppShell>
       <Toaster position={toasterPosition} />
       <CookieConsentBanner />
     </>
