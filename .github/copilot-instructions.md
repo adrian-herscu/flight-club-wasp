@@ -46,12 +46,9 @@
 ## Auth and user data
 - Keep Wasp-managed auth identity fields out of the Prisma `User` model unless there is an explicit need.
 - Use `AuthUser` identity helpers for nested auth identity fields.
-- If auth config, `main.wasp`, or schema changes cause type/import drift, comprehensively restart using `npm run wasp:restart` inside the `e2e-tests` directory. Logs are written to `app/wasp-dev.log`.
 
-## Database and migrations
+## Database
 - Define models only in `schema.prisma`.
-- After schema changes, run migrations (`wasp db migrate-dev`).
-- Prefer PostgreSQL when features require it (e.g., PgBoss jobs, enums in constrained environments).
 
 ## UI / ShadCN
 - ShadCN is already set up.
@@ -59,17 +56,15 @@
 - If adding new ShadCN components, ensure local `cn` utility import paths match project conventions.
 
 ## Troubleshooting defaults
-- If Wasp types/imports are stale after config/schema changes, restart dev server before deep debugging.
 - Check operation declarations, entity lists, path imports, server logs, and browser console.
 - After any state-changing code/config/schema edit, use diagnostics integration (Problems diagnostics) and fix compilation/schema errors before finishing.
 
 ## Testing workflow policy
-- Use the `runTests` tool to run tests instead of CLI commands (e.g., `npm test` or `npx playwright test`); this provides structured output, better VS Code integration, and precise error locations.
-- After any application code change (including `app/main.wasp`, or `app/src/**/*`) and before running any tests, run `wasp build`; fix all build errors before executing tests.
-- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant E2E tests first; watch the `app/wasp-dev.log` file for errors and fix accordingly.
-- For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant E2E tests to green.
+- Use the `runTests` tool to run tests instead of CLI commands.
+- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant tests first; for E2E tests, watch the `app/wasp-dev.log` file for errors and fix accordingly.
+- For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
-- Scope by impact: for infrastructure/testing-framework changes, run the full E2E suite; otherwise prefer focused tests for the affected area first, then expand only as needed.
+- Scope by impact: for infrastructure/testing-framework changes, run all tests; otherwise prefer focused tests for the affected area first, then expand only as needed.
 - For GUI/navigation changes, add or update a dedicated E2E flow that covers login and opening each visible sidebar menu item per affected user role; this flow must fail before the fix and pass after.
 
 ## Documentation preference
