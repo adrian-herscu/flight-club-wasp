@@ -35,7 +35,7 @@ Flight Club lets flight schools, instructors, and students find each other and m
 
 - [Wasp CLI](https://wasp.sh/docs/quick-start) ≥ 0.21
 - Node.js 18+
-- Docker (for the local PostgreSQL database)
+- Docker/Podman (for the local PostgreSQL database)
 
 ### Running locally
 
@@ -64,49 +64,12 @@ cp app/.env.server.example app/.env.server
 cp app/.env.client.example app/.env.client
 ```
 
-### Running E2E tests
+### Running tests
 
-Canonical policy for change/fix testing workflow:
-[.github/copilot-instructions.md#testing-workflow-policy](.github/copilot-instructions.md#testing-workflow-policy).
-
-E2E runs use a fail-fast contract:
-
-- `e2e-tests/global-setup.ts` prepares test state and app readiness before tests run.
-
-```bash
-cd e2e-tests && npm install
-npm run e2e:regression
-```
-
-### E2E run modes
-
-1. Command line (recommended): `cd e2e-tests && npm run e2e:regression`
-2. VS Code Testing panel (Playwright extension: `ms-playwright.playwright`)
-3. Interactive UI mode: `cd e2e-tests && npm run e2e:regression:ui`
-
-### E2E runtime behavior
-
-- `e2e-tests/global-setup.ts` checks readiness for:
-	- `http://127.0.0.1:3000`
-	- `tcp:127.0.0.1:3001`
-- it runs DB reset once per Playwright invocation.
-- if app is not ready after reset, it starts `wasp start` in background and waits until both ports are ready.
-- `e2e-tests/playwright.config.ts` uses `baseURL` `http://127.0.0.1:3000`; app auto-start is handled by `global-setup.ts`, not Playwright config.
-
-### E2E troubleshooting (quick)
-
-- Tests timeout initially: inspect `app/wasp-dev.log` for startup errors.
-- Port conflict: stop conflicting process or align app/test ports.
-- CI failures only: ensure CI starts app and waits for readiness before Playwright.
-
-### E2E environment notes
-
-- `CI` is provided by CI systems.
-- `SKIP_EMAIL_VERIFICATION_IN_DEV` is optional for signup/email-verification flows.
-- `e2e:regression:ui` runs playwright in ui mode.
+see [E2E tests](e2e-tests/README.md) and [API tests](api-tests/README.md)
 
 ## Documentation
 
-- [Product Requirements](app/docs/prd.md)
+- [Product Requirements Document](app/docs/prd.md)
 - [Data Design](app/docs/data-design.md)
 - [Software Test Design](app/docs/std.md)
