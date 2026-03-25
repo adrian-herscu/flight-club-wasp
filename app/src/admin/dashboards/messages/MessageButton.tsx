@@ -1,20 +1,33 @@
 import { MessageCircleMore } from "lucide-react";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
+import {
+  MessageButtonItem,
+  MessageButtonLink,
+  MessageNotificationBadge,
+} from "../../../client/components/patterns/AdminMessagePatterns";
 
 const MessageButton = () => {
   return (
-    <li className="relative" x-data="{ dropdownOpen: false, notifying: true }">
+    <MessageButtonItem>
       <WaspRouterLink
-        className="h-8.5 w-8.5 border-stroke bg-gray hover:text-primary dark:border-strokedark dark:bg-meta-4 relative flex items-center justify-center rounded-full border-[0.5px] dark:text-white"
+        style={{
+          height: "2.125rem",
+          width: "2.125rem",
+          borderColor: "hsl(var(--border))",
+          backgroundColor: "hsl(var(--muted))",
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "9999px",
+          borderWidth: "0.5px",
+        }}
         to={routes.SystemAdminMessagesRoute.to}
       >
-        <span className="z-1 bg-meta-1 absolute -inset-e-0.5 -top-0.5 h-2 w-2 rounded-full">
-          {/* TODO: only animate if there are new messages */}
-          <span className="-z-1 bg-meta-1 absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
-        </span>
-        <MessageCircleMore className="size-5" />
+        <MessageNotificationBadge />
+        <MessageCircleMore style={{ width: "1.25rem", height: "1.25rem" }} />
       </WaspRouterLink>
-    </li>
+    </MessageButtonItem>
   );
 };
 

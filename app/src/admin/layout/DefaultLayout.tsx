@@ -1,6 +1,12 @@
-import { FC, ReactNode, useState } from "react";
+import { FC, ReactNode, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router";
 import { type AuthUser } from "wasp/auth";
+import {
+  AdminLayoutRoot,
+  AdminMainContent,
+  AdminMainContentInner,
+  AdminTwoColumnLayout,
+} from "../../client/components/patterns/AdminLayoutPatterns";
 import { isDashboardPath } from "../../shared/roles";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -10,9 +16,41 @@ interface Props {
   children?: ReactNode;
 }
 
+const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+
 const DefaultLayout: FC<Props> = ({ children, user }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
+  });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const updateDesktopState = () => setIsDesktop(mediaQuery.matches);
+
+    updateDesktopState();
+    mediaQuery.addEventListener("change", updateDesktopState);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateDesktopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isDesktop]);
+
+  const sidebarOpen = useMemo(() => isDesktop || mobileSidebarOpen, [isDesktop, mobileSidebarOpen]);
 
   // Guard /system-admin paths to system admins only.
   if (pathname.startsWith("/system-admin") && !user.isSystemAdmin) {
@@ -26,26 +64,24 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
   }
 
   return (
-    <div className="bg-background text-foreground">
-      <div className="flex h-screen overflow-hidden">
+    <AdminLayoutRoot>
+      <AdminTwoColumnLayout>
         <Sidebar
           sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
+          setSidebarOpen={setMobileSidebarOpen}
+          isDesktop={isDesktop}
         />
-        <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+        <AdminMainContent reserveSidebarSpace={isDesktop}>
           <Header
             sidebarOpen={sidebarOpen}
-            setSidebarOpen={setSidebarOpen}
+            setSidebarOpen={setMobileSidebarOpen}
+            isDesktop={isDesktop}
             user={user}
           />
-          <main>
-            <div className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6 2xl:p-10">
-              {children}
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
+          <AdminMainContentInner>{children}</AdminMainContentInner>
+        </AdminMainContent>
+      </AdminTwoColumnLayout>
+    </AdminLayoutRoot>
   );
 };
 

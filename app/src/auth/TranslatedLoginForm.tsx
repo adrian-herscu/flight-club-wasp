@@ -7,6 +7,12 @@ import { initSession } from "wasp/auth/helpers/user";
 import { Button } from "../client/components/ui/button";
 import { Input } from "../client/components/ui/input";
 import { Label } from "../client/components/ui/label";
+import { AuthFormSection } from "../client/components/patterns/AuthFormSection";
+import { AuthGoogleSection } from "../client/components/patterns/AuthGoogleSection";
+import { AuthDivider } from "../client/components/patterns/AuthDivider";
+import { AuthForm } from "../client/components/patterns/AuthForm";
+import { AuthInputGroup } from "../client/components/patterns/AuthInputGroup";
+import { AuthErrorMessage } from "../client/components/patterns/AuthErrorMessage";
 
 export function TranslatedLoginForm() {
   const { t } = useTranslation();
@@ -38,26 +44,16 @@ export function TranslatedLoginForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3 text-center">
-        <p className="text-sm font-medium text-gray-700">{t("auth.continueWithGoogle")}</p>
-        <div className="flex justify-center">
-          <GoogleSignInButton />
-        </div>
-      </div>
+    <AuthFormSection>
+      <AuthGoogleSection label={t("auth.continueWithGoogle")}>
+        <GoogleSignInButton />
+      </AuthGoogleSection>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-          <div className="w-full border-t border-gray-200" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-gray-500">{t("auth.orContinueWithEmail")}</span>
-        </div>
-      </div>
+      <AuthDivider label={t("auth.orContinueWithEmail")} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
+      <AuthForm onSubmit={handleSubmit}>
+        <AuthInputGroup>
+          <Label htmlFor="email">
             {t("auth.emailAddress")}
           </Label>
           <Input
@@ -68,13 +64,12 @@ export function TranslatedLoginForm() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             placeholder={t("auth.emailPlaceholder")}
             required
-            className="mt-1 block w-full"
             disabled={isLoading}
           />
-        </div>
+        </AuthInputGroup>
 
-        <div>
-          <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
+        <AuthInputGroup>
+          <Label htmlFor="password">
             {t("auth.password")}
           </Label>
           <Input
@@ -85,25 +80,23 @@ export function TranslatedLoginForm() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             placeholder={t("auth.passwordPlaceholder")}
             required
-            className="mt-1 block w-full"
             disabled={isLoading}
           />
-        </div>
+        </AuthInputGroup>
 
         {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
+          <AuthErrorMessage message={error} />
         )}
 
         <Button
           type="submit"
+          variant="accent"
+          size="full"
           disabled={isLoading}
-          className="w-full bg-yellow-400 text-black hover:bg-yellow-500"
         >
           {isLoading ? t("common.loading") : t("auth.login")}
         </Button>
-      </form>
-    </div>
+      </AuthForm>
+    </AuthFormSection>
   );
 }

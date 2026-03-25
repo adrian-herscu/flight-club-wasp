@@ -1,11 +1,26 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
+import LabeledInputField from "../client/components/patterns/LabeledInputField";
+import LabeledSelectField from "../client/components/patterns/LabeledSelectField";
+import {
+  ManagerCoursesCardContent,
+  ManagerCoursesCourseListItem,
+  ManagerCoursesDetailsPanel,
+  ManagerCoursesDisclosure,
+  ManagerCoursesForm,
+  ManagerCoursesGrid,
+  ManagerCoursesList,
+  ManagerCoursesLoadingText,
+  ManagerCoursesMutedText,
+  ManagerCoursesParticipantListItem,
+  ManagerCoursesTwoColumnFields,
+} from "../client/components/patterns/ManagerCoursesPagePatterns";
 import { Button } from "../client/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
+import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../client/components/ui/dialog";
-import { Input } from "../client/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../client/components/ui/select";
+import { SelectItem } from "../client/components/ui/select";
 import { toast } from "../client/hooks/use-toast";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
@@ -554,334 +562,311 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
+  const renderCourseSelectField = (
+    id: string,
+    label: string,
+    value: string,
+    onValueChange: (value: string) => void,
+  ) => (
+    <LabeledSelectField
+      id={id}
+      label={label}
+      value={value}
+      onValueChange={onValueChange}
+      placeholder={t("syllabus.coursePlaceholder")}
+    >
+      {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
+        <SelectItem key={course.courseId} value={course.courseId}>
+          {course.syllabusName} (v{course.syllabusVersion}) •{" "}
+          {course.startDate
+            ? new Date(course.startDate).toLocaleDateString()
+            : t("syllabus.noStartDate")}
+        </SelectItem>
+      ))}
+    </LabeledSelectField>
+  );
+
+  const renderCourseRow = (
+    course: EnrollmentCourseItem,
+    actionButton: ReactNode,
+    includeTotalPrice: boolean,
+    includeSummaryTestId: boolean,
+  ) => (
+    <ManagerCoursesCourseListItem
+      key={course.courseId}
+      action={actionButton}
+      title={`${course.syllabusName} (v${course.syllabusVersion})`}
+      summaryTestId={includeSummaryTestId ? `manager-course-summary-${course.courseId}` : undefined}
+      summary={
+        <>
+          {t("syllabus.enrolledStudents", { count: course.enrolledCount })} •{" "}
+          {includeTotalPrice
+            ? course.hourlyRate != null
+              ? t("syllabus.totalPriceValue", {
+                  price: course.hourlyRate * course.enrolledCount,
+                })
+              : t("syllabus.noTotalPrice")
+            : null}
+          {includeTotalPrice ? " • " : null}
+          {course.startDate
+            ? new Date(course.startDate).toLocaleDateString()
+            : t("syllabus.startDate")}
+        </>
+      }
+    />
+  );
+
+  const renderParticipantRow = (id: string, displayName: string, email: string | null) => (
+    <ManagerCoursesParticipantListItem
+      key={id}
+      displayName={displayName}
+      email={email ?? "—"}
+    />
+  );
+
   return (
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.courses")} showTitle={false} />
 
-      <div className="mb-6 grid gap-6 2xl:grid-cols-2">
+      <ManagerCoursesGrid variant="top">
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.openCourseFromFinalSyllabus")}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <ManagerCoursesCardContent>
             {isCatalogLoading ? (
-              <p className="text-sm text-muted-foreground">{t("syllabus.loadingCatalog")}</p>
+              <ManagerCoursesLoadingText>{t("syllabus.loadingCatalog")}</ManagerCoursesLoadingText>
             ) : (
-              <form onSubmit={handleCreateCourse} className="space-y-3">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">{t("syllabus.selectFinalVersion")}</label>
-                  <Select
-                    value={newCourseTemplateVersionId}
-                    onValueChange={setNewCourseTemplateVersionId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("syllabus.finalTemplatePlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {finalCandidates.map((item: CatalogItem) => (
-                        <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
-                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <ManagerCoursesForm onSubmit={handleCreateCourse} variant="compact">
+                <LabeledSelectField
+                  id="create-course-template-version"
+                  label={t("syllabus.selectFinalVersion")}
+                  value={newCourseTemplateVersionId}
+                  onValueChange={setNewCourseTemplateVersionId}
+                  placeholder={t("syllabus.finalTemplatePlaceholder")}
+                >
+                  {finalCandidates.map((item: CatalogItem) => (
+                    <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
+                      {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
+                    </SelectItem>
+                  ))}
+                </LabeledSelectField>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">{t("syllabus.startDateLabel")}</label>
-                  <Input
-                    type="date"
-                    value={newCourseStartDate}
-                    onChange={(event) => setNewCourseStartDate(event.target.value)}
-                  />
-                </div>
+                <LabeledInputField
+                  id="manager-course-start-date"
+                  label={t("syllabus.startDateLabel")}
+                  type="date"
+                  value={newCourseStartDate}
+                  onChange={setNewCourseStartDate}
+                />
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">{t("syllabus.minCapacityLabel")}</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={newCourseMinCapacity}
-                      onChange={(event) => setNewCourseMinCapacity(event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">{t("syllabus.maxCapacityLabel")}</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={newCourseMaxCapacity}
-                      onChange={(event) => setNewCourseMaxCapacity(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">
-                    {t("syllabus.courseHourlyRateLabel")}
-                  </label>
-                  <Input
+                <ManagerCoursesTwoColumnFields>
+                  <LabeledInputField
+                    id="manager-course-min-capacity"
+                    label={t("syllabus.minCapacityLabel")}
                     type="number"
                     min={1}
-                    value={newCourseHourlyRate}
-                    onChange={(event) => setNewCourseHourlyRate(event.target.value)}
+                    value={newCourseMinCapacity}
+                    onChange={setNewCourseMinCapacity}
                   />
-                </div>
+                  <LabeledInputField
+                    id="manager-course-max-capacity"
+                    label={t("syllabus.maxCapacityLabel")}
+                    type="number"
+                    min={1}
+                    value={newCourseMaxCapacity}
+                    onChange={setNewCourseMaxCapacity}
+                  />
+                </ManagerCoursesTwoColumnFields>
+
+                <LabeledInputField
+                  id="manager-course-hourly-rate"
+                  label={t("syllabus.courseHourlyRateLabel")}
+                  type="number"
+                  min={1}
+                  value={newCourseHourlyRate}
+                  onChange={setNewCourseHourlyRate}
+                />
 
                 <Button type="submit" disabled={isCreatingCourse || finalCandidates.length === 0}>
                   {isCreatingCourse ? t("syllabus.creatingCourse") : t("syllabus.createCourseButton")}
                 </Button>
-              </form>
+              </ManagerCoursesForm>
             )}
-          </CardContent>
+          </ManagerCoursesCardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>{t("admin.courses")}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <ManagerCoursesCardContent>
             {coursesForEnrollment.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
+              <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
             ) : (
-              <ul className="space-y-2">
+              <ManagerCoursesList>
                 {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
-                  <li key={course.courseId} className="rounded-md border p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium">
-                        {course.syllabusName} (v{course.syllabusVersion})
-                      </p>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleOpenCloseCourseDialog(course)}
-                      >
-                        {t("syllabus.closeCourseButton")}
-                      </Button>
-                    </div>
-                    <p
-                      className="text-muted-foreground text-xs"
-                      data-testid={`manager-course-summary-${course.courseId}`}
+                  renderCourseRow(
+                    course,
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleOpenCloseCourseDialog(course)}
                     >
-                      {t("syllabus.enrolledStudents", { count: course.enrolledCount })} • {" "}
-                      {course.hourlyRate != null
-                        ? t("syllabus.totalPriceValue", {
-                            price: course.hourlyRate * course.enrolledCount,
-                          })
-                        : t("syllabus.noTotalPrice")} • {" "}
-                      {course.startDate
-                        ? new Date(course.startDate).toLocaleDateString()
-                        : t("syllabus.startDate")}
-                    </p>
-                  </li>
+                      {t("syllabus.closeCourseButton")}
+                    </Button>,
+                    true,
+                    true,
+                  )
                 ))}
-              </ul>
+              </ManagerCoursesList>
             )}
 
-            <details className="mt-4 rounded-md border p-3">
-              <summary className="cursor-pointer text-sm font-medium">
-                {t("syllabus.closedCoursesPanel", { count: closedCourses.length })}
-              </summary>
-
-              <div className="mt-3">
+            <ManagerCoursesDisclosure summary={t("syllabus.closedCoursesPanel", { count: closedCourses.length })}>
                 {closedCourses.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">{t("syllabus.noClosedCourses")}</p>
+                  <ManagerCoursesMutedText>{t("syllabus.noClosedCourses")}</ManagerCoursesMutedText>
                 ) : (
-                  <ul className="space-y-2">
+                  <ManagerCoursesList>
                     {closedCourses.map((course: EnrollmentCourseItem) => (
-                      <li key={course.courseId} className="rounded-md border p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-medium">
-                            {course.syllabusName} (v{course.syllabusVersion})
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenReopenCourseDialog(course)}
-                          >
-                            {t("syllabus.reopenCourseButton")}
-                          </Button>
-                        </div>
-                        <p className="text-muted-foreground text-xs">
-                          {t("syllabus.enrolledStudents", { count: course.enrolledCount })} • {" "}
-                          {course.startDate
-                            ? new Date(course.startDate).toLocaleDateString()
-                            : t("syllabus.startDate")}
-                        </p>
-                      </li>
+                      renderCourseRow(
+                        course,
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenReopenCourseDialog(course)}
+                        >
+                          {t("syllabus.reopenCourseButton")}
+                        </Button>,
+                        false,
+                        false,
+                      )
                     ))}
-                  </ul>
+                  </ManagerCoursesList>
                 )}
-              </div>
-            </details>
-          </CardContent>
+            </ManagerCoursesDisclosure>
+          </ManagerCoursesCardContent>
         </Card>
-      </div>
+      </ManagerCoursesGrid>
 
-      <div className="grid gap-6 2xl:grid-cols-2">
+      <ManagerCoursesGrid variant="bottom">
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.workflowSingleStudentEnrollment")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleEnrollStudent} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("syllabus.course")}</label>
-                <Select
-                  value={selectedEnrollmentCourseId ?? ""}
-                  onValueChange={(val) => setSelectedEnrollmentCourseId(val || null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.coursePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
-                      <SelectItem key={course.courseId} value={course.courseId}>
-                        {course.syllabusName} (v{course.syllabusVersion}) •{" "}
-                        {course.startDate
-                          ? new Date(course.startDate).toLocaleDateString()
-                          : t("syllabus.noStartDate")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <ManagerCoursesCardContent variant="spacious">
+            <ManagerCoursesForm onSubmit={handleEnrollStudent} variant="spacious">
+              {renderCourseSelectField(
+                "enrollment-course-select",
+                t("syllabus.course"),
+                selectedEnrollmentCourseId ?? "",
+                (val) => setSelectedEnrollmentCourseId(val || null),
+              )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("syllabus.student")}</label>
-                <Select
-                  value={selectedStudentIdToEnroll}
-                  onValueChange={setSelectedStudentIdToEnroll}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.studentPlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {studentsForEnrollment.map((student: EnrollmentStudentItem) => (
-                      <SelectItem key={student.studentId} value={student.studentId}>
-                        {student.displayName} • {student.email ?? "—"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <LabeledSelectField
+                id="enrollment-student-select"
+                label={t("syllabus.student")}
+                value={selectedStudentIdToEnroll}
+                onValueChange={setSelectedStudentIdToEnroll}
+                placeholder={t("syllabus.studentPlaceholder")}
+              >
+                {studentsForEnrollment.map((student: EnrollmentStudentItem) => (
+                  <SelectItem key={student.studentId} value={student.studentId}>
+                    {student.displayName} • {student.email ?? "—"}
+                  </SelectItem>
+                ))}
+              </LabeledSelectField>
 
               <Button type="submit" disabled={isEnrollingStudent}>
                 {isEnrollingStudent ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
               </Button>
-            </form>
+            </ManagerCoursesForm>
 
-            <div className="space-y-2 border-t pt-4">
-              <p className="text-sm font-medium">
-                {t("syllabus.enrolledStudents", {
-                  count: courseEnrollmentDetails?.enrolledCount ?? 0,
-                })}
-              </p>
+            <ManagerCoursesDetailsPanel
+              title={t("syllabus.enrolledStudents", {
+                count: courseEnrollmentDetails?.enrolledCount ?? 0,
+              })}
+            >
               {!selectedEnrollmentCourseId ? (
-                <p className="text-muted-foreground text-sm">
+                <ManagerCoursesMutedText>
                   {t("syllabus.selectCourseToViewEnrolled")}
-                </p>
+                </ManagerCoursesMutedText>
               ) : !courseEnrollmentDetails ? (
-                <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
+                <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
               ) : courseEnrollmentDetails.enrolledStudents.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t("syllabus.noStudentsEnrolled")}</p>
+                <ManagerCoursesMutedText>{t("syllabus.noStudentsEnrolled")}</ManagerCoursesMutedText>
               ) : (
-                <ul className="space-y-2">
+                <ManagerCoursesList>
                   {courseEnrollmentDetails.enrolledStudents.map((student) => (
-                    <li key={student.studentId} className="rounded-md border p-3 text-sm">
-                      <p className="font-medium">{student.displayName}</p>
-                      <p className="text-muted-foreground text-xs">{student.email ?? "—"}</p>
-                    </li>
+                    renderParticipantRow(student.studentId, student.displayName, student.email)
                   ))}
-                </ul>
+                </ManagerCoursesList>
               )}
-            </div>
-          </CardContent>
+            </ManagerCoursesDetailsPanel>
+          </ManagerCoursesCardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.workflowInstructorAssignment")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleAssignInstructor} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("syllabus.course")}</label>
-                <Select
-                  value={selectedAssignmentCourseId ?? ""}
-                  onValueChange={(val) => setSelectedAssignmentCourseId(val || null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.coursePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
-                      <SelectItem key={course.courseId} value={course.courseId}>
-                        {course.syllabusName} (v{course.syllabusVersion}) •{" "}
-                        {course.startDate
-                          ? new Date(course.startDate).toLocaleDateString()
-                          : t("syllabus.noStartDate")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <ManagerCoursesCardContent variant="spacious">
+            <ManagerCoursesForm onSubmit={handleAssignInstructor} variant="spacious">
+              {renderCourseSelectField(
+                "assignment-course-select",
+                t("syllabus.course"),
+                selectedAssignmentCourseId ?? "",
+                (val) => setSelectedAssignmentCourseId(val || null),
+              )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("syllabus.instructor")}</label>
-                <Select
-                  value={selectedInstructorIdToAssign}
-                  onValueChange={setSelectedInstructorIdToAssign}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("syllabus.instructorPlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {instructorsForAssignment.map((inst: AssignmentInstructorItem) => (
-                      <SelectItem key={inst.instructorId} value={inst.instructorId}>
-                        {inst.displayName} • {inst.email ?? "—"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <LabeledSelectField
+                id="assignment-instructor-select"
+                label={t("syllabus.instructor")}
+                value={selectedInstructorIdToAssign}
+                onValueChange={setSelectedInstructorIdToAssign}
+                placeholder={t("syllabus.instructorPlaceholder")}
+              >
+                {instructorsForAssignment.map((inst: AssignmentInstructorItem) => (
+                  <SelectItem key={inst.instructorId} value={inst.instructorId}>
+                    {inst.displayName} • {inst.email ?? "—"}
+                  </SelectItem>
+                ))}
+              </LabeledSelectField>
 
               <Button type="submit" disabled={isAssigningInstructor}>
                 {isAssigningInstructor ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
               </Button>
-            </form>
+            </ManagerCoursesForm>
 
-            <div className="space-y-2 border-t pt-4">
-              <p className="text-sm font-medium">
-                {t("syllabus.assignedInstructors", {
-                  count: courseInstructorDetails?.assignedCount ?? 0,
-                })}
-              </p>
+            <ManagerCoursesDetailsPanel
+              title={t("syllabus.assignedInstructors", {
+                count: courseInstructorDetails?.assignedCount ?? 0,
+              })}
+            >
               {!selectedAssignmentCourseId ? (
-                <p className="text-muted-foreground text-sm">
+                <ManagerCoursesMutedText>
                   {t("syllabus.selectCourseToViewAssigned")}
-                </p>
+                </ManagerCoursesMutedText>
               ) : !courseInstructorDetails ? (
-                <p className="text-muted-foreground text-sm">{t("syllabus.noDetailsAvailable")}</p>
+                <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
               ) : courseInstructorDetails.assignedInstructors.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t("syllabus.noInstructorsAssigned")}</p>
+                <ManagerCoursesMutedText>{t("syllabus.noInstructorsAssigned")}</ManagerCoursesMutedText>
               ) : (
-                <ul className="space-y-2">
+                <ManagerCoursesList>
                   {courseInstructorDetails.assignedInstructors.map((instructor) => (
-                    <li key={instructor.instructorId} className="rounded-md border p-3 text-sm">
-                      <p className="font-medium">{instructor.displayName}</p>
-                      <p className="text-muted-foreground text-xs">{instructor.email ?? "—"}</p>
-                    </li>
+                    renderParticipantRow(
+                      instructor.instructorId,
+                      instructor.displayName,
+                      instructor.email,
+                    )
                   ))}
-                </ul>
+                </ManagerCoursesList>
               )}
-            </div>
-          </CardContent>
+            </ManagerCoursesDetailsPanel>
+          </ManagerCoursesCardContent>
         </Card>
-      </div>
+      </ManagerCoursesGrid>
 
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>

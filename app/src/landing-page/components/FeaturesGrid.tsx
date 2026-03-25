@@ -1,11 +1,18 @@
 import React from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from "../../client/components/ui/card";
-import { cn } from "../../client/utils";
+  FeatureCardLink,
+  FeatureEmoji,
+  FeatureFullWidthIcon,
+  FeatureIconBubble,
+  FeatureIconRow,
+  FeaturesGridCard,
+  FeaturesGridCardBody,
+  FeaturesGridDescription,
+  FeaturesGridLayout,
+  FeaturesGridSection,
+  FeaturesGridFullWidthTitle,
+  FeaturesGridTitle,
+} from "../../client/components/patterns/LandingPagePatterns";
 import { Feature } from "./Features";
 import SectionTitle from "./SectionTitle";
 
@@ -20,33 +27,25 @@ export interface GridFeature extends Omit<Feature, "icon"> {
 
 interface FeaturesGridProps {
   features: GridFeature[];
-  className?: string;
+  layoutClassName?: string;
 }
 
-const FeaturesGrid = ({ features, className = "" }: FeaturesGridProps) => {
+const FeaturesGrid = ({ features, layoutClassName = "" }: FeaturesGridProps) => {
   return (
-    <div
-      className="mx-auto my-16 flex max-w-7xl flex-col gap-4 md:my-24 lg:my-40"
-      id="features"
-    >
+    <FeaturesGridSection>
       <SectionTitle
         title="Features"
         description="These are some of the features of the product."
       />
-      <div
-        className={cn(
-          "mx-4 grid auto-rows-[minmax(140px,auto)] grid-cols-2 gap-4 md:mx-6 md:grid-cols-4 lg:mx-8 lg:grid-cols-6",
-          className,
-        )}
-      >
+      <FeaturesGridLayout extraClasses={layoutClassName}>
         {features.map((feature) => (
           <FeaturesGridItem
             key={feature.name + feature.description}
             {...feature}
           />
         ))}
-      </div>
-    </div>
+      </FeaturesGridLayout>
+    </FeaturesGridSection>
   );
 };
 
@@ -78,73 +77,45 @@ function FeaturesGridItem({
   };
 
   const gridFeatureCard = (
-    <Card
-      className={cn(
-        "h-full min-h-[140px] cursor-pointer transition-all duration-300 hover:shadow-lg",
-        gridFeatureSizeToClasses[size],
-      )}
-      variant="bento"
-    >
-      <CardContent className="flex h-full flex-col items-center justify-center p-4">
+    <FeaturesGridCard sizeClass={gridFeatureSizeToClasses[size]}>
+      <FeaturesGridCardBody>
         {fullWidthIcon && (icon || emoji) ? (
-          <div className="mb-3 flex w-full items-center justify-center">
+          <FeatureFullWidthIcon>
             {icon ? (
               icon
             ) : emoji ? (
-              <span className="text-4xl">{emoji}</span>
+              <FeatureEmoji size="lg">{emoji}</FeatureEmoji>
             ) : null}
-          </div>
+          </FeatureFullWidthIcon>
         ) : (
-          <div
-            className={cn(
-              "flex items-center gap-3",
-              directionToClass[direction],
-              align === "center"
-                ? "items-center justify-center"
-                : "justify-start",
-            )}
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg">
+          <FeatureIconRow direction={direction} align={align}>
+            <FeatureIconBubble>
               {icon ? (
                 icon
               ) : emoji ? (
-                <span className="text-2xl">{emoji}</span>
+                <FeatureEmoji>{emoji}</FeatureEmoji>
               ) : null}
-            </div>
-            <CardTitle
-              className={cn(align === "center" ? "text-center" : "text-left")}
-            >
-              {name}
-            </CardTitle>
-          </div>
+            </FeatureIconBubble>
+            <FeaturesGridTitle align={align}>{name}</FeaturesGridTitle>
+          </FeatureIconRow>
         )}
         {fullWidthIcon && (icon || emoji) && (
-          <CardTitle className="mb-2 text-center">{name}</CardTitle>
+          <FeaturesGridFullWidthTitle>{name}</FeaturesGridFullWidthTitle>
         )}
-        <CardDescription
-          className={cn(
-            "text-xs leading-relaxed",
-            fullWidthIcon || direction === "col" || align === "center"
-              ? "text-center"
-              : "text-left",
-          )}
+        <FeaturesGridDescription
+          centered={fullWidthIcon || direction === "col" || align === "center"}
         >
           {description}
-        </CardDescription>
-      </CardContent>
-    </Card>
+        </FeaturesGridDescription>
+      </FeaturesGridCardBody>
+    </FeaturesGridCard>
   );
 
   if (href) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={gridFeatureSizeToClasses[size]}
-      >
+      <FeatureCardLink href={href} spanClass={gridFeatureSizeToClasses[size]}>
         {gridFeatureCard}
-      </a>
+      </FeatureCardLink>
     );
   }
 

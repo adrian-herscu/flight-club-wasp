@@ -5,6 +5,12 @@ import { Link } from "react-router";
 import { logout } from "wasp/client/auth";
 import { type User as UserEntity } from "wasp/entities";
 import {
+  DropdownItemContent,
+  SrOnlyText,
+  UserIdentityText,
+} from "../client/components/patterns/AppStructure";
+import { Button } from "../client/components/ui/button";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -24,42 +30,33 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <button className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out">
-          <span className="text-foreground mr-2 hidden text-right text-sm font-medium lg:block">
-            {currentUser.fullName ?? currentUser.email ?? t("common.user")}
-          </span>
-          <User className="size-5" />
-          <ChevronDown className="size-4" />
-        </button>
+        <Button type="button" variant="ghost">
+          <UserIdentityText>{currentUser.fullName ?? currentUser.email ?? t("common.user")}</UserIdentityText>
+          <User size={20} />
+          <ChevronDown size={16} />
+          <SrOnlyText>{t("common.user")}</SrOnlyText>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         {menuItems.map((item) => {
           if (item.isAuthRequired && !user) return null;
 
           return (
-            <DropdownMenuItem key={item.nameKey}>
-              <Link
-                to={item.to}
-                onClick={() => {
-                  setOpen(false);
-                }}
-                className="flex w-full items-center gap-3"
-              >
-                <item.icon size="1.1rem" />
-                {t(item.nameKey)}
+            <DropdownMenuItem key={item.nameKey} asChild>
+              <Link to={item.to} onClick={() => setOpen(false)}>
+                <DropdownItemContent>
+                  <item.icon size="1.1rem" />
+                  {t(item.nameKey)}
+                </DropdownItemContent>
               </Link>
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuItem>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="flex w-full items-center gap-3"
-          >
+        <DropdownMenuItem onClick={() => logout()}>
+          <DropdownItemContent>
             <LogOut size="1.1rem" />
             {t("auth.logout")}
-          </button>
+          </DropdownItemContent>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

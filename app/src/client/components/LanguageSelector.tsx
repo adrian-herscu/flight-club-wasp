@@ -3,9 +3,9 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { LanguageSelectorTrigger } from "./patterns/LanguageSelectorPatterns";
 
 export function LanguageSelector() {
   const { i18n, t } = useTranslation();
@@ -16,9 +16,9 @@ export function LanguageSelector() {
 
   return (
     <Select value={i18n.language} onValueChange={handleLanguageChange}>
-      <SelectTrigger className="w-30">
+      <LanguageSelectorTrigger>
         <SelectValue placeholder={t("common.language")} />
-      </SelectTrigger>
+      </LanguageSelectorTrigger>
       <SelectContent>
         <SelectItem value="en">{t("common.english")}</SelectItem>
         <SelectItem value="he">{t("common.hebrew")}</SelectItem>

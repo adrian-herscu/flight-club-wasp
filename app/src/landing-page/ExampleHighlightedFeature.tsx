@@ -1,5 +1,10 @@
 import aiReadyDark from "../client/static/assets/aiready-dark.webp";
 import aiReady from "../client/static/assets/aiready.webp";
+import {
+  ExampleHighlightedFeatureDarkImage,
+  ExampleHighlightedFeatureFrame,
+  ExampleHighlightedFeatureLightImage,
+} from "../client/components/patterns/LandingPagePatterns";
 import HighlightedFeature from "./components/HighlightedFeature";
 
 export default function AIReady() {
@@ -15,9 +20,9 @@ export default function AIReady() {
 
 const AIReadyExample = () => {
   return (
-    <div className="w-full">
-      <img src={aiReady} alt="AI Ready" className="dark:hidden" />
-      <img src={aiReadyDark} alt="AI Ready" className="hidden dark:block" />
-    </div>
+    <ExampleHighlightedFeatureFrame>
+      <ExampleHighlightedFeatureLightImage src={aiReady} />
+      <ExampleHighlightedFeatureDarkImage src={aiReadyDark} />
+    </ExampleHighlightedFeatureFrame>
   );
 };

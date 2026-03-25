@@ -9,7 +9,14 @@ import {
   CardContent,
   CardHeader,
 } from "../../../client/components/ui/card";
-import { cn } from "../../../client/utils";
+import {
+  AnalyticsCardContentRow,
+  AnalyticsCardIconContainer,
+  AnalyticsCardLabel,
+  AnalyticsCardDelta,
+  AnalyticsCardValue,
+  AnalyticsMetricBlock,
+} from "../../../client/components/patterns/AdminAnalyticsPatterns";
 
 const TotalRevenueCard = ({
   dailyStats,
@@ -41,41 +48,33 @@ const TotalRevenueCard = ({
   return (
     <Card>
       <CardHeader>
-        <div className="h-11.5 w-11.5 bg-muted flex items-center justify-center rounded-full">
-          <ShoppingCart className="size-6" />
-        </div>
+        <AnalyticsCardIconContainer>
+          <ShoppingCart style={{ width: "1.5rem", height: "1.5rem" }} />
+        </AnalyticsCardIconContainer>
       </CardHeader>
 
-      <CardContent className="flex justify-between">
-        <div>
-          <h4 className="text-title-md text-foreground font-bold">
-            ${dailyStats?.totalRevenue}
-          </h4>
-          <span className="text-muted-foreground text-sm font-medium">
-            Total Revenue
-          </span>
-        </div>
+      <CardContent>
+        <AnalyticsCardContentRow>
+          <AnalyticsMetricBlock>
+          <AnalyticsCardValue>${dailyStats?.totalRevenue}</AnalyticsCardValue>
+          <AnalyticsCardLabel>Total Revenue</AnalyticsCardLabel>
+          </AnalyticsMetricBlock>
 
-        <span
-          className={cn("flex items-center gap-1 text-sm font-medium", {
-            "text-success":
-              isDeltaPositive && !isLoading && deltaPercentage !== 0,
-            "text-destructive":
-              !isDeltaPositive && !isLoading && deltaPercentage !== 0,
-            "text-muted-foreground":
-              isLoading || !deltaPercentage || deltaPercentage === 0,
-          })}
-        >
-          {isLoading
-            ? "..."
-            : deltaPercentage && deltaPercentage !== 0
-              ? `${deltaPercentage}%`
-              : "-"}
-          {!isLoading &&
-            deltaPercentage &&
-            deltaPercentage !== 0 &&
-            (isDeltaPositive ? <ArrowUp /> : <ArrowDown />)}
-        </span>
+          <AnalyticsCardDelta
+            isPositive={isDeltaPositive}
+            isLoading={isLoading}
+          >
+            {isLoading
+              ? "..."
+              : deltaPercentage && deltaPercentage !== 0
+                ? `${deltaPercentage}%`
+                : "-"}
+            {!isLoading &&
+              deltaPercentage &&
+              deltaPercentage !== 0 &&
+              (isDeltaPositive ? <ArrowUp style={{ width: "1rem", height: "1rem" }} /> : <ArrowDown style={{ width: "1rem", height: "1rem" }} />)}
+          </AnalyticsCardDelta>
+        </AnalyticsCardContentRow>
       </CardContent>
     </Card>
   );

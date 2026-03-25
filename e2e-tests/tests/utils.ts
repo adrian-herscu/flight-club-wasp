@@ -186,6 +186,46 @@ export const acceptAllCookies = async (page: Page) => {
   await page.click('button:has-text("Accept all")');
 };
 
+export const ensureSidebarOpen = async (page: Page) => {
+  const sidebar = page.locator("aside").first();
+  if ((await sidebar.count()) === 0) return;
+
+  const sidebarRect = await sidebar.boundingBox();
+  const viewport = page.viewportSize();
+  const isOnScreen =
+    !!sidebarRect &&
+    !!viewport &&
+    sidebarRect.width > 0 &&
+    sidebarRect.height > 0 &&
+    sidebarRect.x >= -2 &&
+    sidebarRect.x + sidebarRect.width <= viewport.width + 2;
+
+  if (isOnScreen) {
+    return;
+  }
+
+  await page.evaluate(() => {
+    const headerToggle = document.querySelector(
+      "header button[aria-controls='sidebar']",
+    ) as HTMLButtonElement | null;
+    headerToggle?.click();
+  });
+
+  await expect
+    .poll(async () => {
+      const nextRect = await sidebar.boundingBox();
+      const nextViewport = page.viewportSize();
+      if (!nextRect || !nextViewport) return false;
+      return (
+        nextRect.width > 0 &&
+        nextRect.height > 0 &&
+        nextRect.x >= -2 &&
+        nextRect.x + nextRect.width <= nextViewport.width + 2
+      );
+    })
+    .toBe(true);
+};
+
 export type DetectedLanguage = "en" | "he" | "ro" | "unknown";
 
 /**

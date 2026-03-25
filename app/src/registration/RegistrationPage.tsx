@@ -3,17 +3,31 @@ import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
-import { Button } from "../client/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
-import { Input } from "../client/components/ui/input";
-import { Label } from "../client/components/ui/label";
+import InfoPanel from "../client/components/patterns/InfoPanel";
+import LabeledInputField from "../client/components/patterns/LabeledInputField";
+import LabeledSelectField from "../client/components/patterns/LabeledSelectField";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../client/components/ui/select";
+  EmptyValue,
+  EndAlignedActions,
+  ExternalLinkText,
+  Grid,
+  InlineLabel,
+  LabelValueParagraph,
+  NoticeBox,
+  PageContainer,
+  Paragraph,
+  RejectionReasonBlock,
+  SchoolLogo,
+  SchoolSelectOptionContent,
+  Stack,
+  SurfaceCard,
+  SurfaceCardContent,
+  SurfaceCardHeader,
+  WebsiteList,
+  WebsiteListItem,
+} from "../client/components/patterns/RegistrationPagePrimitives";
+import { Button } from "../client/components/ui/button";
+import { SelectItem } from "../client/components/ui/select";
 import { toast } from "../client/hooks/use-toast";
 
 const {
@@ -232,302 +246,243 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto mt-10 max-w-3xl px-6">
-        <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">{t("common.loading")}</CardContent>
-        </Card>
-      </div>
+      <PageContainer variant="loading">
+        <SurfaceCard>
+          <SurfaceCardContent variant="loading">{t("common.loading")}</SurfaceCardContent>
+        </SurfaceCard>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto mt-10 max-w-3xl px-6 pb-10">
+    <PageContainer variant="main">
       {existingRequests.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{t("registration.registration")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+        <SurfaceCard variant="withBottomMargin">
+          <SurfaceCardHeader title={t("registration.registration")} />
+          <SurfaceCardContent variant="requests">
             {existingRequests.map((request) => {
               const resolvedSchool = request.targetSchoolId
                 ? schoolOptionsById.get(request.targetSchoolId)
                 : null;
 
               return (
-                <div key={request.id} className="space-y-2 rounded-md border p-4">
-                  <p>
-                    {t("registration.requestTypeLabel")} <strong>{request.requestedRole}</strong>
-                  </p>
-                  <p>
-                    {t("registration.statusLabel")} <strong>{request.status}</strong>
-                  </p>
+                <InfoPanel key={request.id} variant="requestSummary">
+                  <LabelValueParagraph
+                    label={t("registration.requestTypeLabel")}
+                    value={request.requestedRole}
+                  />
+                  <LabelValueParagraph
+                    label={t("registration.statusLabel")}
+                    value={request.status}
+                  />
                   {request.requestedRole === "SCHOOL_MANAGER" ? (
-                    <p>
-                      {t("registration.schoolLabel")} <strong>{request.requestedSchoolName ?? "-"}</strong>
-                    </p>
+                    <LabelValueParagraph
+                      label={t("registration.schoolLabel")}
+                      value={request.requestedSchoolName ?? "-"}
+                    />
                   ) : (
-                    <p>
-                      {t("registration.schoolLabel")} <strong>{resolvedSchool?.name ?? request.targetSchool?.name ?? "-"}</strong>
-                    </p>
+                    <LabelValueParagraph
+                      label={t("registration.schoolLabel")}
+                      value={resolvedSchool?.name ?? request.targetSchool?.name ?? "-"}
+                    />
                   )}
                   {request.rejectionReason && (
-                    <div>
-                      <p className="font-medium">{t("registration.reasonLabel")}</p>
-                      <p className="text-muted-foreground">{request.rejectionReason}</p>
-                    </div>
+                    <RejectionReasonBlock
+                      label={t("registration.reasonLabel")}
+                      reason={request.rejectionReason}
+                    />
                   )}
-                </div>
+                </InfoPanel>
               );
             })}
-            <p className="text-muted-foreground">{t("registration.refreshMessage")}</p>
-          </CardContent>
-        </Card>
+            <Paragraph muted>{t("registration.refreshMessage")}</Paragraph>
+          </SurfaceCardContent>
+        </SurfaceCard>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("registration.registration")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">{t("registration.fullName")}</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                placeholder={t("registration.fullName")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">{t("registration.phoneNumber")}</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder={t("registration.phoneNumber")}
-              />
-            </div>
-          </div>
+      <SurfaceCard>
+        <SurfaceCardHeader title={t("registration.registration")} />
+        <SurfaceCardContent variant="form">
+          <Grid variant="twoColumns">
+            <LabeledInputField
+              id="fullName"
+              label={t("registration.fullName")}
+              value={fullName}
+              onChange={setFullName}
+              placeholder={t("registration.fullName")}
+            />
+            <LabeledInputField
+              id="phone"
+              label={t("registration.phoneNumber")}
+              type="tel"
+              value={phone}
+              onChange={setPhone}
+              placeholder={t("registration.phoneNumber")}
+            />
+          </Grid>
 
-          <div className="space-y-2">
-            <Label>{t("registration.selectRole")}</Label>
-            <Select
-              value={requestedRole}
-              onValueChange={(value) => setRequestedRole(value as RegistrationRole)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SCHOOL_MANAGER">{t("registration.schoolManager")}</SelectItem>
-                <SelectItem value="INSTRUCTOR">{t("registration.instructor")}</SelectItem>
-                <SelectItem value="STUDENT">{t("registration.student")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <LabeledSelectField
+            id="registration-requested-role"
+            label={t("registration.selectRole")}
+            value={requestedRole}
+            onValueChange={(value) => setRequestedRole(value as RegistrationRole)}
+          >
+            <SelectItem value="SCHOOL_MANAGER">{t("registration.schoolManager")}</SelectItem>
+            <SelectItem value="INSTRUCTOR">{t("registration.instructor")}</SelectItem>
+            <SelectItem value="STUDENT">{t("registration.student")}</SelectItem>
+          </LabeledSelectField>
 
           {isManagerRequest ? (
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="requestedSchoolName">{t("registration.schoolName")}</Label>
-                <Input
-                  id="requestedSchoolName"
-                  value={requestedSchoolName}
-                  onChange={(event) => setRequestedSchoolName(event.target.value)}
+            <Stack variant="fieldGroup">
+              <LabeledInputField
+                id="requestedSchoolName"
+                label={t("registration.schoolName")}
+                value={requestedSchoolName}
+                onChange={setRequestedSchoolName}
+              />
+              <LabeledInputField
+                id="requestedWebsiteUrl"
+                label={t("registration.websiteUrl")}
+                value={requestedWebsiteUrl}
+                onChange={setRequestedWebsiteUrl}
+                placeholder="https://example.com"
+              />
+              <LabeledInputField
+                id="requestedSchoolPhone"
+                label={t("registration.schoolPhone")}
+                type="tel"
+                value={requestedPhone}
+                onChange={setRequestedPhone}
+                placeholder="+1 555 0100"
+              />
+              <LabeledInputField
+                id="requestedLogoUrl"
+                label={t("registration.logoUrl")}
+                value={requestedLogoUrl}
+                onChange={setRequestedLogoUrl}
+                placeholder="https://example.com/logo.png"
+              />
+              <LabeledInputField
+                id="requestedAddressLine1"
+                label={t("registration.addressLine1")}
+                value={requestedAddressLine1}
+                onChange={setRequestedAddressLine1}
+              />
+              <LabeledInputField
+                id="requestedAddressLine2"
+                label={t("registration.addressLine2")}
+                value={requestedAddressLine2}
+                onChange={setRequestedAddressLine2}
+              />
+              <Grid variant="twoColumns">
+                <LabeledInputField
+                  id="requestedCity"
+                  label={t("registration.city")}
+                  value={requestedCity}
+                  onChange={setRequestedCity}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="requestedWebsiteUrl">{t("registration.websiteUrl")}</Label>
-                <Input
-                  id="requestedWebsiteUrl"
-                  value={requestedWebsiteUrl}
-                  onChange={(event) => setRequestedWebsiteUrl(event.target.value)}
-                  placeholder="https://example.com"
+                <LabeledInputField
+                  id="requestedStateProvince"
+                  label={t("registration.stateProvince")}
+                  value={requestedStateProvince}
+                  onChange={setRequestedStateProvince}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="requestedSchoolPhone">{t("registration.schoolPhone")}</Label>
-                <Input
-                  id="requestedSchoolPhone"
-                  type="tel"
-                  value={requestedPhone}
-                  onChange={(event) => setRequestedPhone(event.target.value)}
-                  placeholder="+1 555 0100"
+              </Grid>
+              <Grid variant="threeColumns">
+                <LabeledInputField
+                  id="requestedPostalCode"
+                  label={t("registration.postalCode")}
+                  value={requestedPostalCode}
+                  onChange={setRequestedPostalCode}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="requestedLogoUrl">{t("registration.logoUrl")}</Label>
-                <Input
-                  id="requestedLogoUrl"
-                  value={requestedLogoUrl}
-                  onChange={(event) => setRequestedLogoUrl(event.target.value)}
-                  placeholder="https://example.com/logo.png"
+                <LabeledInputField
+                  id="requestedCountry"
+                  label={t("registration.countryCode")}
+                  value={requestedCountry}
+                  maxLength={2}
+                  onChange={(value) => setRequestedCountry(value.toUpperCase())}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="requestedAddressLine1">{t("registration.addressLine1")}</Label>
-                <Input
-                  id="requestedAddressLine1"
-                  value={requestedAddressLine1}
-                  onChange={(event) => setRequestedAddressLine1(event.target.value)}
+                <LabeledInputField
+                  id="requestedCurrency"
+                  label={t("registration.currencyCode")}
+                  value={requestedCurrency}
+                  maxLength={3}
+                  onChange={(value) => setRequestedCurrency(value.toUpperCase())}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="requestedAddressLine2">{t("registration.addressLine2")}</Label>
-                <Input
-                  id="requestedAddressLine2"
-                  value={requestedAddressLine2}
-                  onChange={(event) => setRequestedAddressLine2(event.target.value)}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="requestedCity">{t("registration.city")}</Label>
-                  <Input
-                    id="requestedCity"
-                    value={requestedCity}
-                    onChange={(event) => setRequestedCity(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="requestedStateProvince">{t("registration.stateProvince")}</Label>
-                  <Input
-                    id="requestedStateProvince"
-                    value={requestedStateProvince}
-                    onChange={(event) => setRequestedStateProvince(event.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="requestedPostalCode">{t("registration.postalCode")}</Label>
-                  <Input
-                    id="requestedPostalCode"
-                    value={requestedPostalCode}
-                    onChange={(event) => setRequestedPostalCode(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="requestedCountry">{t("registration.countryCode")}</Label>
-                  <Input
-                    id="requestedCountry"
-                    maxLength={2}
-                    value={requestedCountry}
-                    onChange={(event) => setRequestedCountry(event.target.value.toUpperCase())}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="requestedCurrency">{t("registration.currencyCode")}</Label>
-                  <Input
-                    id="requestedCurrency"
-                    maxLength={3}
-                    value={requestedCurrency}
-                    onChange={(event) => setRequestedCurrency(event.target.value.toUpperCase())}
-                  />
-                </div>
-              </div>
-            </div>
+              </Grid>
+            </Stack>
           ) : (
-            <div className="space-y-2">
-              <Label>{t("registration.selectSchool")}</Label>
-              <Select value={targetSchoolId} onValueChange={setTargetSchoolId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("registration.chooseSchool")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {schoolOptions.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>
-                      <span className="flex items-center gap-2">
-                        {school.logoUrl ? (
-                          <img
-                            src={school.logoUrl}
-                            alt={school.name}
-                            className="h-5 w-5 rounded object-cover"
-                            onError={(event) => {
-                              (event.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <span className="bg-muted text-muted-foreground flex h-5 w-5 items-center justify-center rounded text-[10px] font-semibold">
-                            {school.name.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                        <span>
-                          {school.name} ({school.city}, {school.country})
-                        </span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Stack variant="selector">
+              <LabeledSelectField
+                id="registration-school-select"
+                label={t("registration.selectSchool")}
+                value={targetSchoolId}
+                onValueChange={setTargetSchoolId}
+                placeholder={t("registration.chooseSchool")}
+              >
+                {schoolOptions.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    <SchoolSelectOptionContent
+                      schoolName={school.name}
+                      city={school.city}
+                      country={school.country}
+                      logo={
+                        <SchoolLogo
+                          schoolName={school.name}
+                          logoUrl={school.logoUrl}
+                          variant="selectOption"
+                        />
+                      }
+                    />
+                  </SelectItem>
+                ))}
+              </LabeledSelectField>
               {schoolOptions.length === 0 && (
-                <p className="text-muted-foreground text-sm">{t("registration.noSchoolsAvailable")}</p>
+                <Paragraph muted>{t("registration.noSchoolsAvailable")}</Paragraph>
               )}
               {schoolOptions.length > 0 && (
-                <div className="space-y-2 rounded-md border p-3">
-                  <p className="text-sm font-medium">{t("registration.schoolWebsites")}</p>
-                  <ul className="space-y-1 text-sm">
+                <InfoPanel variant="compact">
+                  <Paragraph strong>{t("registration.schoolWebsites")}</Paragraph>
+                  <WebsiteList>
                     {schoolOptions.map((school) => {
                       const href = school.websiteUrl
                         ? normalizeWebsiteUrlForLink(school.websiteUrl)
                         : null;
 
                       return (
-                        <li key={`school-website-${school.id}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                          {school.logoUrl ? (
-                            <img
-                              src={school.logoUrl}
-                              alt={school.name}
-                              data-testid="registration-school-logo"
-                              className="h-8 w-8 rounded object-cover"
-                              onError={(event) => {
-                                (event.target as HTMLImageElement).style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <span
-                              data-testid="registration-school-logo"
-                              aria-label={`${school.name} logo placeholder`}
-                              className="bg-muted text-muted-foreground flex h-8 w-8 items-center justify-center rounded text-xs font-semibold"
-                            >
-                              {school.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                          <span className="font-medium">{school.name}</span>
+                        <WebsiteListItem key={`school-website-${school.id}`}>
+                          <SchoolLogo
+                            schoolName={school.name}
+                            logoUrl={school.logoUrl}
+                            variant="websiteList"
+                            testId="registration-school-logo"
+                          />
+                          <InlineLabel>{school.name}</InlineLabel>
                           {href ? (
-                            <a
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary underline underline-offset-2"
-                            >
+                            <ExternalLinkText href={href}>
                               {school.websiteUrl}
-                            </a>
+                            </ExternalLinkText>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <EmptyValue />
                           )}
-                        </li>
+                        </WebsiteListItem>
                       );
                     })}
-                  </ul>
-                </div>
+                  </WebsiteList>
+                </InfoPanel>
               )}
-            </div>
+            </Stack>
           )}
 
-          <div className="rounded-md border p-3 text-sm text-muted-foreground">
-            {t("registration.userRoleNotice")}
-          </div>
+          <NoticeBox>{t("registration.userRoleNotice")}</NoticeBox>
 
-          <div className="flex justify-end">
+          <EndAlignedActions>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? t("registration.submitting") : t("registration.submit")}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </EndAlignedActions>
+        </SurfaceCardContent>
+      </SurfaceCard>
+    </PageContainer>
   );
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  createDraftSyllabusFromTemplate,
   createCourseFromFinalSyllabus,
   getManagerCoursesForEnrollment,
 } from '../../app/src/school-manager/operations';
@@ -229,5 +230,31 @@ describe('4.8 course hourly-rate baseline (API)', () => {
     const courses = await getManagerCoursesForEnrollment({}, ctx.schoolManager);
 
     expect(courses.some((course) => course.courseId === created.courseId)).toBe(true);
+  });
+
+  it('[STD-CRS-004] rejects course creation when syllabus version is not FINAL', async () => {
+    const draft = await createDraftSyllabusFromTemplate(
+      {
+        templateVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        name: `Draft for non-final rejection ${Date.now()}`,
+      },
+      ctx.schoolManager,
+    );
+
+    await expect(
+      createCourseFromFinalSyllabus(
+        {
+          syllabusVersionId: draft.syllabusVersionId,
+          startDate: new Date('2026-04-04T00:00:00.000Z').toISOString(),
+          minCapacity: 3,
+          maxCapacity: 10,
+          hourlyRate: 140,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'FINAL syllabus version not found in your manager scope.',
+    });
   });
 });

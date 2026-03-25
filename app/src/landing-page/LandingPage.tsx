@@ -1,5 +1,33 @@
 import { useState } from "react";
 import * as operations from "wasp/client/operations";
+import { useTranslation } from "react-i18next";
+import {
+  LandingCountryFilter,
+  LandingCountryOption,
+  LandingHiddenCountryOption,
+  LandingCourseItem,
+  LandingCourseList,
+  LandingCourseMeta,
+  LandingCourseTitle,
+  LandingFilterBar,
+  LandingFilterInput,
+  LandingPageHeader,
+  LandingPageMain,
+  LandingPageShell,
+  LandingPageSubtitle,
+  LandingPageTitle,
+  LandingResultsSection,
+  LandingSchoolCard,
+  LandingSchoolHeaderRow,
+  LandingSchoolIdentityRow,
+  LandingSchoolLocation,
+  LandingSchoolLogo,
+  LandingSchoolLogoPlaceholder,
+  LandingSchoolName,
+  LandingSchoolTextColumn,
+  LandingSchoolWebsite,
+  LandingStatusText,
+} from "../client/components/patterns/LandingPagePatterns";
 
 const { getLandingSchoolsWithCourses, useQuery } = operations as any;
 
@@ -21,17 +49,17 @@ type LandingSchool = {
   courses: LandingCourse[];
 };
 
-function formatDate(dateValue: string | null): string {
+function formatDate(dateValue: string | null, language: string, fallbackText: string): string {
   if (!dateValue) {
-    return "Date to be announced";
+    return fallbackText;
   }
 
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) {
-    return "Date to be announced";
+    return fallbackText;
   }
 
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(language, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -39,6 +67,7 @@ function formatDate(dateValue: string | null): string {
 }
 
 export default function LandingPage() {
+  const { t, i18n } = useTranslation();
   const { data, isLoading, error } = useQuery(getLandingSchoolsWithCourses);
   const schools = (data as LandingSchool[] | undefined) ?? [];
 
@@ -71,142 +100,108 @@ export default function LandingPage() {
     });
 
   return (
-    <div className="bg-background text-foreground min-h-[70vh]">
-      <main className="mx-auto w-full max-w-5xl px-6 py-12" data-testid="landing-schools-section">
-        <header className="mb-8 space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Schools and available courses</h1>
-          <p className="text-muted-foreground">
-            Browse approved schools and their currently published courses.
-          </p>
-        </header>
+    <LandingPageShell>
+      <LandingPageMain testId="landing-schools-section">
+        <LandingPageHeader>
+          <LandingPageTitle>{t("landing.schoolsAndCoursesTitle")}</LandingPageTitle>
+          <LandingPageSubtitle>
+            {t("landing.schoolsAndCoursesSubtitle")}
+          </LandingPageSubtitle>
+        </LandingPageHeader>
 
-        {/* Filter bar */}
-        <div className="mb-6 flex flex-wrap gap-3">
-          <input
-            type="search"
-            placeholder="Filter by course name…"
+        <LandingFilterBar>
+          <LandingFilterInput
+            placeholder={t("landing.filterByCourseNamePlaceholder")}
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            data-testid="filter-course-name"
-            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-56"
+            onChange={setCourseFilter}
+            testId="filter-course-name"
           />
-          <input
-            type="search"
-            placeholder="Filter by location…"
+          <LandingFilterInput
+            placeholder={t("landing.filterByLocationPlaceholder")}
             value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-            data-testid="filter-location"
-            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-56"
+            onChange={setLocationFilter}
+            testId="filter-location"
           />
-          <select
+          <LandingCountryFilter
             value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
-            data-testid="filter-country"
-            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-44"
+            onChange={setCountryFilter}
+            testId="filter-country"
           >
-            <option value="">All countries</option>
+            <LandingCountryOption value="">{t("landing.allCountries")}</LandingCountryOption>
             {countryOptions.map((country) => (
-              <option key={country} value={country}>
+              <LandingCountryOption key={country} value={country}>
                 {country}
-              </option>
+              </LandingCountryOption>
             ))}
-            {/* sentinel option used in tests to assert zero-match behaviour */}
-            <option value="__none__" aria-hidden>
-              (no country)
-            </option>
-          </select>
-        </div>
+            <LandingHiddenCountryOption value="__none__">
+              {t("landing.noCountry")}
+            </LandingHiddenCountryOption>
+          </LandingCountryFilter>
+        </LandingFilterBar>
 
         {isLoading && (
-          <p className="text-sm text-muted-foreground">Loading schools and courses...</p>
+          <LandingStatusText>{t("landing.loadingSchoolsAndCourses")}</LandingStatusText>
         )}
 
         {error && (
-          <p className="text-sm text-red-600">
-            Could not load schools right now. Please refresh and try again.
-          </p>
+          <LandingStatusText tone="danger">
+            {t("landing.loadSchoolsError")}
+          </LandingStatusText>
         )}
 
         {!isLoading && !error && schools.length === 0 && (
-          <p className="text-sm text-muted-foreground">No schools or courses are available yet.</p>
+          <LandingStatusText>{t("landing.noSchoolsOrCoursesYet")}</LandingStatusText>
         )}
 
         {!isLoading && !error && schools.length > 0 && filteredSchools.length === 0 && (
-          <p className="text-sm text-muted-foreground">No schools or courses match your filters.</p>
+          <LandingStatusText>{t("landing.noSchoolsMatchFilters")}</LandingStatusText>
         )}
 
         {!isLoading && !error && filteredSchools.length > 0 && (
-          <section className="space-y-5">
+          <LandingResultsSection>
             {filteredSchools.map((school) => (
-              <article
-                key={school.id}
-                data-testid="landing-school-card"
-                className="rounded-lg border border-border bg-card p-5 shadow-xs"
-              >
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+              <LandingSchoolCard key={school.id}>
+                <LandingSchoolHeaderRow>
+                  <LandingSchoolIdentityRow>
                     {school.logoUrl ? (
-                      <img
-                        src={school.logoUrl}
-                        alt={school.name}
-                        data-testid="landing-school-logo"
-                        className="h-12 w-12 rounded-md object-cover"
-                        onError={(event) => {
-                          (event.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
+                      <LandingSchoolLogo src={school.logoUrl} alt={school.name} />
                     ) : (
-                      <div
-                        data-testid="landing-school-logo"
-                        aria-label={`${school.name} logo placeholder`}
-                        className="bg-muted text-muted-foreground flex h-12 w-12 items-center justify-center rounded-md text-sm font-semibold"
-                      >
+                      <LandingSchoolLogoPlaceholder label={t("landing.logoPlaceholderLabel", { schoolName: school.name })}>
                         {school.name.charAt(0).toUpperCase()}
-                      </div>
+                      </LandingSchoolLogoPlaceholder>
                     )}
-                    <div>
-                      <h2 className="text-xl font-semibold">{school.name}</h2>
-                      <p className="text-sm text-muted-foreground">
+                    <LandingSchoolTextColumn>
+                      <LandingSchoolName>{school.name}</LandingSchoolName>
+                      <LandingSchoolLocation>
                         {school.city}, {school.country}
-                      </p>
-                    </div>
-                  </div>
+                      </LandingSchoolLocation>
+                    </LandingSchoolTextColumn>
+                  </LandingSchoolIdentityRow>
                   {school.websiteUrl && (
-                    <a
-                      href={school.websiteUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    >
-                      Website
-                    </a>
+                    <LandingSchoolWebsite href={school.websiteUrl}>{t("landing.website")}</LandingSchoolWebsite>
                   )}
-                </div>
+                </LandingSchoolHeaderRow>
 
-                <ul className="space-y-2">
+                <LandingCourseList>
                   {school.courses.map((course) => (
-                    <li
-                      key={course.id}
-                      data-testid="landing-course-item"
-                      className="rounded-md border border-border/70 bg-background px-3 py-2"
-                    >
-                      <p className="font-medium">{course.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Starts: {formatDate(course.startDate)}
-                      </p>
+                    <LandingCourseItem key={course.id}>
+                      <LandingCourseTitle>{course.title}</LandingCourseTitle>
+                      <LandingCourseMeta>
+                        {t("landing.startsLabel")} {formatDate(course.startDate, i18n.language, t("landing.dateToBeAnnounced"))}
+                      </LandingCourseMeta>
                       {(course.minCapacity !== null || course.maxCapacity !== null) && (
-                        <p className="text-sm text-muted-foreground">
-                          Capacity: {course.minCapacity ?? "?"} - {course.maxCapacity ?? "?"}
-                        </p>
+                        <LandingCourseMeta>
+                          {t("landing.capacityLabel")} {course.minCapacity ?? "?"} - {course.maxCapacity ?? "?"}
+                        </LandingCourseMeta>
                       )}
-                    </li>
+                    </LandingCourseItem>
                   ))}
-                </ul>
-              </article>
+                </LandingCourseList>
+              </LandingSchoolCard>
             ))}
-          </section>
+          </LandingResultsSection>
         )}
-      </main>
-    </div>
+      </LandingPageMain>
+    </LandingPageShell>
   );
 }

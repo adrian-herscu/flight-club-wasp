@@ -1,98 +1,63 @@
 import { type AuthUser } from "wasp/auth";
 import DarkModeSwitcher from "../../client/components/DarkModeSwitcher";
 import { LanguageSelector } from "../../client/components/LanguageSelector";
-import { cn } from "../../client/utils";
+import {
+  HeaderRoot,
+  HeaderContent,
+  HamburgerButtonWrapper,
+  HamburgerButton,
+  HeaderActions,
+} from "../../client/components/patterns/AdminHeaderPatterns";
 import { UserDropdown } from "../../user/UserDropdown";
-import MessageButton from "../dashboards/messages/MessageButton";
 
 const Header = (props: {
   sidebarOpen: string | boolean | undefined;
   setSidebarOpen: (arg0: boolean) => void;
+  isDesktop: boolean;
   user: AuthUser;
 }) => {
+  // Actions cluster — shared between desktop and mobile
+  const actions = (
+    <HeaderActions>
+      <LanguageSelector />
+      <DarkModeSwitcher />
+      <UserDropdown user={props.user} />
+    </HeaderActions>
+  );
+
   return (
-    <header className="bg-background border-border sticky top-0 z-10 flex w-full border-b shadow-xs">
-      <div className="flex grow items-center justify-between px-8 py-5 sm:justify-end sm:gap-5">
-        <div className="flex items-center gap-2 sm:gap-4 lg:hidden">
-          {/* <!-- Hamburger Toggle BTN --> */}
-
-          <button
-            aria-controls="sidebar"
-            onClick={(e) => {
-              e.stopPropagation();
-              props.setSidebarOpen(!props.sidebarOpen);
+    <HeaderRoot>
+      <HeaderContent>
+        {props.isDesktop ? (
+          // On desktop the sidebar is always visible.
+          // justify-content:flex-end naturally places actions at the
+          // physical RIGHT in LTR and physical LEFT in RTL, keeping them
+          // away from the sidebar in both directions.
+          <div
+            style={{
+              display: "flex",
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "flex-end",
             }}
-            className="z-99999 border-border bg-background block rounded-sm border p-1.5 shadow-xs lg:hidden"
           >
-            <span className="h-5.5 w-5.5 relative block cursor-pointer">
-              <span className="du-block absolute right-0 h-full w-full">
-                <span
-                  className={cn(
-                    "bg-foreground relative left-0 top-0 my-1 block h-0.5 w-0 rounded-sm delay-0 duration-200 ease-in-out",
-                    {
-                      "w-full! delay-300": !props.sidebarOpen,
-                    },
-                  )}
-                ></span>
-                <span
-                  className={cn(
-                    "bg-foreground relative left-0 top-0 my-1 block h-0.5 w-0 rounded-sm delay-150 duration-200 ease-in-out",
-                    {
-                      "delay-400 w-full!": !props.sidebarOpen,
-                    },
-                  )}
-                ></span>
-                <span
-                  className={cn(
-                    "bg-foreground relative left-0 top-0 my-1 block h-0.5 w-0 rounded-sm delay-200 duration-200 ease-in-out",
-                    {
-                      "w-full! delay-500": !props.sidebarOpen,
-                    },
-                  )}
-                ></span>
-              </span>
-              <span className="absolute right-0 h-full w-full rotate-45">
-                <span
-                  className={cn(
-                    "bg-foreground absolute left-2.5 top-0 block h-full w-0.5 rounded-sm delay-300 duration-200 ease-in-out",
-                    {
-                      "h-0! delay-0!": !props.sidebarOpen,
-                    },
-                  )}
-                ></span>
-                <span
-                  className={cn(
-                    "delay-400 bg-foreground absolute left-0 top-2.5 block h-0.5 w-full rounded-sm duration-200 ease-in-out",
-                    {
-                      "h-0! delay-200!": !props.sidebarOpen,
-                    },
-                  )}
-                ></span>
-              </span>
-            </span>
-          </button>
-
-          {/* <!-- Hamburger Toggle BTN --> */}
-        </div>
-
-        <ul className="2xsm:gap-4 flex items-center gap-2">
-          {/* <!-- Dark Mode Toggler --> */}
-          <LanguageSelector />
-          <DarkModeSwitcher />
-          {/* <!-- Dark Mode Toggler --> */}
-
-          {/* <!-- Chat Notification Area --> */}
-          <MessageButton />
-          {/* <!-- Chat Notification Area --> */}
-        </ul>
-
-        <div className="2xsm:gap-7 flex items-center gap-3">
-          {/* <!-- User Area --> */}
-          <UserDropdown user={props.user} />
-          {/* <!-- User Area --> */}
-        </div>
-      </div>
-    </header>
+            {actions}
+          </div>
+        ) : (
+          // On mobile show the hamburger on the inline-start side and
+          // actions on the inline-end side (space-between from HeaderContent).
+          <>
+            <HamburgerButtonWrapper>
+              <HamburgerButton
+                onClick={() => props.setSidebarOpen(!props.sidebarOpen)}
+                isOpen={props.sidebarOpen}
+              />
+            </HamburgerButtonWrapper>
+            {actions}
+          </>
+        )}
+      </HeaderContent>
+    </HeaderRoot>
   );
 };
 

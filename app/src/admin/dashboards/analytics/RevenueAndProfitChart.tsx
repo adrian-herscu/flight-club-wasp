@@ -1,6 +1,18 @@
 import { ApexOptions } from "apexcharts";
 import { useEffect, useMemo, useState } from "react";
 import ReactApexChart from "react-apexcharts";
+import {
+  ChartContainer,
+  ChartHeader,
+  ChartLegendGroup,
+  ChartLegendItem,
+  ChartLegendTitle,
+  ChartLegendSubtitle,
+  ChartTimePeriodSelector,
+  ChartTimePeriodButtonGroup,
+  ChartTimePeriodButton,
+  ChartArea,
+} from "../../../client/components/patterns/AdminAnalyticsPatterns";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DailyStatsProps = { weeklyStats?: any[]; isLoading?: boolean };
@@ -203,58 +215,42 @@ const RevenueAndProfitChart = ({ weeklyStats, isLoading }: DailyStatsProps) => {
   }, [daysOfWeekArr, dailyRevenueArray]);
 
   return (
-    <div className="border-border bg-card pt-7.5 shadow-default sm:px-7.5 col-span-12 rounded-sm border px-5 pb-5 xl:col-span-8">
-      <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
-        <div className="flex w-full flex-wrap gap-3 sm:gap-5">
-          <div className="min-w-47.5 flex">
-            <span className="border-primary mr-2 mt-1 flex h-4 w-full max-w-4 items-center justify-center rounded-full border">
-              <span className="bg-primary block h-2.5 w-full max-w-2.5 rounded-full"></span>
-            </span>
-            <div className="w-full">
-              <p className="text-primary font-semibold">Total Profit</p>
-              <p className="text-muted-foreground text-sm font-medium">
-                Last 7 Days
-              </p>
-            </div>
-          </div>
-          <div className="min-w-47.5 flex">
-            <span className="border-secondary mr-2 mt-1 flex h-4 w-full max-w-4 items-center justify-center rounded-full border">
-              <span className="bg-secondary block h-2.5 w-full max-w-2.5 rounded-full"></span>
-            </span>
-            <div className="w-full">
-              <p className="text-secondary font-semibold">Total Revenue</p>
-              <p className="text-muted-foreground text-sm font-medium">
-                Last 7 Days
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-45 flex w-full justify-end">
-          <div className="bg-muted inline-flex items-center rounded-md p-1.5">
-            <button className="bg-background text-foreground shadow-card hover:bg-background hover:shadow-card rounded px-3 py-1 text-xs font-medium">
+    <ChartContainer id="chartOne">
+      <ChartHeader>
+        <ChartLegendGroup>
+          <ChartLegendItem borderColor="hsl(var(--primary))" dotColor="hsl(var(--primary))">
+            <ChartLegendTitle>Total Profit</ChartLegendTitle>
+            <ChartLegendSubtitle>Last 7 Days</ChartLegendSubtitle>
+          </ChartLegendItem>
+          <ChartLegendItem borderColor="hsl(var(--secondary))" dotColor="hsl(var(--secondary))">
+            <ChartLegendTitle>Total Revenue</ChartLegendTitle>
+            <ChartLegendSubtitle>Last 7 Days</ChartLegendSubtitle>
+          </ChartLegendItem>
+        </ChartLegendGroup>
+        <ChartTimePeriodSelector>
+          <ChartTimePeriodButtonGroup>
+            <ChartTimePeriodButton isActive={true}>
               Day
-            </button>
-            <button className="text-muted-foreground hover:bg-background hover:shadow-card rounded px-3 py-1 text-xs font-medium">
+            </ChartTimePeriodButton>
+            <ChartTimePeriodButton isActive={false}>
               Week
-            </button>
-            <button className="text-muted-foreground hover:bg-background hover:shadow-card rounded px-3 py-1 text-xs font-medium">
+            </ChartTimePeriodButton>
+            <ChartTimePeriodButton isActive={false}>
               Month
-            </button>
-          </div>
-        </div>
-      </div>
+            </ChartTimePeriodButton>
+          </ChartTimePeriodButtonGroup>
+        </ChartTimePeriodSelector>
+      </ChartHeader>
 
-      <div>
-        <div id="chartOne" className="-ml-5">
-          <ReactApexChart
-            options={chartOptions}
-            series={state.series}
-            type="area"
-            height={350}
-          />
-        </div>
-      </div>
-    </div>
+      <ChartArea id="chartOne">
+        <ReactApexChart
+          options={chartOptions}
+          series={state.series}
+          type="area"
+          height={350}
+        />
+      </ChartArea>
+    </ChartContainer>
   );
 };
 

@@ -8,9 +8,16 @@
     "test": "tests"
   },
   "scripts": {
-    "db:reset": "cd ../app && wasp db reset --force",
     "wasp:kill": "fuser -k 3000/tcp 3001/tcp || true",
-    "wasp:restart": "npm run wasp:kill && npm run db:reset && cd ../app && wasp start | tee wasp-dev.log",
+    "wasp:clean": "rm -rf ../app/.wasp",
+    "wasp:db:reset": "cd ../app && wasp db reset --force",
+    
+    "wasp:lint": "cd ../app && npm run lint:ui-boundary",
+    "wasp:build": "cd ../app && wasp build",
+  
+    "wasp:start": "cd ../app && wasp start",
+    "wasp:restart": "npm run wasp:kill && npm run wasp:clean && npm run wasp:lint && npm run wasp:db:reset && npm run wasp:start",
+
     "e2e:regression": "npx playwright test",
     "e2e:smoke": "npx playwright test --project=chromium --grep @smoke --reporter=html,github",
     "e2e:regression:ui": "npx playwright test --ui"

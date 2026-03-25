@@ -4,6 +4,7 @@ import { routes } from "wasp/client/router";
 import { AuthPageLayout } from "./AuthPageLayout";
 import { useEffect, useState } from "react";
 import { AuthInlineLink } from "./AuthInlineLink";
+import { AuthTitle } from "../client/components/patterns/AuthTitle";
 
 export default function Login() {
   const { t, i18n } = useTranslation();
@@ -23,11 +24,9 @@ export default function Login() {
 
   return (
     <AuthPageLayout>
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-          {t("auth.loginTitle")}
-        </h2>
-      </div>
+      <AuthTitle>
+        {t("auth.loginTitle")}
+      </AuthTitle>
       <TranslatedLoginForm key={key} />
       <br />
       <AuthInlineLink
