@@ -4,7 +4,6 @@ import {
   RegistrationRequestDecisionType,
   RegistrationRequestStatus,
   SchoolRole,
-  UserRole,
 } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
@@ -13,28 +12,9 @@ import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 type RequestContext = {
   user?: {
     id: string;
-    role?: UserRole | null;
+    isSystemAdmin?: boolean | null;
   } | null;
 };
-
-const userRolePrecedence: Record<UserRole, number> = {
-  [UserRole.USER]: 0,
-  [UserRole.STUDENT]: 1,
-  [UserRole.INSTRUCTOR]: 2,
-  [UserRole.SCHOOL_MANAGER]: 3,
-  [UserRole.SYSTEM_ADMIN]: 4,
-};
-
-function schoolRequestRoleToUserRole(role: RegistrationRequestRole): UserRole {
-  switch (role) {
-    case RegistrationRequestRole.SCHOOL_MANAGER:
-      return UserRole.SCHOOL_MANAGER;
-    case RegistrationRequestRole.INSTRUCTOR:
-      return UserRole.INSTRUCTOR;
-    case RegistrationRequestRole.STUDENT:
-      return UserRole.STUDENT;
-  }
-}
 
 function schoolRequestRoleToSchoolRole(role: RegistrationRequestRole): SchoolRole {
   switch (role) {
@@ -45,18 +25,6 @@ function schoolRequestRoleToSchoolRole(role: RegistrationRequestRole): SchoolRol
     case RegistrationRequestRole.STUDENT:
       return SchoolRole.STUDENT;
   }
-}
-
-function getEffectiveUserRole(
-  currentRole: UserRole | null | undefined,
-  approvedRole: RegistrationRequestRole,
-): UserRole {
-  const normalizedCurrentRole = currentRole ?? UserRole.USER;
-  const approvedUserRole = schoolRequestRoleToUserRole(approvedRole);
-
-  return userRolePrecedence[approvedUserRole] > userRolePrecedence[normalizedCurrentRole]
-    ? approvedUserRole
-    : normalizedCurrentRole;
 }
 
 function ensureAuthenticatedUser(context: RequestContext) {
@@ -140,7 +108,7 @@ function isValidOptionalLogoUrl(value: string | undefined): boolean {
 function ensureSystemAdmin(context: RequestContext) {
   const user = ensureAuthenticatedUser(context);
 
-  if (user.role !== UserRole.SYSTEM_ADMIN) {
+  if (!user.isSystemAdmin) {
     throw new HttpError(403, "Only system admins can access this resource.");
   }
 
@@ -164,7 +132,16 @@ function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
 async function ensureSchoolManagerAndGetSchool(context: RequestContext, rawArgs?: unknown) {
   const user = ensureAuthenticatedUser(context);
 
-  if (user.role !== UserRole.SCHOOL_MANAGER) {
+  const hasManagerRole = await prisma.userSchoolRole.findFirst({
+    where: {
+      userId: user.id,
+      role: SchoolRole.SCHOOL_MANAGER,
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+
+  if (!hasManagerRole) {
     throw new HttpError(403, "Only school managers can access this resource.");
   }
 
@@ -752,21 +729,6 @@ export const approveSchoolManagerRequest = async (
         });
       }
 
-      await tx.user.update({
-        where: { id: request.requesterId },
-        data: {
-          role: getEffectiveUserRole(
-            (
-              await tx.user.findUnique({
-                where: { id: request.requesterId },
-                select: { role: true },
-              })
-            )?.role,
-            request.requestedRole,
-          ),
-        },
-      });
-
       await tx.userSchoolRole.upsert({
         where: {
           userId_schoolId_role: {
@@ -908,11 +870,6 @@ export const approveSchoolMemberRequest = async (
       requestedRole: true,
       targetSchoolId: true,
       status: true,
-      requester: {
-        select: {
-          role: true,
-        },
-      },
     },
   });
 
@@ -1005,13 +962,6 @@ export const approveSchoolMemberRequest = async (
         role: schoolRequestRoleToSchoolRole(request.requestedRole),
         grantedByUserId: reviewer.id,
         sourceRegistrationRequestId: request.id,
-      },
-    });
-
-    await tx.user.update({
-      where: { id: request.requesterId },
-      data: {
-        role: getEffectiveUserRole(request.requester.role, request.requestedRole),
       },
     });
 

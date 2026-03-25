@@ -1,7 +1,7 @@
 import { FC, ReactNode, useState } from "react";
-import { Navigate } from "react-router";
+import { Navigate, useLocation } from "react-router";
 import { type AuthUser } from "wasp/auth";
-import { hasDashboardAccess } from "../../shared/roles";
+import { isDashboardPath } from "../../shared/roles";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -12,8 +12,16 @@ interface Props {
 
 const DefaultLayout: FC<Props> = ({ children, user }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { pathname } = useLocation();
 
-  if (!hasDashboardAccess(user)) {
+  // Guard /system-admin paths to system admins only.
+  if (pathname.startsWith("/system-admin") && !user.isSystemAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  // All dashboard paths require authentication (enforced by Wasp authRequired).
+  // Non-dashboard paths should not render this layout at all.
+  if (!isDashboardPath(pathname)) {
     return <Navigate to="/" replace />;
   }
 
@@ -23,7 +31,6 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
         <Sidebar
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
-          userRole={user.role ?? null}
         />
         <div className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
           <Header

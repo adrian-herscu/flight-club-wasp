@@ -6,7 +6,6 @@ erDiagram
 
     %% ─────────────────────────────────────────────────────
     %% ENUMS (documented as comments; Mermaid ERD has no enum type)
-    %% UserRole        : SYSTEM_ADMIN | SCHOOL_MANAGER | INSTRUCTOR | STUDENT | USER
     %% RegistrationRequestRole   : SCHOOL_MANAGER | INSTRUCTOR | STUDENT
     %% RegistrationRequestStatus : PENDING | APPROVED | REJECTED
     %% SyllabusVersionStatus     : DRAFT | FINAL | OBSOLETE
@@ -22,7 +21,7 @@ erDiagram
         String   email                      UK
         String   fullName                   "nullable"
         String   phone                      "nullable"
-        UserRole role                       "default USER"
+        Boolean  isSystemAdmin              "default false"
         SubscriptionStatus subscriptionStatus "nullable"
         String   subscriptionPlan           "nullable"
         Boolean  sendNewsletter

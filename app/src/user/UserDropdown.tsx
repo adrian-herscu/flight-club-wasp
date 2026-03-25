@@ -19,7 +19,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
     fullName?: string | null;
     email?: string | null;
   };
-  const menuItems = getMenuItemsForUser(user?.role ?? null);
+  const menuItems = getMenuItemsForUser(user ?? null);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>

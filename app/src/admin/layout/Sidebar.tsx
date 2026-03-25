@@ -20,6 +20,7 @@ import {
 } from "../../client/components/ui/select";
 import Logo from "../../client/static/logo.webp";
 import { cn } from "../../client/utils";
+import { getRoleKeyFromPath } from "../../shared/roles";
 import { useManagedSchoolSelection } from "../../school-manager/useManagedSchoolSelection";
 
 const { getMyManagedSchool, useQuery } = operations as any;
@@ -32,7 +33,6 @@ type ManagedSchoolSummary = {
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (arg: boolean) => void;
-  userRole: string | null;
 }
 
 const SchoolContextBadge = () => {
@@ -128,10 +128,12 @@ const SIDEBAR_NAV: Record<string, NavItem[]> = {
   ],
 };
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { pathname } = location;
+
+  const roleFromPath = getRoleKeyFromPath(pathname);
 
   const trigger = useRef<any>(null);
   const sidebar = useRef<any>(null);
@@ -180,7 +182,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
     }
   }, [sidebarExpanded]);
 
-  const navItems = userRole ? (SIDEBAR_NAV[userRole] ?? []) : [];
+  const navItems = roleFromPath ? (SIDEBAR_NAV[roleFromPath] ?? []) : [];
 
   return (
     <aside
@@ -210,7 +212,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
         </button>
       </div>
 
-      {userRole === "SCHOOL_MANAGER" && <SchoolContextBadge />}
+      {roleFromPath === "SCHOOL_MANAGER" && <SchoolContextBadge />}
 
       <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
         <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">

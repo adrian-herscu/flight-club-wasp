@@ -8,7 +8,7 @@ import UsersTable from "./UsersTable";
 const Users = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
 
-  if (user.role !== "SYSTEM_ADMIN") {
+  if (!user.isSystemAdmin) {
     return <Navigate to="/" replace />;
   }
 

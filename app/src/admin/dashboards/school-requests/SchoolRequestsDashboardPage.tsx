@@ -58,7 +58,7 @@ type SchoolRequestItem = {
 
 const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
-  if (user.role !== "SYSTEM_ADMIN") {
+  if (!user.isSystemAdmin) {
     return <Navigate to="/" replace />;
   }
 

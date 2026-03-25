@@ -1,10 +1,9 @@
-import type { UserRole } from "@prisma/client";
-
 type UserLike = {
-  role?: UserRole | null;
+  isSystemAdmin?: boolean | null;
 };
 
-export function isAdmin(user?: UserLike | null): boolean {
+/** Returns true when the user has system-admin privileges. */
+export function isSystemAdmin(user?: UserLike | null): boolean {
   if (!user) return false;
-  return user.role === "SYSTEM_ADMIN" || user.role === "SCHOOL_MANAGER";
+  return !!user.isSystemAdmin;
 }

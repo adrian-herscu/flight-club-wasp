@@ -1,4 +1,4 @@
-import { SyllabusVersionStatus, UserRole } from "@prisma/client";
+import { SchoolRole, SyllabusVersionStatus } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -45,33 +45,42 @@ async function getManagedSchoolForUserId(userId: string, schoolId?: string) {
   return school;
 }
 
-function ensureSyllabusOperator(context: {
-  user?: { id: string; role?: UserRole | null } | null;
+async function ensureSyllabusOperator(context: {
+  user?: { id: string; isSystemAdmin?: boolean | null } | null;
 }) {
   if (!context.user) {
     throw new HttpError(401, "Only authenticated users can access manager features.");
   }
 
-  if (
-    context.user.role !== UserRole.SCHOOL_MANAGER &&
-    context.user.role !== UserRole.SYSTEM_ADMIN
-  ) {
+  if (context.user.isSystemAdmin) {
+    return context.user;
+  }
+
+  const hasManagerRole = await prisma.userSchoolRole.findFirst({
+    where: {
+      userId: context.user.id,
+      role: SchoolRole.SCHOOL_MANAGER,
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+
+  if (!hasManagerRole) {
     throw new HttpError(403, "Only school managers and system admins can access this resource.");
   }
 
-  return context.user as { id: string; role: Extract<UserRole, "SCHOOL_MANAGER" | "SYSTEM_ADMIN"> };
+  return context.user;
 }
 
 export const deleteDraftSyllabusVersion = async (
   rawArgs: unknown,
-  context: { user?: { id: string; role?: UserRole | null } | null },
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ deletedSyllabusVersionId: string }> => {
-  const user = ensureSyllabusOperator(context);
+  const user = await ensureSyllabusOperator(context);
   const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+  const school = !user.isSystemAdmin
+    ? await getManagedSchoolForUserId(user.id, schoolId)
+    : null;
   const { sourceVersionId } = ensureArgsSchemaOrThrowHttpError(
     deleteDraftSchema,
     rawArgs,
@@ -100,7 +109,7 @@ export const deleteDraftSyllabusVersion = async (
 
   const canDeleteDraft =
     sourceVersion.status === SyllabusVersionStatus.DRAFT &&
-    (user.role === UserRole.SYSTEM_ADMIN
+    (user.isSystemAdmin
       ? sourceVersion.syllabus.schoolId === null
       : sourceVersion.syllabus.schoolId === school?.id);
 
@@ -137,20 +146,19 @@ export const deleteDraftSyllabusVersion = async (
 
 export const deleteAllEditableDraftSyllabusVersions = async (
   rawArgs: unknown,
-  context: { user?: { id: string; role?: UserRole | null } | null },
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ deletedCount: number; skippedInUseCount: number }> => {
-  const user = ensureSyllabusOperator(context);
+  const user = await ensureSyllabusOperator(context);
   const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    user.role === UserRole.SCHOOL_MANAGER
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+  const school = !user.isSystemAdmin
+    ? await getManagedSchoolForUserId(user.id, schoolId)
+    : null;
 
   const editableDrafts = await prisma.syllabusVersion.findMany({
     where: {
       status: SyllabusVersionStatus.DRAFT,
       syllabus: {
-        schoolId: user.role === UserRole.SYSTEM_ADMIN ? null : school?.id,
+        schoolId: user.isSystemAdmin ? null : school?.id,
       },
     },
     include: {

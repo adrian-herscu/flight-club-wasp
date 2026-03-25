@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Navigate, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -56,10 +56,8 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
   const { pathname } = useLocation();
 
-  if (user.role !== "SCHOOL_MANAGER") {
-    return <Navigate to="/" replace />;
-  }
-
+  // Server operations enforce school manager role; client guard is path-based.
+  // The getMyManagedSchool query will return empty if user has no managed school.
   const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
   const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
   const { selectedSchool, selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(managedSchools);

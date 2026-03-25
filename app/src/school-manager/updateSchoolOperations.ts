@@ -1,4 +1,4 @@
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma, SchoolRole } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -6,7 +6,7 @@ import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 type RequestContext = {
   user?: {
     id: string;
-    role?: UserRole | null;
+    isSystemAdmin?: boolean | null;
   } | null;
 };
 
@@ -83,12 +83,21 @@ function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
   return trimmedSchoolId.length > 0 ? trimmedSchoolId : undefined;
 }
 
-function ensureSchoolManager(context: RequestContext) {
+async function ensureSchoolManager(context: RequestContext) {
   if (!context.user) {
     throw new HttpError(401, "Only authenticated users can access manager features.");
   }
 
-  if (context.user.role !== UserRole.SCHOOL_MANAGER) {
+  const hasManagerRole = await prisma.userSchoolRole.findFirst({
+    where: {
+      userId: context.user.id,
+      role: SchoolRole.SCHOOL_MANAGER,
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+
+  if (!hasManagerRole) {
     throw new HttpError(403, "Only school managers can access this resource.");
   }
 
@@ -131,7 +140,7 @@ export const updateMyManagedSchool = async (
   rawArgs: unknown,
   context: RequestContext,
 ) => {
-  const user = ensureSchoolManager(context);
+  const user = await ensureSchoolManager(context);
   const selectedSchoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school = await getManagedSchoolForUserId(user.id, selectedSchoolId);
 
