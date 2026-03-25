@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../client/components/ui/select";
-import Logo from "../../client/static/logo.webp";
 import {
   SchoolContextBadgeBox,
   SchoolContextBadgeContainer,
@@ -244,7 +243,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole, isDesktop }: SidebarPr
     >
       <SidebarHeader>
         <NavLink to="/">
-          <SidebarLogoImage src={Logo} alt="Logo" />
+          <SidebarLogoImage src="/favicon.svg" alt="Flight Club" />
         </NavLink>
         {!isDesktop && (
           <SidebarToggleButton

@@ -2,8 +2,9 @@ import { LogIn, Menu } from "lucide-react";
 import { type ReactNode } from "react";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { SheetContent, SheetTitle, SheetTrigger } from "../ui/sheet";
-import logo from "../../static/logo.webp";
 import { cn } from "../../utils";
+
+const faviconPath = "/favicon.svg";
 
 export function NavStickyHeader({
   isScrolled,
@@ -94,8 +95,8 @@ export function NavLogoImage({ isScrolled }: { isScrolled: boolean }) {
         "size-8": !isScrolled,
         "size-7": isScrolled,
       })}
-      src={logo}
-      alt="Your SaaS App"
+      src={faviconPath}
+      alt="Flight Club"
     />
   );
 }
@@ -238,8 +239,8 @@ export function NavMobileLogoLinkFull({ appName }: { appName: string }) {
       <span className="sr-only">{appName}</span>
       <img
         className="size-8 transition-all duration-500"
-        src={logo}
-        alt="Your SaaS App"
+        src={faviconPath}
+        alt="Flight Club"
       />
     </WaspRouterLink>
   );
