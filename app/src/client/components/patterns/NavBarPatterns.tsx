@@ -222,7 +222,7 @@ export function NavSheetPanel({
   children: ReactNode;
 }) {
   return (
-    <SheetContent side={isRTL ? "left" : "right"} className="w-75 sm:w-100">
+    <SheetContent side={isRTL ? "right" : "left"} className="w-75 sm:w-100">
       {children}
     </SheetContent>
   );

@@ -93,19 +93,20 @@ export const HamburgerButton = ({
 
   const line1Style: React.CSSProperties = {
     ...lineBaseStyle,
-    ...(isOpen ? { width: "100%", transitionDelay: "0.3s" } : { transitionDelay: "0s" }),
+    width: isOpen ? "0" : "100%",
+    opacity: isOpen ? 0 : 1,
   };
 
   const line2Style: React.CSSProperties = {
     ...lineBaseStyle,
-    ...(isOpen
-      ? { width: "100%", transitionDelay: "0.4s" }
-      : { width: "100%", transitionDelay: "0.15s" }),
+    width: isOpen ? "0" : "100%",
+    opacity: isOpen ? 0 : 1,
   };
 
   const line3Style: React.CSSProperties = {
     ...lineBaseStyle,
-    ...(isOpen ? { width: "100%", transitionDelay: "0.5s" } : { transitionDelay: "0.2s" }),
+    width: isOpen ? "0" : "100%",
+    opacity: isOpen ? 0 : 1,
   };
 
   const xWrapperStyle: React.CSSProperties = {
@@ -123,9 +124,10 @@ export const HamburgerButton = ({
     top: 0,
     display: "block",
     width: "0.125rem",
+    height: isOpen ? "100%" : "0",
+    opacity: isOpen ? 1 : 0,
     borderRadius: "0.125rem",
     transition: "all 0.2s ease-in-out 0s",
-    ...(isOpen ? { height: "0", transitionDelay: "0s!" } : { transitionDelay: "0.3s!" }),
   };
 
   const xLine2Style: React.CSSProperties = {
@@ -134,12 +136,11 @@ export const HamburgerButton = ({
     left: 0,
     top: "0.625rem",
     display: "block",
-    width: "100%",
+    width: isOpen ? "100%" : "0",
+    height: "0.125rem",
+    opacity: isOpen ? 1 : 0,
     borderRadius: "0.125rem",
     transition: "all 0.2s ease-in-out 0s",
-    ...(isOpen
-      ? { height: "0", transitionDelay: "0.2s!" }
-      : { transitionDelay: "0.15s!" }),
   };
 
   return (

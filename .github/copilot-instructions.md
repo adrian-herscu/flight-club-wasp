@@ -8,6 +8,10 @@
 ## ALWAYS
 - Prefer the vscode built in tools and configured MCP servers instead of CLI tools.
 
+## KNOWN ISSUES
+- Sometimes the vscode built in tools are not available. In such cases, inform the developer, and use the CLI instead.
+- Sometimes the vscode 'execute/runTests' tool does not invoke the global setup, causing all  e2e tests to fail with connection refused errors. In such cases, inform the developer, and use the CLI to run tests instead.
+
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
 - State concise rationale for key technical decisions.
@@ -15,15 +19,16 @@
 
 
 ## Execution gate (plan first)
-- Before implementing any code/config/test change, provide a concise step-by-step plan.
-- The plan for changing/adding/removing user features must consider existing `docs`, especially the `std.md` and `prd.md` files, and the execution must update them appropriately.
-- Wait for explicit user approval (e.g., "yes" / "approved") before any state-changing actions, including edits, migrations, seeding, code generation, and validating test runs that are part of implementation.
+- Before implementing any change provide a concise step-by-step plan.
+- Plans for changing user-facing features, or their tests, must consider existing `docs`, especially the `std.md` and `prd.md` files, and the execution must update them appropriately.
+- Wait for explicit user approval (e.g., "yes" / "approved") before execution.
 - Read-only investigation (file reads/search, documentation lookup, diagnostics that do not modify project state) may proceed before approval.
-- Treat approval as explicit only when the user clearly confirms (prefer the exact token "approved").
 - If scope changes during execution, stop and re-issue an updated plan for approval before continuing.
 - If instructions conflict, this execution gate takes precedence for implementation actions.
-- Every implementation plan must explicitly include test-first workflow steps from `## Testing workflow policy` (baseline check, failing test for behavior fixes, then fix and re-run to green).
-- All the above does not apply to copilot instructions/skills/prompts/agents, nor to other documentation (`.md` files).
+- Plans for changing user-facing features must explicitly include test-first workflow steps from `## Testing workflow policy` (baseline check, failing test for behavior fixes, then fix and re-run to green).
+- Before execution completes, debrief.
+- The debrief should be based on session introspection and list insights and lessons learned, updating instructions/skills as needed, following instructions in `session-review` prompt.
+
 
 ## Source of truth
 - Treat `main.wasp` as the source of truth for app structure and Wasp declarations.

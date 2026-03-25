@@ -48,6 +48,7 @@ interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (arg: boolean) => void;
   userRole: string | null;
+  isDesktop: boolean;
 }
 
 const SchoolContextBadge = () => {
@@ -141,7 +142,7 @@ const SIDEBAR_NAV: { [role: string]: SidebarEntry[] } = {
   ],
 };
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole, isDesktop }: SidebarProps) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { pathname } = location;
@@ -187,6 +188,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
 
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
+      if (isDesktop) return;
+
       const targetNode = target as Node | null;
       if (!sidebar.current || !trigger.current) return;
       if (
@@ -199,16 +202,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
     };
     document.addEventListener("click", clickHandler);
     return () => document.removeEventListener("click", clickHandler);
-  });
+  }, [isDesktop, sidebarOpen, setSidebarOpen]);
 
   useEffect(() => {
     const keyHandler = ({ keyCode }: KeyboardEvent) => {
+      if (isDesktop) return;
       if (!sidebarOpen || keyCode !== 27) return;
       setSidebarOpen(false);
     };
     document.addEventListener("keydown", keyHandler);
     return () => document.removeEventListener("keydown", keyHandler);
-  });
+  }, [isDesktop, sidebarOpen, setSidebarOpen]);
 
   useEffect(() => {
     localStorage.setItem("sidebar-expanded", sidebarExpanded.toString());
@@ -242,14 +246,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole }: SidebarProps) => {
         <NavLink to="/">
           <SidebarLogoImage src={Logo} alt="Logo" />
         </NavLink>
-        <SidebarToggleButton
-          ref={trigger}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          controls="sidebar"
-          expanded={sidebarOpen}
-        >
-          <X />
-        </SidebarToggleButton>
+        {!isDesktop && (
+          <SidebarToggleButton
+            ref={trigger}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            controls="sidebar"
+            expanded={sidebarOpen}
+          >
+            <X />
+          </SidebarToggleButton>
+        )}
       </SidebarHeader>
 
       {userRole === "SCHOOL_MANAGER" && <SchoolContextBadge />}

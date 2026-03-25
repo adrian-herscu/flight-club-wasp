@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { detectLanguageFromText } from "./utils";
+import { detectLanguageFromText, logUserIn } from "./utils";
 
 async function selectLanguage(page: Page, languageLabel: string) {
   await page.getByRole("combobox").click();
@@ -124,6 +124,44 @@ test.describe("4.12 internationalization and RTL", () => {
     await expect(page.getByPlaceholder("Filtrează după numele cursului…")).toBeVisible();
     await expect(page.getByPlaceholder("Filtrează după locație…")).toBeVisible();
     await expect(page.getByTestId("filter-country")).toContainText("Toate țările");
+  });
+
+  test("[4.12][STD-I18N-009] school manager dashboard keeps header controls aligned in RTL", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+school_manager.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager");
+    await page.waitForLoadState("networkidle");
+
+  await page.locator("header [role='combobox']").first().click();
+  await page.getByRole("option", { name: "עברית" }).click();
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("rtl");
+
+    const controlsGeometry = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      const languageTrigger = document.querySelector("header [role='combobox']") as HTMLElement | null;
+      if (!header || !languageTrigger) return null;
+      const headerRect = header.getBoundingClientRect();
+      const languageRect = languageTrigger.getBoundingClientRect();
+      return {
+        headerMidX: headerRect.left + headerRect.width / 2,
+        languageLeft: languageRect.left,
+      };
+    });
+
+    expect(controlsGeometry).not.toBeNull();
+    // In RTL the sidebar is on the physical RIGHT; controls must be on the physical LEFT
+    // (inline-end = left in RTL), away from the sidebar.
+    expect(controlsGeometry!.languageLeft).toBeLessThan(controlsGeometry!.headerMidX);
   });
 });
 

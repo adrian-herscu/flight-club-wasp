@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState } from "react";
+import { FC, ReactNode, useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import {
@@ -16,8 +16,40 @@ interface Props {
   children?: ReactNode;
 }
 
+const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+
 const DefaultLayout: FC<Props> = ({ children, user }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
+  });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const updateDesktopState = () => setIsDesktop(mediaQuery.matches);
+
+    updateDesktopState();
+    mediaQuery.addEventListener("change", updateDesktopState);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateDesktopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isDesktop]);
+
+  const sidebarOpen = useMemo(() => isDesktop || mobileSidebarOpen, [isDesktop, mobileSidebarOpen]);
 
   if (!hasDashboardAccess(user)) {
     return <Navigate to="/" replace />;
@@ -28,13 +60,15 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
       <AdminTwoColumnLayout>
         <Sidebar
           sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
+          setSidebarOpen={setMobileSidebarOpen}
           userRole={user.role ?? null}
+          isDesktop={isDesktop}
         />
-        <AdminMainContent>
+        <AdminMainContent reserveSidebarSpace={isDesktop}>
           <Header
             sidebarOpen={sidebarOpen}
-            setSidebarOpen={setSidebarOpen}
+            setSidebarOpen={setMobileSidebarOpen}
+            isDesktop={isDesktop}
             user={user}
           />
           <AdminMainContentInner>{children}</AdminMainContentInner>

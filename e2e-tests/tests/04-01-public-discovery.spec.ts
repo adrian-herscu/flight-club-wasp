@@ -96,6 +96,30 @@ test.describe("4.1 public discovery", () => {
     await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
   });
 
+  test("[4.1][STD-NAV-012] narrow landing menu opens from the left and exposes theme/language controls", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 960 });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const menuTrigger = page.getByRole("button", { name: /open main menu/i });
+    await expect(menuTrigger).toBeVisible();
+    await menuTrigger.click();
+
+    const sheetGeometry = await page.evaluate(() => {
+      const dialog = document.querySelector("[data-slot='sheet-content']") as HTMLElement | null;
+      if (!dialog) return null;
+      const rect = dialog.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, width: rect.width, viewport: window.innerWidth };
+    });
+
+    expect(sheetGeometry).not.toBeNull();
+    expect(sheetGeometry!.left).toBeLessThanOrEqual(2);
+    expect(sheetGeometry!.right).toBeLessThan(sheetGeometry!.viewport);
+
+    await expect(page.locator("[data-slot='sheet-content'] [role='combobox']").first()).toBeVisible();
+    await expect(page.locator("[data-slot='sheet-content'] input[type='checkbox']").first()).toBeVisible();
+  });
+
   test.skip("[template-relic] get started link", async ({ page }) => {
     await page.getByRole("link", { name: "Get started" }).click();
     await page.waitForURL("**/signup");

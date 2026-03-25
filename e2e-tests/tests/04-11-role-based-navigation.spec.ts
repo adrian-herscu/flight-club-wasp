@@ -229,6 +229,132 @@ test.describe("4.11 role-based navigation", () => {
     });
   });
 
+  test("[4.11][STD-NAV-009] wide screens keep sidebar open", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+school_manager.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager/syllabuses?section=catalog");
+    await page.waitForLoadState("networkidle");
+
+    const sidebar = page.locator("aside").first();
+    await expect(sidebar).toBeVisible();
+
+    const beforeGeometry = await page.evaluate(() => {
+      const aside = document.querySelector("aside");
+      if (!aside) return null;
+      const { left, right } = aside.getBoundingClientRect();
+      return { left, right, viewport: window.innerWidth };
+    });
+
+    expect(beforeGeometry).not.toBeNull();
+    expect(beforeGeometry!.left).toBeGreaterThanOrEqual(0);
+    expect(beforeGeometry!.right).toBeLessThanOrEqual(beforeGeometry!.viewport + 1);
+
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    await page.mouse.click((viewport?.width ?? 1440) - 24, 120);
+    await page.keyboard.press("Escape");
+
+    const afterGeometry = await page.evaluate(() => {
+      const aside = document.querySelector("aside");
+      if (!aside) return null;
+      const { left, right } = aside.getBoundingClientRect();
+      return { left, right, viewport: window.innerWidth };
+    });
+
+    expect(afterGeometry).not.toBeNull();
+    expect(afterGeometry!.left).toBeGreaterThanOrEqual(0);
+    expect(afterGeometry!.right).toBeLessThanOrEqual(afterGeometry!.viewport + 1);
+  });
+
+  test("[4.11][STD-NAV-010] wide screens keep main content clear of the persistent sidebar", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+school_manager.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager/school");
+    await page.waitForLoadState("networkidle");
+
+    const geometry = await page.evaluate(() => {
+      const aside = document.querySelector("aside");
+      const main = document.querySelector("main");
+      if (!aside || !main) return null;
+      const asideRect = aside.getBoundingClientRect();
+      const mainRect = main.getBoundingClientRect();
+      return {
+        asideRight: asideRect.right,
+        mainLeft: mainRect.left,
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(geometry!.mainLeft).toBeGreaterThanOrEqual(geometry!.asideRight - 2);
+    await expect(page.getByRole("combobox").first()).toBeVisible();
+    await expect(page.locator("header a[href*='messages']")).toHaveCount(0);
+  });
+
+  test("[4.11][STD-NAV-011] narrow dashboard keeps a 3-line menu button and right-aligned controls", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 960 });
+
+    await logUserIn({
+      page,
+      user: {
+        email: "seed+school_manager.01@example.test",
+        password: "12345678",
+      },
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager/school");
+    await page.waitForLoadState("networkidle");
+
+    const headerToggle = page.locator("header button[aria-controls='sidebar']").first();
+    await expect(headerToggle).toBeVisible();
+
+    const closedLineWidths = await page.evaluate(() => {
+      const button = document.querySelector("header button[aria-controls='sidebar']") as HTMLButtonElement | null;
+      const menuLineWrapper = button?.querySelector("span > span") as HTMLSpanElement | null;
+      if (!menuLineWrapper) return [] as number[];
+      return Array.from(menuLineWrapper.children).map((line) => line.getBoundingClientRect().width);
+    });
+
+    expect(closedLineWidths.length).toBe(3);
+    expect(closedLineWidths.every((width) => width >= 8)).toBe(true);
+
+    const messageButton = page.locator("header a[href*='messages']");
+    await expect(messageButton).toHaveCount(0);
+
+    const controlsGeometry = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      const languageTrigger = document.querySelector("header [role='combobox']") as HTMLElement | null;
+      if (!header || !languageTrigger) return null;
+      const headerRect = header.getBoundingClientRect();
+      const languageRect = languageTrigger.getBoundingClientRect();
+      return {
+        headerMidX: headerRect.left + headerRect.width / 2,
+        languageLeft: languageRect.left,
+      };
+    });
+
+    expect(controlsGeometry).not.toBeNull();
+    expect(controlsGeometry!.languageLeft).toBeGreaterThan(controlsGeometry!.headerMidX - 40);
+  });
+
   test("[4.11][STD-NAV-007] authenticated plain user does not see admin/manager sidebar links", async ({ page }) => {
     await logUserIn({
       page,

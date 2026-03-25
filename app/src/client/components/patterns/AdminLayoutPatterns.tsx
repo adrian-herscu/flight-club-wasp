@@ -32,7 +32,15 @@ export const AdminTwoColumnLayout = ({ children }: { children: ReactNode }) => {
 /**
  * Main content area with flex column layout
  */
-export const AdminMainContent = ({ children }: { children: ReactNode }) => {
+export const AdminMainContent = ({
+  children,
+  reserveSidebarSpace = false,
+  sidebarWidth = "18.125rem",
+}: {
+  children: ReactNode;
+  reserveSidebarSpace?: boolean;
+  sidebarWidth?: string;
+}) => {
   const mainStyle: React.CSSProperties = {
     position: "relative",
     display: "flex",
@@ -40,6 +48,7 @@ export const AdminMainContent = ({ children }: { children: ReactNode }) => {
     flex: 1,
     overflowX: "hidden",
     overflowY: "auto",
+    ...(reserveSidebarSpace ? { marginInlineStart: sidebarWidth } : {}),
   };
 
   return <div style={mainStyle}>{children}</div>;
