@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const appDir = path.resolve(__dirname, '../app');
-const schemaPath = path.join(appDir, 'schema.prisma');
 const envTestPath = path.resolve(__dirname, '.env.test');
 
 function readDatabaseUrlFromEnvTest(): string {
@@ -33,10 +32,9 @@ function readDatabaseUrlFromEnvTest(): string {
 
 export default function globalSetup() {
   const databaseUrl = readDatabaseUrlFromEnvTest();
-  const quotedSchemaPath = JSON.stringify(schemaPath);
 
-  console.log('[api-tests][globalSetup] Resetting database with Prisma migrate reset...');
-  execSync(`npx prisma migrate reset --force --schema=${quotedSchemaPath}`, {
+  console.log('[api-tests][globalSetup] Resetting database with Wasp DB reset...');
+  execSync('wasp db reset --force', {
     cwd: appDir,
     stdio: 'inherit',
     env: {
