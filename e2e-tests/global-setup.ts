@@ -18,6 +18,11 @@ const logPath = path.join(appDir, 'wasp-dev.log');
 const pidPath = path.resolve(__dirname, '.wasp-dev.pid');
 
 function readDatabaseUrlFromWaspEnv(): string {
+  const envDatabaseUrl = process.env.DATABASE_URL?.trim();
+  if (envDatabaseUrl) {
+    return envDatabaseUrl;
+  }
+
   const envFileContent = fs.readFileSync(waspEnvPath, 'utf8');
   const line = envFileContent
     .split('\n')
