@@ -1,7 +1,8 @@
-import { execSync } from 'node:child_process';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+/// <reference types="node" />
+import { execSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,8 +14,8 @@ function readDatabaseUrlFromEnvTest(): string {
   const content = fs.readFileSync(envTestPath, 'utf8');
   const line = content
     .split('\n')
-    .map((l) => l.trim())
-    .find((l) => l.startsWith('DATABASE_URL='));
+    .map((l: string) => l.trim())
+    .find((l: string) => l.startsWith('DATABASE_URL='));
 
   if (!line) {
     throw new Error(`[api-tests][globalSetup] DATABASE_URL not found in ${envTestPath}`);

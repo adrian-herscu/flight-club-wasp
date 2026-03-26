@@ -140,7 +140,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
     expect(secondary?.defaultHourlyRate).toBe(333);
   });
 
-  it('[STD-CRS-003] uses school default hourly rate when course hourly rate is omitted', async () => {
+  it('[STD-CRS-001][STD-CRS-003] uses school default hourly rate when course hourly rate is omitted', async () => {
     const school = await prisma.school.findUnique({
       where: { id: SEED.schools.cloudbase },
       select: {

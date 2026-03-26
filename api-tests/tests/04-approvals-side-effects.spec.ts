@@ -244,7 +244,7 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
   });
 
   describe('approveSchoolManagerRequest', () => {
-    it('approves pending request and provisions school/account/role/decision', async () => {
+    it('[STD-ADM-003] approves pending request and provisions school/account/role/decision', async () => {
       const { requestId, schoolName } = await createSchoolManagerRequest(
         tempCtx.managerReqA,
         'api-approve-school-manager',
@@ -458,7 +458,7 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       expect(request?.reviewerId).toBe(SEED.users.schoolManager01);
     });
 
-    it('approves STUDENT request and provisions student profile', async () => {
+    it('[STD-MGR-007] approves STUDENT request and provisions student profile', async () => {
       const requestId = await createMemberRequest(
         tempCtx.memberReqStudent,
         'STUDENT',

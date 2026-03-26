@@ -7,7 +7,7 @@ async function selectLanguage(page: Page, languageLabel: string) {
 }
 
 test.describe("4.12 internationalization and RTL", () => {
-  test("[4.12][STD-I18N-001] language smoke: body text should match selected language on login", async ({ page }) => {
+  test("[4.12][STD-I18N-001][STD-AUTH-002] language smoke: body text should match selected language on login", async ({ page }) => {
     await page.goto("/login");
     await page.waitForLoadState("domcontentloaded");
 

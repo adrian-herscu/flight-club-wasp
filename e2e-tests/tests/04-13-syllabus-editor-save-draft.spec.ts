@@ -53,7 +53,7 @@ test.describe("4.13 Syllabus editor - save draft revision", () => {
   });
 
   test(
-    "[STD-SYL-010][@smoke] manager can edit lessons and save a new draft revision from the editor",
+    "[STD-SYL-004][STD-SYL-005][STD-SYL-010][@smoke] manager can edit lessons and save a new draft revision from the editor",
     async ({ page }) => {
       await test.step("Create a draft from FINAL template", async () => {
         await createDraftFromTemplate(page, `E2E draft ${Date.now()}`);
@@ -129,7 +129,7 @@ test.describe("4.13 Syllabus editor - save draft revision", () => {
   );
 
   test(
-    "[STD-SYL-010] save draft button is enabled for a manager-owned FINAL syllabus loaded into editor",
+    "[STD-SYL-006][STD-SYL-010] save draft button is enabled for a manager-owned FINAL syllabus loaded into editor",
     async ({ page }) => {
       await test.step("Create a manager-owned draft", async () => {
         await createDraftFromTemplate(page, `E2E final source ${Date.now()}`);

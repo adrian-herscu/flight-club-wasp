@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "lib": ["esnext"],
+    "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,6 +16,7 @@
   "include": [
     "src",
     "tests",
+    "global-setup.ts",
     // Include app source so operation files type-check without copying them
     "../app/src"
   ]

@@ -23,7 +23,7 @@ async function expectHttpError(
 }
 
 describe('4.2 / 4.4 / 4.5 role-gate authorization (API)', () => {
-  describe('approveSchoolManagerRequest', () => {
+  describe('[STD-AUTH-009][STD-ADM-006] approveSchoolManagerRequest', () => {
     const args = { requestId: 'not-a-real-id' };
 
     it('returns 401 for unauthenticated callers', async () => {
@@ -67,7 +67,7 @@ describe('4.2 / 4.4 / 4.5 role-gate authorization (API)', () => {
     });
   });
 
-  describe('approveSchoolMemberRequest', () => {
+  describe('[STD-AUTH-009][STD-MGR-011] approveSchoolMemberRequest', () => {
     const args = { requestId: 'not-a-real-id' };
 
     it('returns 401 for unauthenticated callers', async () => {

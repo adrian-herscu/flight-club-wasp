@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { logUserIn } from "./utils";
 
 test.describe("4.14 school manager school profile editing", () => {
-  test("[4.14][STD-SCH-003] school manager can edit school details and see persisted values", async ({
+  test("[4.14][STD-SCH-001][STD-SCH-003] school manager can edit school details and see persisted values", async ({
     page,
   }) => {
     await test.step("Log in as school manager and open My School", async () => {

@@ -224,7 +224,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
   });
 
   describe('rejectSchoolManagerRequest', () => {
-    it('rejects a pending school-manager request and persists reason', async () => {
+    it('[STD-ADM-004] rejects a pending school-manager request and persists reason', async () => {
       const requestId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-sm-reject');
       const reason = 'Missing legal documents';
 
@@ -381,7 +381,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
       );
     });
 
-    it('lists only manager-school member requests with pending/approved status', async () => {
+    it('[STD-MGR-010] lists only manager-school member requests with pending/approved status', async () => {
       const pendingCloudbaseId = await createMemberRequest(
         tempCtx.requesterA,
         'STUDENT',

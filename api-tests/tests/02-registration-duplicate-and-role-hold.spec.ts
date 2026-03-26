@@ -64,7 +64,7 @@ describe('4.3 registration request guardrails (API)', () => {
     });
   });
 
-  it('[STD-REG-011][STD-REG-013] school manager duplicate request is blocked', async () => {
+  it('[STD-REG-002][STD-REG-011][STD-REG-013] school manager duplicate request is blocked', async () => {
     const schoolName = `API Duplicate School ${Date.now()}`;
     const args = {
       fullName: 'API User 01',
@@ -88,7 +88,7 @@ describe('4.3 registration request guardrails (API)', () => {
     );
   });
 
-  it('[STD-REG-011][STD-REG-013] instructor duplicate request is blocked', async () => {
+  it('[STD-REG-009][STD-REG-011][STD-REG-013] instructor duplicate request is blocked', async () => {
     const args = {
       fullName: 'API User 01',
       phone: '+1 555 2002',
@@ -105,7 +105,7 @@ describe('4.3 registration request guardrails (API)', () => {
     );
   });
 
-  it('[STD-REG-011][STD-REG-013] student duplicate request is blocked', async () => {
+  it('[STD-REG-010][STD-REG-011][STD-REG-013] student duplicate request is blocked', async () => {
     const args = {
       fullName: 'API Instructor 01',
       phone: '+1 555 2003',
