@@ -10,7 +10,7 @@
 
 ## KNOWN ISSUES
 - Sometimes the vscode built in tools are not available. In such cases, inform the developer, and use the CLI instead.
-- Sometimes the vscode 'execute/runTests' tool does not invoke the global setup, causing all  e2e tests to fail with connection refused errors. In such cases, inform the developer, and use the CLI to run tests instead.
+- Sometimes the vscode 'execute/runTests' tool does not invoke the global setup, causing all  e2e tests to fail with connection refused errors. In such cases, refresh the tests, and rerun. If that does not work too,inform the developer, and use the CLI to run tests instead.
 
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
