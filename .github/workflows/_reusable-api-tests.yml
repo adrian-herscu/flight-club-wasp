@@ -93,6 +93,11 @@ jobs:
         working-directory: api-tests
         run: npm test
 
+      - name: Install Vitest coverage provider
+        if: ${{ inputs.with-coverage }}
+        working-directory: api-tests
+        run: npm install --no-save @vitest/coverage-v8@2.1.9
+
       - name: Run API tests with coverage
         if: ${{ inputs.with-coverage }}
         working-directory: api-tests

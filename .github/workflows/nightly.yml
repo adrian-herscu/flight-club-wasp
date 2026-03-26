@@ -51,7 +51,7 @@ jobs:
     needs:
       - api-tests-full
       - e2e-regression
-    if: always()
+    if: ${{ needs.api-tests-full.result == 'success' && needs.e2e-regression.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -115,7 +115,7 @@ jobs:
 
   publish-report:
     needs: prepare-pages-artifact
-    if: always()
+    if: ${{ needs.prepare-pages-artifact.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
