@@ -56,7 +56,7 @@ jobs:
           EOF
 
       - name: Apply database migrations for CI
-        run: wasp db migrate-dev --name ci_e2e_sync
+        run: wasp db migrate-dev
 
       - name: Start Wasp dev server (compiles app, serves on :3000/:3001)
         run: wasp start > /tmp/wasp-start.log 2>&1 &
