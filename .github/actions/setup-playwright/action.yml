@@ -1,0 +1,35 @@
+name: Setup Playwright Browser
+description: Cache and install a Playwright browser and required OS dependencies
+
+inputs:
+  cache-key:
+    description: Cache key for Playwright browser binaries
+    required: true
+  browser:
+    description: Playwright browser to install (chromium, firefox, or webkit)
+    required: false
+    default: chromium
+  working-directory:
+    description: Directory containing Playwright tests/package.json
+    required: false
+    default: e2e-tests
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Playwright browser
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ inputs.cache-key }}
+
+    - name: Install Playwright browsers
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.working-directory }}
+      run: |
+        if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+          npx playwright install-deps ${{ inputs.browser }}
+        else
+          npx playwright install --with-deps ${{ inputs.browser }}
+        fi

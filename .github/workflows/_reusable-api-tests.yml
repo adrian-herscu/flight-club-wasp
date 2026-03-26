@@ -1,0 +1,106 @@
+name: Reusable API Tests
+
+on:
+  workflow_call:
+    inputs:
+      timeout-minutes:
+        description: Job timeout in minutes
+        required: false
+        type: number
+        default: 10
+      db-name:
+        description: Postgres database name for service container
+        required: false
+        type: string
+        default: flight_club_api
+      database-url:
+        description: DATABASE_URL to inject into api-tests/.env.test
+        required: true
+        type: string
+      with-coverage:
+        description: Run api-tests with coverage
+        required: false
+        type: boolean
+        default: false
+      upload-coverage-artifact:
+        description: Upload coverage directory as artifact
+        required: false
+        type: boolean
+        default: false
+      coverage-artifact-name:
+        description: Artifact name for uploaded coverage output
+        required: false
+        type: string
+        default: api-tests-coverage
+
+permissions:
+  contents: read
+
+env:
+  WASP_VERSION: 0.21.1
+  WASP_TELEMETRY_DISABLE: 1
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.db-name }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Create API test env file
+        uses: ./.github/actions/setup-ci-env
+        with:
+          database-url: ${{ inputs.database-url }}
+          create-env-server: 'false'
+          create-api-env-test: 'true'
+
+      - name: Cache npm packages for API tests
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-api-${{ hashFiles('api-tests/package-lock.json') }}
+          restore-keys: npm-api-
+
+      - name: Install API test dependencies
+        working-directory: api-tests
+        run: npm ci
+
+      - name: Run API tests
+        if: ${{ !inputs.with-coverage }}
+        working-directory: api-tests
+        run: npm test
+
+      - name: Run API tests with coverage
+        if: ${{ inputs.with-coverage }}
+        working-directory: api-tests
+        run: npm run test:coverage
+
+      - name: Upload API coverage artifact
+        if: ${{ always() && inputs.with-coverage && inputs.upload-coverage-artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.coverage-artifact-name }}
+          path: api-tests/coverage/

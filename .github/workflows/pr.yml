@@ -1,0 +1,79 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+      - 'app/docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WASP_VERSION: 0.21.1
+  WASP_TELEMETRY_DISABLE: 1
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint GitHub Actions workflows
+        uses: reviewdog/action-actionlint@v1
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Cache npm packages for API tooling
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-api-${{ hashFiles('api-tests/package-lock.json') }}
+          restore-keys: npm-api-
+
+      - name: Install API test dependencies
+        working-directory: api-tests
+        run: npm ci
+
+      - name: Run app UI-boundary lint
+        run: npm run lint:ui-boundary
+
+      - name: Run API TypeScript check
+        working-directory: api-tests
+        run: npx tsc --noEmit -p tsconfig.json
+
+  api-tests:
+    needs: validate
+    uses: ./.github/workflows/_reusable-api-tests.yml
+    with:
+      timeout-minutes: 10
+      db-name: flight_club_api
+      database-url: postgresql://postgres:postgres@localhost:5432/flight_club_api
+
+  e2e-smoke:
+    needs: validate
+    uses: ./.github/workflows/_reusable-e2e.yml
+    with:
+      timeout-minutes: 25
+      db-name: flight_club_e2e
+      database-url: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+      mode: smoke
+      browser: chromium
+      upload-report-artifact: true
+      report-artifact-name: playwright-report-pr
+    secrets:
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
