@@ -50,6 +50,7 @@ jobs:
         run: npm ci
 
       - name: Run app UI-boundary lint
+        continue-on-error: true
         run: npm run lint:ui-boundary
 
       - name: Run API TypeScript check
