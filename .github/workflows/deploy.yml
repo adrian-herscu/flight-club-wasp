@@ -61,6 +61,20 @@ jobs:
       - name: Start Wasp dev server (compiles app, serves on :3000/:3001)
         run: wasp start > /tmp/wasp-start.log 2>&1 &
 
+      - name: Wait for Wasp server to be ready
+        run: |
+          for i in {1..60}; do
+            if curl -f http://localhost:3000/ 2>/dev/null; then
+              echo "Server is ready!"
+              exit 0
+            fi
+            echo "Waiting for server... ($i/60)"
+            sleep 2
+          done
+          echo "Server failed to start!"
+          cat /tmp/wasp-start.log
+          exit 1
+
       - name: Cache npm packages
         uses: actions/cache@v4
         with:
