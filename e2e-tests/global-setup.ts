@@ -45,10 +45,9 @@ function readDatabaseUrlFromWaspEnv(): string {
 
 function resetDatabase(): void {
   const databaseUrl = readDatabaseUrlFromWaspEnv();
-  const quotedSchemaPath = JSON.stringify(schemaPath);
 
-  console.log('[e2e][globalSetup] Resetting database with Prisma migrate reset...');
-  execSync(`npx prisma migrate reset --force --schema=${quotedSchemaPath}`, {
+  console.log('[e2e][globalSetup] Resetting database with Wasp DB reset...');
+  execSync('wasp db reset --force', {
     cwd: appDir,
     stdio: 'inherit',
     env: {
