@@ -55,6 +55,9 @@ jobs:
           GOOGLE_CLIENT_SECRET=mock-google-client-secret
           EOF
 
+      - name: Install app dependencies
+        run: npm ci
+
       # e2e-tests/global-setup.ts handles DB reset and Wasp server lifecycle.
 
       - name: Cache npm packages
