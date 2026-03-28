@@ -10,6 +10,7 @@ test.describe("4.12 internationalization and RTL", () => {
   test("[4.12][STD-I18N-001][STD-AUTH-002] language smoke: body text should match selected language on login", async ({ page }) => {
     await page.goto("/login");
     await page.waitForLoadState("domcontentloaded");
+    await page.waitForLoadState("networkidle");
 
     const englishAuthText = (
       await page.locator("h2, label, button[type='submit']").allInnerTexts()

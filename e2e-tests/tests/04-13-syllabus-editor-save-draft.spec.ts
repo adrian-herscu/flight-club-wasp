@@ -9,6 +9,15 @@ const navigateToSyllabusesSection = async (
   section: "catalog" | "create" | "details" | "editor",
 ) => {
   await page.goto(`/school-manager/syllabuses?section=${section}`);
+  // Guard: parallel tests sharing school_manager.01 can invalidate the session; re-login and retry once.
+  if (new URL(page.url()).pathname === "/login") {
+    await logUserIn({
+      page,
+      user: { email: SCHOOL_MANAGER_EMAIL, password: SCHOOL_MANAGER_PASSWORD },
+      expectedRedirectPath: "/",
+    });
+    await page.goto(`/school-manager/syllabuses?section=${section}`);
+  }
   await expect(page).toHaveURL(new RegExp(`/school-manager/syllabuses\\?section=${section}$`));
   await page.waitForLoadState("networkidle");
 };

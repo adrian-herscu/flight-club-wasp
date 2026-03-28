@@ -26,13 +26,11 @@ test.describe("4.1 public discovery", () => {
   });
 
   test("[4.1][STD-PUB-003] logged in users can see schools and courses on landing", async ({ page }) => {
-    await page.goto("/login");
-    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
-    await page.fill('input[name="password"]', "12345678");
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-
-    await expect(page).toHaveURL(/\/$/);
+    await logUserIn({
+      page,
+      user: { email: "seed+school_manager.01@example.test", password: "12345678" },
+      expectedRedirectPath: "/",
+    });
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
     await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
@@ -45,9 +43,7 @@ test.describe("4.1 public discovery", () => {
     await expect(filterInput).toBeVisible();
 
     await filterInput.fill("Tandem");
-    await page.waitForTimeout(200);
-
-    // "Tandem Flights" course should be visible
+    // "Tandem Flights" course should be visible; auto-retrying assertion replaces waitForTimeout
     const courseItems = page.getByTestId("landing-course-item");
     const visibleItems = await courseItems.all();
     for (const item of visibleItems) {
@@ -70,13 +66,11 @@ test.describe("4.1 public discovery", () => {
 
     // Selecting the seeded country "US" still shows the card
     await dropdown.selectOption("US");
-    await page.waitForTimeout(200);
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
 
     // Selecting a country that has no schools hides all cards
     await dropdown.selectOption("__none__");
-    await page.waitForTimeout(200);
-    await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
+    await expect(page.getByTestId("landing-school-card")).toHaveCount(0, { timeout: 5000 });
   });
 
   test("[4.1][STD-PUB-008][STD-PUB-010] location filter shows only matching schools", async ({ page }) => {
@@ -87,13 +81,11 @@ test.describe("4.1 public discovery", () => {
 
     // Filtering by seeded school's city: Boulder
     await filterInput.fill("Boulder");
-    await page.waitForTimeout(200);
-    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible({ timeout: 5000 });
 
     // Filtering by nonsense hides all schools
     await filterInput.fill("XYZNonExistentCity99");
-    await page.waitForTimeout(200);
-    await expect(page.getByTestId("landing-school-card")).toHaveCount(0);
+    await expect(page.getByTestId("landing-school-card")).toHaveCount(0, { timeout: 5000 });
   });
 
   test("[4.1][STD-NAV-012] narrow landing menu opens from the left and exposes theme/language controls", async ({ page }) => {

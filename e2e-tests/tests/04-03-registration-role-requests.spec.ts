@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { logUserIn } from "./utils";
 
 async function submitRegistrationForm(page: Page) {
-  await page.locator(".flex.justify-end button").click();
+  const submitBtn = page.getByRole("button", { name: /submit|continue|next/i }).last();
+  await submitBtn.waitFor({ state: "visible", timeout: 5000 });
+  await submitBtn.click();
 }
 
 async function expectSubmissionErrorVisible(page: Page) {

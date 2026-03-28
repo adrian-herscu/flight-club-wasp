@@ -36,11 +36,14 @@ test.describe("4.5 school-manager member approval workflow", () => {
     });
 
     await page.goto(`/registration?role=${role}&schoolId=seed-school-cloudbase-paragliding`);
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
     await dismissCookieBanner(page);
     await page.locator("#fullName").fill(fullName);
     await page.locator("#phone").fill(phone);
-    await page.locator(".flex.justify-end button").last().click();
+    const submitBtn = page.getByRole("button", { name: /submit|continue|next/i }).last();
+    await submitBtn.waitFor({ state: "visible", timeout: 5000 });
+    await submitBtn.click();
     await page.waitForURL(/registration|\/$/);
   };
   test.skip("[4.6][STD-SCH-001][STD-SCH-002][inactive] manager can view school profile", async ({ page }) => {

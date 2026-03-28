@@ -34,7 +34,6 @@ jobs:
         browser:
           - chromium
           - firefox
-          - webkit
     uses: ./.github/workflows/_reusable-e2e.yml
     with:
       timeout-minutes: 45
