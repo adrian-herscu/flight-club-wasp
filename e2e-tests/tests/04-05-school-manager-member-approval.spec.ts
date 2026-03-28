@@ -146,11 +146,11 @@ test.describe("4.5 school-manager member approval workflow", () => {
   });
 
   test("[4.7][4.12][STD-SYL-009][STD-I18N-007] hebrew locale: syllabuses catalog labels are translated", async ({ page }) => {
-    await page.goto("/login");
-    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
-    await page.fill('input[name="password"]', "12345678");
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
+    await logUserIn({
+      page,
+      user: schoolManagerUser,
+      expectedRedirectPath: "/",
+    });
 
     await page.addInitScript(() => {
       localStorage.setItem("locale", "he");
@@ -159,6 +159,14 @@ test.describe("4.5 school-manager member approval workflow", () => {
     });
 
     await page.goto("/school-manager/syllabuses?section=catalog");
+    if (new URL(page.url()).pathname === "/login") {
+      await logUserIn({
+        page,
+        user: schoolManagerUser,
+        expectedRedirectPath: "/",
+      });
+      await page.goto("/school-manager/syllabuses?section=catalog");
+    }
     await page.waitForURL("**/school-manager/syllabuses?section=catalog");
     await page.waitForLoadState("networkidle");
     await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
