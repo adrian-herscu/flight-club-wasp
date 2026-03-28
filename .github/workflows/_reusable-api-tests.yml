@@ -88,6 +88,10 @@ jobs:
         working-directory: api-tests
         run: npm ci
 
+      - name: Generate Prisma client in app
+        working-directory: app
+        run: npx prisma generate
+
       - name: Run API tests
         if: ${{ !inputs.with-coverage }}
         working-directory: api-tests
