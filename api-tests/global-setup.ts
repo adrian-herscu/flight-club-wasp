@@ -33,8 +33,8 @@ function readDatabaseUrlFromEnvTest(): string {
 export default function globalSetup() {
   const databaseUrl = readDatabaseUrlFromEnvTest();
 
-  console.log('[api-tests][globalSetup] Resetting database with Wasp DB reset...');
-  execSync('wasp db reset --force', {
+  console.log('[api-tests][globalSetup] Resetting database with Prisma migrate reset...');
+  execSync('npx prisma migrate reset --force --skip-generate --schema schema.prisma', {
     cwd: appDir,
     stdio: 'inherit',
     env: {
