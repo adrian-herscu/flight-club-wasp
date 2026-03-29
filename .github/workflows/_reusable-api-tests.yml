@@ -88,8 +88,8 @@ jobs:
         working-directory: api-tests
         run: npm ci
 
-      - name: Generate Prisma client in app
-        working-directory: app
+      - name: Generate Prisma client
+        working-directory: api-tests
         run: npx prisma generate
 
       - name: Run API tests

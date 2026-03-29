@@ -102,8 +102,8 @@ jobs:
         working-directory: e2e-tests
         run: npm ci
 
-      - name: Generate Prisma client in app
-        working-directory: app
+      - name: Generate Prisma client
+        working-directory: e2e-tests
         run: npx prisma generate
 
       - name: Setup Playwright browsers
