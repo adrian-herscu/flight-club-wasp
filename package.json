@@ -17,10 +17,10 @@
 
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --coverage.reportsDirectory=out/coverage",
 
     "e2e:regression": "npx playwright test --config=tests/e2e/playwright.config.ts",
-    "e2e:smoke": "npx playwright test --config=tests/e2e/playwright.config.ts --project=chromium --grep @smoke --reporter=html,github",
+    "e2e:smoke": "PLAYWRIGHT_HTML_REPORT=out/playwright-report npx playwright test --config=tests/e2e/playwright.config.ts --project=chromium --grep @smoke --reporter=html,github",
     "e2e:regression:ui": "npx playwright test --config=tests/e2e/playwright.config.ts --ui"
 },
   "workspaces": [

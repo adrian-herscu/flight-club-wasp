@@ -69,7 +69,7 @@ These must be set on the `flight-club-wasp-server` service in Railway. Wasp auto
 	- Leftover files under `src/` still typechecked; remove or fix orphan imports/usages.
 - **Config declaration drift (`main.wasp`)**:
 	- This repo uses `main.wasp` as source of truth.
-	- If deployment/dev behavior is inconsistent after config changes, verify `main.wasp` declarations and restart using `npm run wasp:restart` in `e2e-tests` (ensuring previous instances are killed) before re-checking. Logs are written to `wasp-dev.log`.
+	- If deployment/dev behavior is inconsistent after config changes, verify `main.wasp` declarations and restart using `npm run wasp:restart` in `e2e-tests` (ensuring previous instances are killed) before re-checking. Logs are written to `out/wasp-dev.log`.
 - **Railway upload timeout / connection reset**:
 	- Usually platform/network-side. Retry deployment later or use CI redeploy.
 

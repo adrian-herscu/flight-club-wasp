@@ -19,6 +19,11 @@ Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testin
 3. Before e2e execution, run `npm run db:reset` and start Wasp explicitly (`npm run wasp:start:bg` for automation-style flow, or `npm run wasp:start` for interactive local flow).
 4. `tests/e2e/global-setup.ts` should only verify app readiness on `127.0.0.1:3000`/`3001`.
 
+### `wasp:start:bg` contract
+- `npm run wasp:start:bg` must spawn Wasp detached and exit immediately.
+- Startup logs are written to `out/wasp-dev.log`.
+- Background PID is written to `out/.wasp-dev.pid`.
+
 ## Startup behavior to preserve
 - Keep `baseURL` aligned to `http://127.0.0.1:3000`.
 - Keep startup/reset orchestration in scripts/CI actions, not in Playwright config.
@@ -45,7 +50,7 @@ Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testin
   - Fix: stop conflicting DB or use the existing DB intentionally
 - title test passes but tests cannot find `Log in` or cookie-consent buttons
   - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or a declaration import/export mismatch in `main.wasp`
-  - Fix: explicitly restart the dev server to clear ports (e.g. `npm run wasp:restart` inside `tests/e2e`; logs: `wasp-dev.log`), inspect the browser console, and verify `main.wasp` declaration imports align with component exports
+  - Fix: explicitly restart the dev server to clear ports (e.g. `npm run wasp:restart` inside `tests/e2e`; logs: `out/wasp-dev.log`), inspect the browser console, and verify `main.wasp` declaration imports align with component exports
 - tests pass in CLI but fail in VS Code panel
   - Cause: extension/config mismatch
   - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `tests/e2e`
@@ -142,3 +147,7 @@ Use all three for critical flows to reduce false positives.
 - Do not edit generated Wasp output (`.wasp/out/**`).
 - Prefer fixing source config/script in `tests/e2e`.
 - Keep the fail-fast contract explicit: app server must be started before tests/e2e.
+
+## Generated artifacts policy
+- Keep non-source artifacts under `out/` (for example `out/test-results`, `out/playwright-report`, `out/coverage`, `out/wasp-dev.log`).
+- Keep `.wasp/out/**` reserved for Wasp-generated code/build output.

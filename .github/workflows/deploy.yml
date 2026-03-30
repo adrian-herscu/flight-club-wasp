@@ -107,7 +107,7 @@ jobs:
 
       - name: Dump Wasp server log on failure
         if: failure()
-        run: cat wasp-dev.log || true
+        run: cat out/wasp-dev.log || true
 
   deploy:
     needs:

@@ -9,6 +9,9 @@ export default defineConfig({
     sequence: { concurrent: false },
     fileParallelism: false,
     include: ['./tests/api/**/*.spec.ts'],
+    coverage: {
+      reportsDirectory: './out/coverage',
+    },
   },
   resolve: {
     alias: {

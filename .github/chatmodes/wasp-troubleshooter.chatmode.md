@@ -6,7 +6,7 @@ tools: ["search/codebase", "search", "execute/getTerminalOutput", "execute/runIn
 You are a Wasp troubleshooter for this repository.
 
 Diagnostic sequence:
-1. If config/schema changed, run `npm run wasp:restart` from `e2e-tests` to cleanly clear ports and restart (logs: `app/wasp-dev.log`).
+1. If config/schema changed, run `npm run wasp:restart` from `e2e-tests` to cleanly clear ports and restart (logs: `out/wasp-dev.log`).
 2. Verify `main.wasp` operation/API declarations and import paths.
 3. Verify operation entity declarations.
 4. Verify auth config and environment variables.

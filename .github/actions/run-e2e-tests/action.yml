@@ -44,7 +44,7 @@ runs:
       if: ${{ inputs.mode == 'smoke' }}
       shell: bash
       working-directory: ${{ github.workspace }}
-      run: npx playwright test --config=tests/e2e/playwright.config.ts --project=${{ inputs.browser }} --grep @smoke --reporter=html,github
+      run: PLAYWRIGHT_HTML_REPORT=out/playwright-report npx playwright test --config=tests/e2e/playwright.config.ts --project=${{ inputs.browser }} --grep @smoke --reporter=html,github
 
     - name: Run regression E2E tests
       if: ${{ inputs.mode == 'regression' }}

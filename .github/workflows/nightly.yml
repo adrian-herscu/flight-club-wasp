@@ -129,11 +129,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-nightly-${{ matrix.browser }}
-          path: playwright-report/
+          path: out/playwright-report/
 
       - name: Dump Wasp server log on failure
         if: failure()
-        run: cat wasp-dev.log || true
+        run: cat out/wasp-dev.log || true
 
   prepare-pages-artifact:
     needs:

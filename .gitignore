@@ -12,11 +12,7 @@
 
 
 .playwright-mcp/**
-**/wasp-dev.log
 build.log
-tests/e2e/.wasp-dev.pid
-tests/e2e/test-results/**
-playwright-report/**
 .wasp/**
 node_modules/**
-test-results/**
+out/**
