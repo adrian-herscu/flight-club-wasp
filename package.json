@@ -2,6 +2,7 @@
   "name": "opensaas",
   "type": "module",
   "scripts": {
+    "git:clean": "git clean -fdX",
     "lint:ui-boundary": "node scripts/enforce-ui-boundary.mjs",
 
     "wasp:kill": "fuser -k 3000/tcp 3001/tcp || true",
@@ -82,7 +83,6 @@
     "prisma": "5.19.1",
     "typescript": "5.8.2",
     "vite": "^7.0.6",
-    "wasp-config": "file:/var/home/adrianherscu/.npm-global/lib/node_modules/@wasp.sh/wasp-cli/node_modules/@wasp.sh/wasp-cli-linux-x64-glibc/data/packages/wasp-config",
     "@playwright/test": "^1.42.1",
     "@prisma/client": "5.19.1",
     "@types/node": "^22.0.0",
