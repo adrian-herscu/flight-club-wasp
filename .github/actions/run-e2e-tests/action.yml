@@ -30,6 +30,16 @@ runs:
         cache-key: playwright-${{ inputs.browser }}-${{ hashFiles('package-lock.json') }}
         browser: ${{ inputs.browser }}
 
+    - name: Reset database
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm run db:reset
+
+    - name: Start Wasp server in background
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm run wasp:start:bg
+
     - name: Run smoke E2E tests
       if: ${{ inputs.mode == 'smoke' }}
       shell: bash

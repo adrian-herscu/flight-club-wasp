@@ -24,6 +24,11 @@ runs:
       working-directory: ${{ github.workspace }}
       run: npx prisma generate
 
+    - name: Reset database
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm run db:reset
+
     - name: Install Vitest coverage provider
       if: ${{ inputs.with-coverage == 'true' && inputs.install-coverage-provider == 'true' }}
       shell: bash

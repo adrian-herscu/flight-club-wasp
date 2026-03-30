@@ -16,18 +16,19 @@ Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testin
 0. Provide a concise implementation plan and wait for explicit user approval before making any test/code/config changes.
 1. Prefer the configured test tooling (`runTests` integration) or the VS Code Testing panel for scoped runs; use the package script only when you specifically need the full local shell flow.
 2. Ensure PostgreSQL is running and `DATABASE_URL` in `.env.server` points to it.
-3. `tests/e2e/global-setup.ts` handles everything automatically: DB reset, app readiness check, and auto-starting `wasp start` in background if needed.
+3. Before e2e execution, run `npm run db:reset` and start Wasp explicitly (`npm run wasp:start:bg` for automation-style flow, or `npm run wasp:start` for interactive local flow).
+4. `tests/e2e/global-setup.ts` should only verify app readiness on `127.0.0.1:3000`/`3001`.
 
 ## Startup behavior to preserve
 - Keep `baseURL` aligned to `http://127.0.0.1:3000`.
-- Keep startup orchestration inside `tests/e2e/global-setup.ts`, not in Playwright config or package scripts.
-- `globalSetup` reads `DATABASE_URL` from `.wasp/out/server/.env` — do not remove that file path.
+- Keep startup/reset orchestration in scripts/CI actions, not in Playwright config.
+- Keep `tests/e2e/global-setup.ts` focused on readiness polling only.
 
 ## Maintenance checklist
 1. Validate config after edits:
   - `use.baseURL` is `http://127.0.0.1:3000`
   - no stale `webServer.command` references to deleted scripts
-  - `tests/e2e/global-setup.ts` contains both `resetDatabase()` and `ensureAppRunning()`
+  - `tests/e2e/global-setup.ts` does not reset DB or spawn/kill Wasp; it only polls readiness
 2. Verify with a fast smoke test first:
   - run only `04-01-public-discovery.spec.ts` test `has title`
 3. Then run full suite.

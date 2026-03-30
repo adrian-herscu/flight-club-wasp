@@ -2,15 +2,13 @@
 
 ## NEVER
 - Start the database unless specifically asked to do so.
-- Start the wasp server for e2e tests (it is managed within the test suite global setup).
-- Invoke `package.json` scripts as part of automated workflows or code generation.
 
 ## ALWAYS
 - Prefer the vscode built in tools and configured MCP servers instead of CLI tools.
 
 ## KNOWN ISSUES
 - Sometimes the vscode built in tools are not available. In such cases, inform the developer, and use the CLI instead.
-- Sometimes the vscode 'execute/runTests' tool does not invoke the global setup, causing all  e2e tests to fail with connection refused errors. In such cases, refresh the tests, and rerun. If that does not work too,inform the developer, and use the CLI to run tests instead.
+- Sometimes the vscode 'execute/runTests' tool does not execute all expected pre-test script steps, which can cause e2e `connection refused` errors. In such cases, run `npm run db:reset` and `npm run wasp:start:bg`, then rerun tests. If that still fails, inform the developer and use the CLI.
 
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.

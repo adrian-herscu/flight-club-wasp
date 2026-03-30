@@ -6,13 +6,14 @@
 
     "wasp:kill": "fuser -k 3000/tcp 3001/tcp || true",
     "wasp:clean": "rm -rf .wasp",
-    "wasp:db:reset": "wasp db reset --force",
-    
+    "db:reset": "npx prisma migrate reset --force --skip-generate --schema schema.prisma",
+
     "wasp:lint": "npm run lint:ui-boundary",
     "wasp:build": "wasp build",
   
     "wasp:start": "wasp start",
-    "wasp:restart": "npm run wasp:kill && npm run wasp:clean && npm run wasp:lint && npm run wasp:db:reset && npm run wasp:start",
+    "wasp:start:bg": "node scripts/start-wasp-bg.mjs",
+    "wasp:restart": "npm run wasp:kill && npm run wasp:clean && npm run wasp:lint && npm run db:reset && npm run wasp:start",
 
     "test": "vitest run",
     "test:watch": "vitest",

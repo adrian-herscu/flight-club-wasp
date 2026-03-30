@@ -6,7 +6,6 @@ export default defineConfig({
     environment: 'node',
     globals: false,
     setupFiles: ['./tests/api/setup.ts'],
-    globalSetup: ['./tests/api/global-setup.ts'],
     sequence: { concurrent: false },
     fileParallelism: false,
     include: ['./tests/api/**/*.spec.ts'],
