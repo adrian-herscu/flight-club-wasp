@@ -6,7 +6,7 @@ on:
       - main
     paths-ignore:
       - '**/*.md'
-      - 'app/docs/**'
+      - 'docs/**'
   workflow_dispatch:
 
 env:
@@ -45,10 +45,6 @@ jobs:
       RAILWAY_ENVIRONMENT_ID: 63662340-c373-4b8a-8b0c-0829d6c5e7d0
       # You must add RAILWAY_API_TOKEN to your Repository Secrets
       RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-
-    defaults:
-      run:
-        working-directory: app
 
     steps:
       - uses: actions/checkout@v4

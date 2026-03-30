@@ -71,10 +71,6 @@ jobs:
     env:
       DATABASE_URL: ${{ inputs.database-url }}
 
-    defaults:
-      run:
-        working-directory: app
-
     steps:
       - uses: actions/checkout@v4
 
@@ -89,47 +85,42 @@ jobs:
           create-env-server: 'true'
           create-api-env-test: 'false'
 
-      # e2e-tests/global-setup.ts handles DB reset and Wasp server lifecycle.
+      # tests/e2e/global-setup.ts handles DB reset and Wasp server lifecycle.
 
       - name: Cache npm packages
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-e2e-${{ hashFiles('e2e-tests/package-lock.json') }}
+          key: npm-e2e-${{ hashFiles('package-lock.json') }}
           restore-keys: npm-e2e-
 
       - name: Install e2e dependencies
-        working-directory: e2e-tests
         run: npm ci
 
       - name: Generate Prisma client
-        working-directory: e2e-tests
         run: npx prisma generate
 
       - name: Setup Playwright browsers
         uses: ./.github/actions/setup-playwright
         with:
-          cache-key: playwright-${{ inputs.browser }}-${{ hashFiles('e2e-tests/package-lock.json') }}
+          cache-key: playwright-${{ inputs.browser }}-${{ hashFiles('package-lock.json') }}
           browser: ${{ inputs.browser }}
-          working-directory: e2e-tests
 
       - name: Run smoke E2E tests
         if: ${{ inputs.mode == 'smoke' }}
-        working-directory: e2e-tests
-        run: npx playwright test --project=${{ inputs.browser }} --grep @smoke --reporter=html,github
+        run: npx playwright test --config=tests/e2e/playwright.config.ts --project=${{ inputs.browser }} --grep @smoke --reporter=html,github
 
       - name: Run regression E2E tests
         if: ${{ inputs.mode == 'regression' }}
-        working-directory: e2e-tests
-        run: npx playwright test --project=${{ inputs.browser }}
+        run: npx playwright test --config=tests/e2e/playwright.config.ts --project=${{ inputs.browser }}
 
       - name: Upload Playwright report artifact
         if: ${{ always() && inputs.upload-report-artifact }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.report-artifact-name }}
-          path: e2e-tests/playwright-report/
+          path: playwright-report/
 
       - name: Dump Wasp server log on failure
         if: failure()
-        run: cat /tmp/wasp-start.log || true
+        run: cat wasp-dev.log || true

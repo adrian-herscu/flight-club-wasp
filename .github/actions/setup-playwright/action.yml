@@ -12,7 +12,7 @@ inputs:
   working-directory:
     description: Directory containing Playwright tests/package.json
     required: false
-    default: e2e-tests
+    default: .
 
 runs:
   using: composite

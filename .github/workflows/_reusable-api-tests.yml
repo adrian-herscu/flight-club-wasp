@@ -60,10 +60,6 @@ jobs:
         ports:
           - 5432:5432
 
-    defaults:
-      run:
-        working-directory: app
-
     steps:
       - uses: actions/checkout@v4
 
@@ -81,30 +77,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-api-${{ hashFiles('api-tests/package-lock.json') }}
+          key: npm-api-${{ hashFiles('package-lock.json') }}
           restore-keys: npm-api-
 
       - name: Install API test dependencies
-        working-directory: api-tests
         run: npm ci
 
       - name: Generate Prisma client
-        working-directory: api-tests
         run: npx prisma generate
 
       - name: Run API tests
         if: ${{ !inputs.with-coverage }}
-        working-directory: api-tests
         run: npm test
 
       - name: Install Vitest coverage provider
         if: ${{ inputs.with-coverage }}
-        working-directory: api-tests
         run: npm install --no-save @vitest/coverage-v8@2.1.9
 
       - name: Run API tests with coverage
         if: ${{ inputs.with-coverage }}
-        working-directory: api-tests
         run: npm run test:coverage
 
       - name: Upload API coverage artifact
@@ -112,4 +103,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.coverage-artifact-name }}
-          path: api-tests/coverage/
+          path: coverage/

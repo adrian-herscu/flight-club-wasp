@@ -1,5 +1,5 @@
 name: Setup CI env files
-description: Create app/.env.server and/or api-tests/.env.test for CI jobs
+description: Create .env.server and/or .env.test for CI jobs
 
 inputs:
   database-url:
@@ -21,12 +21,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Create app/.env.server
+    - name: Create .env.server
       if: ${{ inputs.create-env-server == 'true' }}
       shell: bash
       working-directory: ${{ github.workspace }}
       run: |
-        cat > app/.env.server << EOF
+        cat > .env.server << EOF
         DATABASE_URL=${{ inputs.database-url }}
         SKIP_EMAIL_VERIFICATION_IN_DEV=true
         JWT_SECRET=supersecretjwtkey_for_ci_testing_only
@@ -35,12 +35,12 @@ runs:
         GOOGLE_CLIENT_SECRET=mock-google-client-secret
         EOF
 
-    - name: Create api-tests/.env.test
+    - name: Create .env.test
       if: ${{ inputs.create-api-env-test == 'true' }}
       shell: bash
       working-directory: ${{ github.workspace }}
       run: |
-        cat > api-tests/.env.test << EOF
+        cat > .env.test << EOF
         DATABASE_URL=${{ inputs.database-url }}
         SKIP_EMAIL_VERIFICATION_IN_DEV=true
         EOF
