@@ -65,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: api-tests-coverage-nightly
-          path: coverage/
+          path: out/coverage/
 
   e2e-regression:
     runs-on: ubuntu-latest
