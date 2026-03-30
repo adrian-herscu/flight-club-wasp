@@ -19,10 +19,10 @@ runs:
       working-directory: ${{ github.workspace }}
       run: npm ci
 
-    - name: Generate Prisma client
-      shell: bash
-      working-directory: ${{ github.workspace }}
-      run: npx prisma generate
+    # - name: Generate Prisma client
+    #   shell: bash
+    #   working-directory: ${{ github.workspace }}
+    #   run: npx prisma generate
 
     - name: Setup Playwright browsers
       uses: ./.github/actions/setup-playwright
@@ -33,7 +33,7 @@ runs:
     - name: Reset database
       shell: bash
       working-directory: ${{ github.workspace }}
-      run: npm run db:reset
+      run: npm run wasp:db:reset
 
     - name: Start Wasp server in background
       shell: bash
