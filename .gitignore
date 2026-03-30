@@ -13,5 +13,10 @@
 
 .playwright-mcp/**
 **/wasp-dev.log
-app/build.log
-e2e-tests/.wasp-dev.pid
+build.log
+tests/e2e/.wasp-dev.pid
+tests/e2e/test-results/**
+playwright-report/**
+.wasp/**
+node_modules/**
+test-results/**

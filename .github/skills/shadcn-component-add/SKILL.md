@@ -1,6 +1,6 @@
 ---
 name: shadcn-component-add
-description: ShadCN component integration workflow for this repository. Use when adding or adjusting components in app/src/client/components/ui, fixing generated import paths, or keeping ShadCN additions aligned with the current Wasp and Tailwind setup.
+description: ShadCN component integration workflow for this repository. Use when adding or adjusting components in src/client/components/ui, fixing generated import paths, or keeping ShadCN additions aligned with the current Wasp and Tailwind setup.
 ---
 
 # Skill: Add ShadCN component

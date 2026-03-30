@@ -1,34 +1,33 @@
 ---
-name: e2e-playwright-maintenance
-description: Local Playwright maintenance workflow for this repository. Use when running, fixing, or stabilizing tests under e2e-tests, validating Playwright config, debugging local app startup issues, or investigating flaky browser-based regressions.
+name: tests/e2e-playwright-maintenance
+description: Local Playwright maintenance workflow for this repository. Use when running, fixing, or stabilizing tests under tests/e2e, validating Playwright config, debugging local app startup issues, or investigating flaky browser-based regressions.
 ---
 
-# Skill: Local E2E Playwright Run + Maintenance (Desktop)
+# Skill: Local tests/e2e Playwright Run + Maintenance (Desktop)
 
-Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testing panel).
+Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testing panel).
 
 ## Current project baseline
-- Playwright config: `e2e-tests/playwright.config.ts`
+- Playwright config: `tests/e2e/playwright.config.ts`
 - Local app URL expected by tests: `http://localhost:3000`
 - Backend URL (Wasp server): `http://localhost:3001`
-- VS Code recommendations/settings under `e2e-tests/.vscode`
 
 ## Run procedure (desktop)
 0. Provide a concise implementation plan and wait for explicit user approval before making any test/code/config changes.
 1. Prefer the configured test tooling (`runTests` integration) or the VS Code Testing panel for scoped runs; use the package script only when you specifically need the full local shell flow.
-2. Ensure PostgreSQL is running and `DATABASE_URL` in `app/.env.server` points to it.
-3. `e2e-tests/global-setup.ts` handles everything automatically: DB reset, app readiness check, and auto-starting `wasp start` in background if needed.
+2. Ensure PostgreSQL is running and `DATABASE_URL` in `.env.server` points to it.
+3. `tests/e2e/global-setup.ts` handles everything automatically: DB reset, app readiness check, and auto-starting `wasp start` in background if needed.
 
 ## Startup behavior to preserve
 - Keep `baseURL` aligned to `http://127.0.0.1:3000`.
-- Keep startup orchestration inside `e2e-tests/global-setup.ts`, not in Playwright config or package scripts.
-- `globalSetup` reads `DATABASE_URL` from `app/.wasp/out/server/.env` — do not remove that file path.
+- Keep startup orchestration inside `tests/e2e/global-setup.ts`, not in Playwright config or package scripts.
+- `globalSetup` reads `DATABASE_URL` from `.wasp/out/server/.env` — do not remove that file path.
 
 ## Maintenance checklist
 1. Validate config after edits:
   - `use.baseURL` is `http://127.0.0.1:3000`
   - no stale `webServer.command` references to deleted scripts
-  - `e2e-tests/global-setup.ts` contains both `resetDatabase()` and `ensureAppRunning()`
+  - `tests/e2e/global-setup.ts` contains both `resetDatabase()` and `ensureAppRunning()`
 2. Verify with a fast smoke test first:
   - run only `04-01-public-discovery.spec.ts` test `has title`
 3. Then run full suite.
@@ -45,10 +44,10 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
   - Fix: stop conflicting DB or use the existing DB intentionally
 - title test passes but tests cannot find `Log in` or cookie-consent buttons
   - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or a declaration import/export mismatch in `main.wasp`
-  - Fix: explicitly restart the dev server to clear ports (e.g. `npm run wasp:restart` inside `e2e-tests`; logs: `app/wasp-dev.log`), inspect the browser console, and verify `main.wasp` declaration imports align with component exports
+  - Fix: explicitly restart the dev server to clear ports (e.g. `npm run wasp:restart` inside `tests/e2e`; logs: `wasp-dev.log`), inspect the browser console, and verify `main.wasp` declaration imports align with component exports
 - tests pass in CLI but fail in VS Code panel
   - Cause: extension/config mismatch
-  - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `e2e-tests`
+  - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `tests/e2e`
 
 ## Auth smoke patterns (seeded-user login recipes)
 
@@ -57,7 +56,7 @@ Use this skill when running or fixing `e2e-tests` locally (CLI or VS Code Testin
 - Validate auth routes and redirects post-login.
 - Validate authenticated UI state changes (e.g., "Log in" link disappears, username visible).
 
-### Seeded user credentials (from `app/migrations/20260309103000_seed_users_by_role/migration.sql`)
+### Seeded user credentials (from `migrations/20260309103000_seed_users_by_role/migration.sql`)
 - Baseline non-admin: `seed+user.01@example.test` / `12345678`
 - Admin: `seed+system_admin.01@example.test` / `12345678`
 - Instructor: `seed+instructor.01@example.test` / `12345678`
@@ -139,6 +138,6 @@ Use all three for critical flows to reduce false positives.
 
 ## Guardrails
 - Plan-first gate: do not edit files or run validation-changing actions before the user approves the plan.
-- Do not edit generated Wasp output (`app/.wasp/out/**`).
-- Prefer fixing source config/script in `e2e-tests`.
-- Keep the fail-fast contract explicit: app server must be started before e2e.
+- Do not edit generated Wasp output (`.wasp/out/**`).
+- Prefer fixing source config/script in `tests/e2e`.
+- Keep the fail-fast contract explicit: app server must be started before tests/e2e.
