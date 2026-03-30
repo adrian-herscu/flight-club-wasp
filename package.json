@@ -6,6 +6,7 @@
 
     "wasp:kill": "fuser -k 3000/tcp 3001/tcp || true",
     "wasp:clean": "rm -rf .wasp",
+    "wasp:db:reset": "wasp db reset --force",
     "db:reset": "npx prisma migrate reset --force --skip-generate --schema schema.prisma",
 
     "wasp:lint": "npm run lint:ui-boundary",
