@@ -46,8 +46,6 @@ jobs:
         uses: ./.github/actions/setup-ci-env
         with:
           database-url: postgresql://postgres:postgres@localhost:5432/flight_club_api
-          create-env-server: 'false'
-          create-api-env-test: 'true'
 
       - name: Cache npm packages
         uses: actions/cache@v4

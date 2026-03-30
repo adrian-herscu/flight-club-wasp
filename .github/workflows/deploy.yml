@@ -43,8 +43,6 @@ jobs:
         uses: ./.github/actions/setup-ci-env
         with:
           database-url: postgresql://postgres:postgres@localhost:5432/flight_club_api
-          create-env-server: 'false'
-          create-api-env-test: 'true'
 
       - name: Cache npm packages
         uses: actions/cache@v4
@@ -89,8 +87,6 @@ jobs:
         with:
           database-url: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
           sendgrid-api-key: ${{ secrets.SENDGRID_API_KEY }}
-          create-env-server: 'true'
-          create-api-env-test: 'false'
 
       - name: Cache npm packages
         uses: actions/cache@v4

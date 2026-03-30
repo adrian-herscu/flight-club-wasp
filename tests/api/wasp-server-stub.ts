@@ -8,7 +8,7 @@
  * This is NOT a mock:
  *   - HttpError is the identical class copied from the generated SDK source at
  *     app/.wasp/out/sdk/wasp/server/HttpError.ts — behaviour is preserved exactly.
- *   - prisma is a real PrismaClient connected to the database in .env.test —
+ *   - prisma is a real PrismaClient connected to the database in .env.server —
  *     every operation runs real Prisma queries against real data.
  */
 
@@ -45,5 +45,5 @@ export class HttpError extends Error {
   }
 }
 
-// Real client — DATABASE_URL is loaded from .env.test by src/setup.ts
+// Real client — DATABASE_URL is loaded from .env.server by src/setup.ts
 export const prisma = new PrismaClient();

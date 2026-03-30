@@ -1,5 +1,5 @@
 name: Setup CI env files
-description: Create .env.server and/or .env.test for CI jobs
+description: Create .env.server for CI jobs
 
 inputs:
   database-url:
@@ -9,20 +9,11 @@ inputs:
     description: SendGrid API key used in app/.env.server
     required: false
     default: ''
-  create-env-server:
-    description: Whether to create app/.env.server
-    required: false
-    default: 'true'
-  create-api-env-test:
-    description: Whether to create api-tests/.env.test
-    required: false
-    default: 'false'
 
 runs:
   using: composite
   steps:
     - name: Create .env.server
-      if: ${{ inputs.create-env-server == 'true' }}
       shell: bash
       working-directory: ${{ github.workspace }}
       run: |
@@ -33,14 +24,4 @@ runs:
         SENDGRID_API_KEY=${{ inputs.sendgrid-api-key }}
         GOOGLE_CLIENT_ID=mock-google-client-id.apps.googleusercontent.com
         GOOGLE_CLIENT_SECRET=mock-google-client-secret
-        EOF
-
-    - name: Create .env.test
-      if: ${{ inputs.create-api-env-test == 'true' }}
-      shell: bash
-      working-directory: ${{ github.workspace }}
-      run: |
-        cat > .env.test << EOF
-        DATABASE_URL=${{ inputs.database-url }}
-        SKIP_EMAIL_VERIFICATION_IN_DEV=true
         EOF
