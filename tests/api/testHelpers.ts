@@ -2,8 +2,8 @@
  * Shared test helpers: seeded IDs, context factories, and data cleanup.
  *
  * All IDs below match the deterministic seed migrations under
- * app/migrations/20260309103000_seed_users_by_role/ and
- * app/migrations/20260309110000_seed_paragliding_workflows/.
+ * migrations/20260309103000_seed_users_by_role/ and
+ * migrations/20260309110000_seed_paragliding_workflows/.
  */
 
 import { prisma } from './wasp-server-stub.js';

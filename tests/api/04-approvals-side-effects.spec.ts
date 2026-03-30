@@ -30,13 +30,13 @@ const TEMP = {
 } as const;
 
 const tempCtx = {
-  managerReqA: { user: { id: TEMP.users.managerReqA.id, role: 'USER' as const } },
-  managerReqB: { user: { id: TEMP.users.managerReqB.id, role: 'USER' as const } },
+  managerReqA: { user: { id: TEMP.users.managerReqA.id, isSystemAdmin: false as const } },
+  managerReqB: { user: { id: TEMP.users.managerReqB.id, isSystemAdmin: false as const } },
   memberReqInstructor: {
-    user: { id: TEMP.users.memberReqInstructor.id, role: 'USER' as const },
+    user: { id: TEMP.users.memberReqInstructor.id, isSystemAdmin: false as const },
   },
   memberReqStudent: {
-    user: { id: TEMP.users.memberReqStudent.id, role: 'USER' as const },
+    user: { id: TEMP.users.memberReqStudent.id, isSystemAdmin: false as const },
   },
 };
 
@@ -75,12 +75,10 @@ async function safeCleanupForThisSpec(): Promise<void> {
       where: { id: tempUser.id },
       update: {
         email: tempUser.email,
-        role: 'USER',
       },
       create: {
         id: tempUser.id,
         email: tempUser.email,
-        role: 'USER',
       },
     });
   }
@@ -112,28 +110,9 @@ async function safeCleanupForThisSpec(): Promise<void> {
     },
   });
 
-  await prisma.user.updateMany({
-    where: {
-      id: {
-        in: [
-          TEMP.users.managerReqA.id,
-          TEMP.users.managerReqB.id,
-          TEMP.users.memberReqInstructor.id,
-          TEMP.users.memberReqStudent.id,
-        ],
-      },
-    },
-    data: { role: 'USER' },
-  });
-
-  await prisma.user.update({
-    where: { id: SEED.users.schoolManager01 },
-    data: { role: 'SCHOOL_MANAGER' },
-  });
-
   await prisma.user.update({
     where: { id: SEED.users.systemAdmin01 },
-    data: { role: 'SYSTEM_ADMIN' },
+    data: { isSystemAdmin: true },
   });
 }
 

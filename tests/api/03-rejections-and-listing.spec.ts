@@ -30,9 +30,9 @@ const TEMP = {
 } as const;
 
 const tempCtx = {
-  requesterA: { user: { id: TEMP.users.requesterA.id, role: 'USER' as const } },
-  requesterB: { user: { id: TEMP.users.requesterB.id, role: 'USER' as const } },
-  requesterC: { user: { id: TEMP.users.requesterC.id, role: 'USER' as const } },
+  requesterA: { user: { id: TEMP.users.requesterA.id, isSystemAdmin: false as const } },
+  requesterB: { user: { id: TEMP.users.requesterB.id, isSystemAdmin: false as const } },
+  requesterC: { user: { id: TEMP.users.requesterC.id, isSystemAdmin: false as const } },
 };
 
 type HttpErrorShape = {
@@ -156,18 +156,16 @@ async function safeCleanupForThisSpec(): Promise<void> {
     SEED.users.systemAdmin01,
   ];
 
-  // Ensure temp users exist and are reset to plain USER before each test.
+  // Ensure temp users exist and are reset before each test.
   for (const tempUser of Object.values(TEMP.users)) {
     await prisma.user.upsert({
       where: { id: tempUser.id },
       update: {
         email: tempUser.email,
-        role: 'USER',
       },
       create: {
         id: tempUser.id,
         email: tempUser.email,
-        role: 'USER',
       },
     });
   }
@@ -202,19 +200,9 @@ async function safeCleanupForThisSpec(): Promise<void> {
   });
 
   // Reset any elevated effective roles back to defaults for users touched here.
-  await prisma.user.updateMany({
-    where: { id: { in: [TEMP.users.requesterA.id, TEMP.users.requesterB.id, TEMP.users.requesterC.id] } },
-    data: { role: 'USER' },
-  });
-
-  await prisma.user.update({
-    where: { id: SEED.users.schoolManager01 },
-    data: { role: 'SCHOOL_MANAGER' },
-  });
-
   await prisma.user.update({
     where: { id: SEED.users.systemAdmin01 },
-    data: { role: 'SYSTEM_ADMIN' },
+    data: { isSystemAdmin: true },
   });
 }
 
