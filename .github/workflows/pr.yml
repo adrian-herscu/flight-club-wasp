@@ -54,22 +54,104 @@ jobs:
 
   api-tests:
     needs: validate
-    uses: ./.github/workflows/_reusable-api-tests.yml
-    with:
-      timeout-minutes: 10
-      db-name: flight_club_api
-      database-url: postgresql://postgres:postgres@localhost:5432/flight_club_api
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flight_club_api
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Create API test env file
+        uses: ./.github/actions/setup-ci-env
+        with:
+          database-url: postgresql://postgres:postgres@localhost:5432/flight_club_api
+          create-env-server: 'false'
+          create-api-env-test: 'true'
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-api-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-api-
+
+      - name: Run API tests
+        uses: ./.github/actions/run-api-tests
 
   e2e-smoke:
     needs: validate
-    uses: ./.github/workflows/_reusable-e2e.yml
-    with:
-      timeout-minutes: 25
-      db-name: flight_club_e2e
-      database-url: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
-      mode: smoke
-      browser: chromium
-      upload-report-artifact: true
-      report-artifact-name: playwright-report-pr
-    secrets:
-      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flight_club_e2e
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Create app env file for CI
+        uses: ./.github/actions/setup-ci-env
+        with:
+          database-url: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+          sendgrid-api-key: ${{ secrets.SENDGRID_API_KEY }}
+          create-env-server: 'true'
+          create-api-env-test: 'false'
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-e2e-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-e2e-
+
+      - name: Run smoke E2E tests
+        uses: ./.github/actions/run-e2e-tests
+        with:
+          mode: smoke
+          browser: chromium
+
+      - name: Upload Playwright report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr
+          path: playwright-report/
+
+      - name: Dump Wasp server log on failure
+        if: failure()
+        run: cat wasp-dev.log || true
