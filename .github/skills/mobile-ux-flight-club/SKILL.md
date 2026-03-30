@@ -5,7 +5,7 @@ description: Mobile-first UX guidance for Flight Club (Wasp + React + ShadCN) wi
 
 # Skill: Mobile UX for Flight Club
 
-Use this skill when designing or refactoring UI flows in `app/src/client` or feature pages consumed by mobile users.
+Use this skill when designing or refactoring UI flows in `src/client` or feature pages consumed by mobile users.
 
 ## Goals
 - Make every critical flow usable on phones first.

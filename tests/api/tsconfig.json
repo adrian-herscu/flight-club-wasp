@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      // Mirror the vitest.config.ts alias so tsc type-checks correctly
+      "wasp/server": ["./wasp-server-stub.ts"]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "global-setup.ts",
+    // Include app source so operation files type-check without copying them
+    "../../src"
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 name: wasp-deployment
-description: Railway deployment workflow for this Wasp app. Use when preparing, validating, or troubleshooting deployments from app/, checking Railway environment variables, auth callbacks, CI token health, or production smoke checks.
+description: Railway deployment workflow for this Wasp app. Use when preparing, validating, or troubleshooting deployments from , checking Railway environment variables, auth callbacks, CI token health, or production smoke checks.
 ---
 
 # Skill: Wasp Railway Deployment
@@ -8,7 +8,7 @@ description: Railway deployment workflow for this Wasp app. Use when preparing, 
 Use this skill when asked to deploy/update the Wasp app on Railway.
 
 ## Scope
-- App path: `app/`
+- App path: ``
 - Deploy target: Railway project `flight-club-wasp` (project ID `d5b510d7-cad3-4b81-b785-f5ec6f8b3ddb`)
 - Preferred deployment path: CI (`.github/workflows/deploy.yml`)
 - Live client URL: `https://flight-club-wasp-client-production.up.railway.app`
@@ -16,7 +16,7 @@ Use this skill when asked to deploy/update the Wasp app on Railway.
 
 ## Procedure
 1. Validate prerequisites:
-	 - Wasp project builds: run `wasp build` from `app/`.
+	 - Wasp project builds: run `wasp build` from ``.
 	 - Railway auth is available (local `railway login`) or `RAILWAY_API_TOKEN` secret is valid (CI).
 	 - Prefer native Railway binary (`/home/linuxbrew/.linuxbrew/bin/railway`) over npm wrapper (`~/.npm-global/bin/railway`) for non-TTY automation.
 	 - Preflight token check: `env RAILWAY_API_TOKEN=... /home/linuxbrew/.linuxbrew/bin/railway whoami`.
@@ -24,10 +24,10 @@ Use this skill when asked to deploy/update the Wasp app on Railway.
 	 - Google OAuth env vars are set (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
 2. Validate auth callback configuration in Google Cloud OAuth client:
 	 - Local callback: `http://localhost:3001/auth/google/callback`
-	 - Production callback: `https://flight-club-wasp-server-production.up.railway.app/auth/google/callback`
+	 - Production callback: `https://flight-club-wasp-server-production.up.railway.auth/google/callback`
 3. Deploy:
 	 - CI: push to `main` and let workflow deploy.
-	 - Local fallback: from `app/`, run:
+	 - Local fallback: from ``, run:
 		 - `wasp deploy railway deploy flight-club-wasp --railway-exe /home/linuxbrew/.linuxbrew/bin/railway`
 4. Verify service health:
 	 - Check server logs: `railway logs --service flight-club-wasp-server` — should end with `🚀 "Email and password" auth initialized` and `🚀 "Google" auth initialized`.
@@ -40,13 +40,13 @@ These must be set on the `flight-club-wasp-server` service in Railway. Wasp auto
 
 | Variable | Source |
 |---|---|
-| `SENDGRID_API_KEY` | `app/.env.server` — **required on startup**; missing this crashes the server |
-| `GOOGLE_CLIENT_ID` | `app/.env.server` |
-| `GOOGLE_CLIENT_SECRET` | `app/.env.server` |
-| `OPENAI_API_KEY` | `app/.env.server` |
-| `STRIPE_API_KEY` | `app/.env.server` (if Stripe is enabled) |
-| `STRIPE_WEBHOOK_SECRET` | `app/.env.server` (if Stripe webhook is enabled) |
-| `ADMIN_EMAILS` | `app/.env.server` |
+| `SENDGRID_API_KEY` | `.env.server` — **required on startup**; missing this crashes the server |
+| `GOOGLE_CLIENT_ID` | `.env.server` |
+| `GOOGLE_CLIENT_SECRET` | `.env.server` |
+| `OPENAI_API_KEY` | `.env.server` |
+| `STRIPE_API_KEY` | `.env.server` (if Stripe is enabled) |
+| `STRIPE_WEBHOOK_SECRET` | `.env.server` (if Stripe webhook is enabled) |
+| `ADMIN_EMAILS` | `.env.server` |
 
 ## CI token
 - `RAILWAY_API_TOKEN` must be a Railway **account-level token** (generate at [railway.com/account/tokens](https://railway.com/account/tokens) — **do not select a workspace**).
@@ -68,13 +68,13 @@ These must be set on the `flight-club-wasp-server` service in Railway. Wasp auto
 - **Build fails after feature removal**:
 	- Leftover files under `src/` still typechecked; remove or fix orphan imports/usages.
 - **Config declaration drift (`main.wasp`)**:
-	- This repo uses `app/main.wasp` as source of truth.
-	- If deployment/dev behavior is inconsistent after config changes, verify `app/main.wasp` declarations and restart using `npm run wasp:restart` in `e2e-tests` (ensuring previous instances are killed) before re-checking. Logs are written to `app/wasp-dev.log`.
+	- This repo uses `main.wasp` as source of truth.
+	- If deployment/dev behavior is inconsistent after config changes, verify `main.wasp` declarations and restart using `npm run wasp:restart` in `e2e-tests` (ensuring previous instances are killed) before re-checking. Logs are written to `out/wasp-dev.log`.
 - **Railway upload timeout / connection reset**:
 	- Usually platform/network-side. Retry deployment later or use CI redeploy.
 
 ## Notes
-- Treat `app/main.wasp` as source of truth for enabled routes/queries/actions/APIs/jobs.
+- Treat `main.wasp` as source of truth for enabled routes/queries/actions/APIs/jobs.
 - After auth/schema/config changes, restart dev server to refresh Wasp-generated types.
 - Setting a variable in Railway auto-triggers a redeploy of that service.
 - The workflow file (`.github/workflows/deploy.yml`) is taken verbatim from the Wasp 0.21 docs and is correct — do not change action versions or the Wasp install method.

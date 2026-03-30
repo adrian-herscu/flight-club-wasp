@@ -1,0 +1,48 @@
+name: Run API tests
+description: Install dependencies, generate Prisma client, and run API tests with optional coverage
+
+inputs:
+  with-coverage:
+    description: Run tests with coverage enabled
+    required: false
+    default: 'false'
+  install-coverage-provider:
+    description: Install the Vitest coverage provider before running coverage
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm ci
+
+    # - name: Generate Prisma client
+    #   shell: bash
+    #   working-directory: ${{ github.workspace }}
+    #   run: npx prisma generate
+
+    - name: Reset database
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm run wasp:db:reset
+
+    - name: Install Vitest coverage provider
+      if: ${{ inputs.with-coverage == 'true' && inputs.install-coverage-provider == 'true' }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm install --no-save @vitest/coverage-v8@2.1.9
+
+    - name: Run API tests
+      if: ${{ inputs.with-coverage != 'true' }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm test
+
+    - name: Run API tests with coverage
+      if: ${{ inputs.with-coverage == 'true' }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm run test:coverage

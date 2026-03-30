@@ -8,10 +8,10 @@ description: Deterministic database seeding workflow for this Wasp app. Use when
 Use this skill when adding or updating database seeds for this Wasp app, especially for role-based users that must be login-capable.
 
 ## Scope and source of truth
-- App/auth config: `app/main.wasp`
-- Data model + enums: `app/schema.prisma`
-- Migration history: `app/migrations/*`
-- Never edit generated files under `app/.wasp/out/**`.
+- auth config: `main.wasp`
+- Data model + enums: `schema.prisma`
+- Migration history: `migrations/*`
+- Never edit generated files under `.wasp/out/**`.
 
 ## Current project assumptions
 - PostgreSQL datasource.

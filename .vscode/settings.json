@@ -2,13 +2,13 @@
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
   "prisma.fileWatcher.enable": true,
-  "prisma.schemaPath": "app/schema.prisma",
+  "prisma.schemaPath": "schema.prisma",
   "files.exclude": {
-    "app/.wasp/out/**/schema.prisma": true,
-    "app/node_modules/**/.prisma/client/schema.prisma": true
+    ".wasp/out/**/schema.prisma": true,
+    "node_modules/**/.prisma/client/schema.prisma": true
   },
   "search.exclude": {
-    "app/.wasp/**": true,
-    "app/node_modules/**": true
+    ".wasp/**": true,
+    "node_modules/**": true
   }
 }

@@ -1,0 +1,208 @@
+name: Nightly Deep Checks
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WASP_VERSION: 0.21.1
+  WASP_TELEMETRY_DISABLE: 1
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flight_club_api
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Create API test env file
+        uses: ./.github/actions/setup-ci-env
+        with:
+          database-url: postgresql://postgres:postgres@localhost:5432/flight_club_api
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-api-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-api-
+
+      - name: Run API tests with coverage
+        uses: ./.github/actions/run-api-tests
+        with:
+          with-coverage: 'true'
+          install-coverage-provider: 'true'
+
+      - name: Upload API coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-tests-coverage-nightly
+          path: out/coverage/
+
+  e2e-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flight_club_e2e
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Create app env file for CI
+        uses: ./.github/actions/setup-ci-env
+        with:
+          database-url: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
+          sendgrid-api-key: ${{ secrets.SENDGRID_API_KEY }}
+          create-env-server: 'true'
+          create-api-env-test: 'false'
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-e2e-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-e2e-
+
+      - name: Run regression E2E tests
+        uses: ./.github/actions/run-e2e-tests
+        with:
+          mode: regression
+          browser: ${{ matrix.browser }}
+
+      - name: Upload Playwright report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-nightly-${{ matrix.browser }}
+          path: out/playwright-report/
+
+      - name: Dump Wasp server log on failure
+        if: failure()
+        run: cat out/wasp-dev.log || true
+
+  prepare-pages-artifact:
+    needs:
+      - api-tests-full
+      - e2e-regression
+    if: ${{ needs.api-tests-full.result == 'success' && needs.e2e-regression.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download API coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-tests-coverage-nightly
+          path: _artifacts/api
+
+      - name: Download Playwright report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report-nightly-chromium
+          path: _artifacts/e2e/chromium
+
+      - name: Download Firefox Playwright report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report-nightly-firefox
+          path: _artifacts/e2e/firefox
+
+      - name: Build combined Pages site
+        run: |
+          mkdir -p site/api site/e2e/chromium site/e2e/firefox
+          cp -R _artifacts/api/. site/api/
+          cp -R _artifacts/e2e/chromium/. site/e2e/chromium/
+          cp -R _artifacts/e2e/firefox/. site/e2e/firefox/
+
+          cat > site/index.html << 'EOF'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>Nightly Test Reports</title>
+            </head>
+            <body>
+              <h1>Nightly Test Reports</h1>
+              <ul>
+                <li><a href="./e2e/chromium/index.html">E2E Playwright Report (Chromium)</a></li>
+                <li><a href="./e2e/firefox/index.html">E2E Playwright Report (Firefox)</a></li>
+                <li><a href="./api/index.html">API Coverage Report</a></li>
+              </ul>
+            </body>
+          </html>
+          EOF
+
+      - name: Upload combined report to GitHub Pages
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  publish-report:
+    needs: prepare-pages-artifact
+    if: ${{ needs.prepare-pages-artifact.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Playwright report to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2022",
+    "noImplicitAny": false,
+    "sourceMap": false,
+    "lib": ["DOM", "ES2022"]
+  }
+}

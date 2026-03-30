@@ -5,28 +5,28 @@ description: Database-first workflow validation for this Wasp app. Use when prov
 
 # Skill: Wasp DB Workflow Validation
 
-Use this skill when you need to prove a business workflow at the DB level (before app/UI code) by combining deterministic seed data + SQL workflow scripts + assertions.
+Use this skill when you need to prove a business workflow at the DB level (before UI code) by combining deterministic seed data + SQL workflow scripts + assertions.
 
 ## Why this skill exists
 This project benefits from validating flows directly in PostgreSQL first, especially for manager/instructor/student workflows and trigger-backed invariants.
 
 ## Scope and source of truth
-- App structure/config: `app/main.wasp`
-- Data model/enums/relations: `app/schema.prisma`
-- Migration history: `app/migrations/*`
-- SQL workflow checks: `app/queries/*.sql`
+- App structure/config: `main.wasp`
+- Data model/enums/relations: `schema.prisma`
+- Migration history: `migrations/*`
+- SQL workflow checks: `queries/*.sql`
 - Existing seeding conventions: `.github/skills/wasp-db-seeding/SKILL.md`
 
-Never edit generated files under `app/.wasp/out/**`.
+Never edit generated files under `.wasp/out/**`.
 
 ## Standard output for a new DB workflow
 For each workflow request, produce:
-1. **Seed migration** (deterministic + idempotent) in `app/migrations/<timestamp>_<name>/migration.sql`
-2. **One SQL file per workflow** in `app/queries/`, e.g.:
+1. **Seed migration** (deterministic + idempotent) in `migrations/<timestamp>_<name>/migration.sql`
+2. **One SQL file per workflow** in `queries/`, e.g.:
    - `workflow-a-<name>.sql`
    - `workflow-b-<name>.sql`
 3. **Assertions after each key step** using `SELECT` queries with expected outcomes in comments
-4. **Coverage summary** in `app/queries/README.md` (or update existing section)
+4. **Coverage summary** in `queries/README.md` (or update existing section)
 
 ## Workflow-first implementation pattern
 1. Define target workflow steps in business terms.

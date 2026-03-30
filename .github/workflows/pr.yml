@@ -1,7 +1,7 @@
-name: Wasp Deploy
+name: PR Validation
 
 on:
-  push:
+  pull_request:
     branches:
       - main
     paths-ignore:
@@ -9,12 +9,51 @@ on:
       - 'docs/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   WASP_VERSION: 0.21.1
   WASP_TELEMETRY_DISABLE: 1
 
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint GitHub Actions workflows
+        uses: reviewdog/action-actionlint@v1
+
+      - name: Setup Node.js and Wasp CLI
+        uses: ./.github/actions/setup-wasp
+
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-api-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-api-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run app UI-boundary lint
+        continue-on-error: true
+        run: npm run lint:ui-boundary
+
+      - name: Run API TypeScript check
+        continue-on-error: true
+        run: npx tsc --noEmit -p tests/api/tsconfig.json
+
   api-tests:
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -55,6 +94,7 @@ jobs:
         uses: ./.github/actions/run-api-tests
 
   e2e-smoke:
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -104,28 +144,3 @@ jobs:
       - name: Dump Wasp server log on failure
         if: failure()
         run: cat out/wasp-dev.log || true
-
-  deploy:
-    needs:
-      - api-tests
-      - e2e-smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      RAILWAY_PROJECT_NAME: flight-club-wasp
-      RAILWAY_PROJECT_ID: d5b510d7-cad3-4b81-b785-f5ec6f8b3ddb
-      RAILWAY_ENVIRONMENT_ID: 63662340-c373-4b8a-8b0c-0829d6c5e7d0
-      # You must add RAILWAY_API_TOKEN to your Repository Secrets
-      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js and Wasp CLI
-        uses: ./.github/actions/setup-wasp
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy
-        run: wasp deploy railway deploy $RAILWAY_PROJECT_NAME --existing-project-id $RAILWAY_PROJECT_ID
