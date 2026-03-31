@@ -30,13 +30,13 @@ const TEMP = {
 } as const;
 
 const tempCtx = {
-  managerReqA: { user: { id: TEMP.users.managerReqA.id, role: 'USER' as const } },
-  managerReqB: { user: { id: TEMP.users.managerReqB.id, role: 'USER' as const } },
+  managerReqA: { user: { id: TEMP.users.managerReqA.id, isSystemAdmin: false as const } },
+  managerReqB: { user: { id: TEMP.users.managerReqB.id, isSystemAdmin: false as const } },
   memberReqInstructor: {
-    user: { id: TEMP.users.memberReqInstructor.id, role: 'USER' as const },
+    user: { id: TEMP.users.memberReqInstructor.id, isSystemAdmin: false as const },
   },
   memberReqStudent: {
-    user: { id: TEMP.users.memberReqStudent.id, role: 'USER' as const },
+    user: { id: TEMP.users.memberReqStudent.id, isSystemAdmin: false as const },
   },
 };
 
@@ -75,12 +75,10 @@ async function safeCleanupForThisSpec(): Promise<void> {
       where: { id: tempUser.id },
       update: {
         email: tempUser.email,
-        role: 'USER',
       },
       create: {
         id: tempUser.id,
         email: tempUser.email,
-        role: 'USER',
       },
     });
   }
@@ -112,28 +110,9 @@ async function safeCleanupForThisSpec(): Promise<void> {
     },
   });
 
-  await prisma.user.updateMany({
-    where: {
-      id: {
-        in: [
-          TEMP.users.managerReqA.id,
-          TEMP.users.managerReqB.id,
-          TEMP.users.memberReqInstructor.id,
-          TEMP.users.memberReqStudent.id,
-        ],
-      },
-    },
-    data: { role: 'USER' },
-  });
-
-  await prisma.user.update({
-    where: { id: SEED.users.schoolManager01 },
-    data: { role: 'SCHOOL_MANAGER' },
-  });
-
   await prisma.user.update({
     where: { id: SEED.users.systemAdmin01 },
-    data: { role: 'SYSTEM_ADMIN' },
+    data: { isSystemAdmin: true },
   });
 }
 
@@ -306,12 +285,6 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       expect(role?.grantedByUserId).toBe(SEED.users.systemAdmin01);
       expect(role?.sourceRegistrationRequestId).toBe(requestId);
 
-      const user = await prisma.user.findUnique({
-        where: { id: TEMP.users.managerReqA.id },
-        select: { role: true },
-      });
-      expect(user?.role).toBe('SCHOOL_MANAGER');
-
       const decision = await prisma.registrationRequestDecision.findFirst({
         where: { requestId, decisionType: 'APPROVED' },
         select: { reviewerId: true, approvedSchoolId: true },
@@ -437,12 +410,6 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       expect(role?.role).toBe('INSTRUCTOR');
       expect(role?.grantedByUserId).toBe(SEED.users.schoolManager01);
       expect(role?.sourceRegistrationRequestId).toBe(requestId);
-
-      const user = await prisma.user.findUnique({
-        where: { id: TEMP.users.memberReqInstructor.id },
-        select: { role: true },
-      });
-      expect(user?.role).toBe('INSTRUCTOR');
 
       const decision = await prisma.registrationRequestDecision.findFirst({
         where: { requestId, decisionType: 'APPROVED' },

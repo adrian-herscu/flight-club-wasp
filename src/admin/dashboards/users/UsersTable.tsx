@@ -35,30 +35,20 @@ import DropdownEditDelete from "./DropdownEditDelete";
 
 const SUBSCRIPTION_STATUSES = ["ACTIVE", "PAST_DUE", "PAUSED", "CANCELLED"] as const;
 type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
-const USER_ROLES = ["SYSTEM_ADMIN", "SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT", "USER"] as const;
-type UserRole = (typeof USER_ROLES)[number];
 
-function RoleSelect({ id, role }: Pick<User, "id" | "role">) {
+function SystemAdminToggle({ id, isSystemAdmin }: Pick<User, "id" | "isSystemAdmin">) {
   const { data: currentUser } = useAuth();
   const isCurrentUser = currentUser?.id === id;
 
   return (
-    <Select
-      value={role}
-      onValueChange={(value) => updateIsUserAdminById({ id, role: value as UserRole })}
+    <Checkbox
+      checked={isSystemAdmin}
+      onCheckedChange={(checked) =>
+        updateIsUserAdminById({ id, isSystemAdmin: checked === true })
+      }
       disabled={isCurrentUser}
-    >
-      <UsersRoleSelectTrigger>
-        <SelectValue />
-      </UsersRoleSelectTrigger>
-      <SelectContent>
-        {USER_ROLES.map((r) => (
-          <SelectItem key={r} value={r}>
-            {r}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      aria-label="System Admin"
+    />
   );
 }
 
@@ -66,7 +56,7 @@ const UsersTable = () => {
   const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [emailFilter, setEmailFilter] = useState<string | undefined>(undefined);
-  const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(
+  const [isSystemAdminFilter, setIsSystemAdminFilter] = useState<boolean | undefined>(
     undefined,
   );
   const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState<
@@ -81,7 +71,7 @@ const UsersTable = () => {
     skipPages,
     filter: {
       ...(debouncedEmailFilter && { emailContains: debouncedEmailFilter }),
-      ...(roleFilter !== undefined && { roleIn: [roleFilter] }),
+      ...(isSystemAdminFilter !== undefined && { isSystemAdmin: isSystemAdminFilter }),
       ...(subscriptionStatusFilter.length > 0 && {
         subscriptionStatusIn: subscriptionStatusFilter,
       }),
@@ -92,7 +82,7 @@ const UsersTable = () => {
     function backToPageOne() {
       setCurrentPage(1);
     },
-    [debouncedEmailFilter, subscriptionStatusFilter, roleFilter],
+    [debouncedEmailFilter, subscriptionStatusFilter, isSystemAdminFilter],
   );
 
   const handleStatusToggle = (status: SubscriptionStatus | null) => {
@@ -201,9 +191,9 @@ const UsersTable = () => {
                 <Select
                   onValueChange={(value) => {
                     if (value === "all") {
-                      setRoleFilter(undefined);
+                      setIsSystemAdminFilter(undefined);
                     } else {
-                      setRoleFilter(value as UserRole);
+                      setIsSystemAdminFilter(value === "admin");
                     }
                   }}
                 >
@@ -212,11 +202,8 @@ const UsersTable = () => {
                   </UsersRoleFilterSelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t("common.more")}</SelectItem>
-                    {USER_ROLES.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="admin">System Admin</SelectItem>
+                    <SelectItem value="user">Regular User</SelectItem>
                   </SelectContent>
                 </Select>
               </UsersBox>
@@ -300,7 +287,7 @@ const UsersTable = () => {
               </UsersBox>
               <UsersBox variant="headerCell1">
                 <UsersBox variant="roleSelectCell">
-                  <RoleSelect {...user} />
+                  <SystemAdminToggle id={user.id} isSystemAdmin={user.isSystemAdmin} />
                 </UsersBox>
               </UsersBox>
               <UsersBox variant="headerCell1">

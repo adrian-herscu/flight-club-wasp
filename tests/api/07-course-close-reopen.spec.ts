@@ -121,13 +121,11 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
       where: { id: OUTSIDER_STUDENT_USER_ID },
       update: {
         email: 'seed+outsider_student@example.test',
-        role: 'STUDENT',
         fullName: 'Outsider Student',
       },
       create: {
         id: OUTSIDER_STUDENT_USER_ID,
         email: 'seed+outsider_student@example.test',
-        role: 'STUDENT',
         fullName: 'Outsider Student',
       },
     });
@@ -160,13 +158,11 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
       where: { id: OUTSIDER_INSTRUCTOR_USER_ID },
       update: {
         email: 'seed+outsider_instructor@example.test',
-        role: 'INSTRUCTOR',
         fullName: 'Outsider Instructor',
       },
       create: {
         id: OUTSIDER_INSTRUCTOR_USER_ID,
         email: 'seed+outsider_instructor@example.test',
-        role: 'INSTRUCTOR',
         fullName: 'Outsider Instructor',
       },
     });

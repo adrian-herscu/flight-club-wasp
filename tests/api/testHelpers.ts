@@ -2,8 +2,8 @@
  * Shared test helpers: seeded IDs, context factories, and data cleanup.
  *
  * All IDs below match the deterministic seed migrations under
- * app/migrations/20260309103000_seed_users_by_role/ and
- * app/migrations/20260309110000_seed_paragliding_workflows/.
+ * migrations/20260309103000_seed_users_by_role/ and
+ * migrations/20260309110000_seed_paragliding_workflows/.
  */
 
 import { prisma } from './wasp-server-stub.js';
@@ -32,32 +32,27 @@ export const SEED = {
 
 // ---------------------------------------------------------------------------
 // Context factory
-// The shape { user: { id, role } } is what every operation expects as its
-// second argument after Wasp strips the session wrapper.
+// The shape { user: { id, isSystemAdmin } } is what every operation expects as
+// its second argument after Wasp strips the session wrapper.
+// School-level role checks (SCHOOL_MANAGER, INSTRUCTOR, STUDENT) are now
+// authoritative from the UserSchoolRole table, not from the context object.
 // ---------------------------------------------------------------------------
 
-type OperationUserRole =
-  | 'SYSTEM_ADMIN'
-  | 'SCHOOL_MANAGER'
-  | 'INSTRUCTOR'
-  | 'STUDENT'
-  | 'USER';
-
 type OperationContext = {
-  user: { id: string; role: OperationUserRole } | null;
+  user: { id: string; isSystemAdmin: boolean } | null;
 };
 
-function makeContext(userId: string, role: OperationUserRole): OperationContext {
-  return { user: { id: userId, role } };
+function makeContext(userId: string, isSystemAdmin: boolean): OperationContext {
+  return { user: { id: userId, isSystemAdmin } };
 }
 
 export const ctx = {
-  systemAdmin:  makeContext(SEED.users.systemAdmin01, 'SYSTEM_ADMIN'),
-  schoolManager: makeContext(SEED.users.schoolManager01, 'SCHOOL_MANAGER'),
-  instructor:   makeContext(SEED.users.instructor01, 'INSTRUCTOR'),
-  student:      makeContext(SEED.users.student01, 'STUDENT'),
-  user01:       makeContext(SEED.users.user01, 'USER'),
-  user02:       makeContext(SEED.users.user02, 'USER'),
+  systemAdmin:   makeContext(SEED.users.systemAdmin01, true),
+  schoolManager: makeContext(SEED.users.schoolManager01, false),
+  instructor:    makeContext(SEED.users.instructor01, false),
+  student:       makeContext(SEED.users.student01, false),
+  user01:        makeContext(SEED.users.user01, false),
+  user02:        makeContext(SEED.users.user02, false),
   unauthenticated: { user: null } as OperationContext,
 } as const;
 
@@ -66,8 +61,7 @@ export const ctx = {
 // Call in beforeEach to start each test with a clean slate.
 //
 // Safe invariants:
-//   - Seeded Users are never deleted or role-changed (except user01/user02
-//     which tests may temporarily elevate — they are reset here).
+//   - Seeded Users are never deleted.
 //   - The seeded school (cloudbase) and its UserSchoolRole are preserved.
 //   - Everything else written by tests is removed.
 // ---------------------------------------------------------------------------
@@ -88,11 +82,5 @@ export async function cleanTestData(): Promise<void> {
   // Schools created by tests (approveSchoolManagerRequest provisions new ones).
   await prisma.school.deleteMany({
     where: { id: { not: SEED.schools.cloudbase } },
-  });
-
-  // Reset roles for the plain USER seeds in case a test elevated them.
-  await prisma.user.updateMany({
-    where: { id: { in: [SEED.users.user01, SEED.users.user02] } },
-    data: { role: 'USER' },
   });
 }

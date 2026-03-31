@@ -1,4 +1,4 @@
-import { SyllabusVersionStatus, UserRole } from "@prisma/client";
+import { SyllabusVersionStatus } from "@prisma/client";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
@@ -135,7 +135,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const [isDeletingDraft, setIsDeletingDraft] = useState(false);
   const [isDeletingAllDrafts, setIsDeletingAllDrafts] = useState(false);
   const syllabusesBasePath =
-    user.role === UserRole.SYSTEM_ADMIN ? "/system-admin/syllabuses" : "/school-manager/syllabuses";
+    user.isSystemAdmin ? "/system-admin/syllabuses" : "/school-manager/syllabuses";
 
   const goToSection = (section: ManagerSyllabusesSection) => {
     hasChangedSectionRef.current = true;
@@ -184,37 +184,37 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
       versionDetails.status === SyllabusVersionStatus.FINAL;
     if (!isEditableStatus) return null;
 
-    if (user.role === UserRole.SYSTEM_ADMIN && versionDetails.schoolId !== null) {
+    if (user.isSystemAdmin && versionDetails.schoolId !== null) {
       return null;
     }
 
     if (
-      user.role === UserRole.SCHOOL_MANAGER &&
+      !user.isSystemAdmin &&
       (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId)
     ) {
       return null;
     }
 
     return versionDetails.syllabusVersionId;
-  }, [selectedSchoolId, user.role, versionDetails]);
+  }, [selectedSchoolId, user.isSystemAdmin, versionDetails]);
 
   const selectedDraftId = useMemo(() => {
     if (!versionDetails) return null;
     if (versionDetails.status !== SyllabusVersionStatus.DRAFT) return null;
 
-    if (user.role === UserRole.SYSTEM_ADMIN && versionDetails.schoolId !== null) {
+    if (user.isSystemAdmin && versionDetails.schoolId !== null) {
       return null;
     }
 
     if (
-      user.role === UserRole.SCHOOL_MANAGER &&
+      !user.isSystemAdmin &&
       (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId)
     ) {
       return null;
     }
 
     return versionDetails.syllabusVersionId;
-  }, [selectedSchoolId, user.role, versionDetails]);
+  }, [selectedSchoolId, user.isSystemAdmin, versionDetails]);
 
   const handleCreateFromTemplate = async (event: FormEvent) => {
     event.preventDefault();

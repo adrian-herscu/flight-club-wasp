@@ -16,7 +16,7 @@ export const UserMenuItems = ({
   onItemClick?: () => void;
 }) => {
   const { t } = useTranslation();
-  const menuItems = getMenuItemsForUser(user?.role ?? null);
+  const menuItems = getMenuItemsForUser(user ?? null);
 
   return (
     <>

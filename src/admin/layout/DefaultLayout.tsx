@@ -1,5 +1,5 @@
 import { FC, ReactNode, useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router";
+import { Navigate, useLocation } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import {
   AdminLayoutRoot,
@@ -7,7 +7,7 @@ import {
   AdminMainContentInner,
   AdminTwoColumnLayout,
 } from "../../client/components/patterns/AdminLayoutPatterns";
-import { hasDashboardAccess } from "../../shared/roles";
+import { isDashboardPath } from "../../shared/roles";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -26,6 +26,7 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
     return window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -51,7 +52,14 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
 
   const sidebarOpen = useMemo(() => isDesktop || mobileSidebarOpen, [isDesktop, mobileSidebarOpen]);
 
-  if (!hasDashboardAccess(user)) {
+  // Guard /system-admin paths to system admins only.
+  if (pathname.startsWith("/system-admin") && !user.isSystemAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  // All dashboard paths require authentication (enforced by Wasp authRequired).
+  // Non-dashboard paths should not render this layout at all.
+  if (!isDashboardPath(pathname)) {
     return <Navigate to="/" replace />;
   }
 
@@ -61,7 +69,6 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
         <Sidebar
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setMobileSidebarOpen}
-          userRole={user.role ?? null}
           isDesktop={isDesktop}
         />
         <AdminMainContent reserveSidebarSpace={isDesktop}>

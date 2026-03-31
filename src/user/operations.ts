@@ -1,4 +1,4 @@
-import { type Prisma, type SubscriptionStatus, type UserRole } from "@prisma/client";
+import { type Prisma, type SubscriptionStatus } from "@prisma/client";
 import { type User } from "wasp/entities";
 import { HttpError, prisma } from "wasp/server";
 import {
@@ -9,19 +9,19 @@ import {
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 
-const updateUserRoleByIdInputSchema = z.object({
+const updateUserIsSystemAdminInputSchema = z.object({
   id: z.string().nonempty(),
-  role: z.enum(["SYSTEM_ADMIN", "SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT", "USER"]),
+  isSystemAdmin: z.boolean(),
 });
 
-type UpdateUserRoleByIdInput = z.infer<typeof updateUserRoleByIdInputSchema>;
+type UpdateUserIsSystemAdminInput = z.infer<typeof updateUserIsSystemAdminInputSchema>;
 
 export const updateIsUserAdminById: UpdateIsUserAdminById<
-  UpdateUserRoleByIdInput,
+  UpdateUserIsSystemAdminInput,
   User
 > = async (rawArgs, context) => {
-  const { id, role } = ensureArgsSchemaOrThrowHttpError(
-    updateUserRoleByIdInputSchema,
+  const { id, isSystemAdmin } = ensureArgsSchemaOrThrowHttpError(
+    updateUserIsSystemAdminInputSchema,
     rawArgs,
   );
 
@@ -32,7 +32,7 @@ export const updateIsUserAdminById: UpdateIsUserAdminById<
     );
   }
 
-  if (context.user.role !== "SYSTEM_ADMIN") {
+  if (!context.user.isSystemAdmin) {
     throw new HttpError(
       403,
       "Only system admins are allowed to perform this operation",
@@ -41,7 +41,7 @@ export const updateIsUserAdminById: UpdateIsUserAdminById<
 
   return context.entities.User.update({
     where: { id },
-    data: { role },
+    data: { isSystemAdmin },
   });
 };
 
@@ -51,7 +51,7 @@ type GetPaginatedUsersOutput = {
     | "id"
     | "email"
     | "fullName"
-    | "role"
+    | "isSystemAdmin"
     | "subscriptionStatus"
     | "paymentProcessorUserId"
   >[];
@@ -62,9 +62,7 @@ const getPaginatorArgsSchema = z.object({
   skipPages: z.number(),
   filter: z.object({
     emailContains: z.string().nonempty().optional(),
-    roleIn: z
-      .array(z.enum(["SYSTEM_ADMIN", "SCHOOL_MANAGER", "INSTRUCTOR", "STUDENT", "USER"]))
-      .optional(),
+    isSystemAdmin: z.boolean().optional(),
     subscriptionStatusIn: z
       .array(z.enum(["ACTIVE", "PAST_DUE", "PAUSED", "CANCELLED"]).nullable())
       .optional(),
@@ -84,7 +82,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
     );
   }
 
-  if (context.user.role !== "SYSTEM_ADMIN") {
+  if (!context.user.isSystemAdmin) {
     throw new HttpError(
       403,
       "Only system admins are allowed to perform this operation",
@@ -96,7 +94,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
     filter: {
       subscriptionStatusIn: subscriptionStatus,
       emailContains,
-      roleIn,
+      isSystemAdmin,
     },
   } = ensureArgsSchemaOrThrowHttpError(getPaginatorArgsSchema, rawArgs);
 
@@ -144,9 +142,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
             contains: emailContains,
             mode: "insensitive",
           },
-          ...(roleIn && roleIn.length > 0 && {
-            role: { in: roleIn as UserRole[] },
-          }),
+          ...(isSystemAdmin !== undefined && { isSystemAdmin }),
         },
         ...(subscriptionStatusWhere ? [subscriptionStatusWhere] : []),
       ],
@@ -155,7 +151,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
       id: true,
       email: true,
       fullName: true,
-      role: true,
+      isSystemAdmin: true,
       subscriptionStatus: true,
       paymentProcessorUserId: true,
     },
@@ -175,7 +171,7 @@ export const getPaginatedUsers: GetPaginatedUsers<
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: user.role,
+      isSystemAdmin: user.isSystemAdmin,
       subscriptionStatus: user.subscriptionStatus,
       paymentProcessorUserId: user.paymentProcessorUserId,
     })),

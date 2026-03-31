@@ -13,13 +13,6 @@ enum SyllabusVersionStatus {
   OBSOLETE
 }
 
-enum UserRole {
-  SYSTEM_ADMIN
-  SCHOOL_MANAGER
-  INSTRUCTOR
-  STUDENT
-  USER
-}
 
 enum RegistrationRequestRole {
   SCHOOL_MANAGER
@@ -105,7 +98,7 @@ model User {
   fullName                  String?
   phone                     String?
 
-  role                      UserRole        @default(USER)
+  isSystemAdmin             Boolean         @default(false)
 
   subscriptionStatus        SubscriptionStatus?
   subscriptionPlan          String?

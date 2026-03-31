@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Navigate, useLocation } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -58,15 +58,29 @@ type MemberRequestStatusFilter = "ALL" | "PENDING" | "APPROVED";
 
 const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  if (user.role !== "SCHOOL_MANAGER") {
-    return <Navigate to="/" replace />;
-  }
-
-  const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
+  // Server operations enforce school manager role; client guard is path-based.
+  // The getMyManagedSchool query will return empty if user has no managed school.
+  const { data: managedSchoolsData, isLoading: isManagedSchoolsLoading } = useQuery(getMyManagedSchool);
   const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
   const { selectedSchool, selectedSchoolId } = useManagedSchoolSelection(managedSchools);
+
+  useEffect(() => {
+    if (user.isSystemAdmin) {
+      navigate("/", { replace: true });
+      return;
+    }
+
+    if (isManagedSchoolsLoading) {
+      return;
+    }
+
+    if (managedSchools.length === 0) {
+      navigate("/", { replace: true });
+    }
+  }, [isManagedSchoolsLoading, managedSchools.length, navigate, user.isSystemAdmin]);
 
   const { data, isLoading, refetch } = useQuery(getPendingSchoolMemberRequests, {
     schoolId: selectedSchoolId,

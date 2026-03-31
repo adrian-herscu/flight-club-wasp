@@ -1,7 +1,6 @@
-import type { UserRole } from "@prisma/client";
 import { LayoutDashboard, Settings, UserPlus } from "lucide-react";
 import { routes } from "wasp/client/router";
-import { getDashboardPathForRole } from "../shared/roles";
+import { getDashboardPathForUser } from "../shared/roles";
 
 type AppRouteTo = (typeof routes)[keyof typeof routes]["to"];
 
@@ -12,15 +11,25 @@ export type UserMenuItem = {
   isAuthRequired: boolean;
 };
 
+type DashboardPath = "/system-admin" | "/school-manager" | "/instructor" | "/student";
+
+type UserLike = {
+  isSystemAdmin?: boolean | null;
+};
+
 /**
- * Returns the user menu items for the given role.
- * The dashboard item is only included when the role has a dashboard.
- * Regular USER accounts have no dashboard entry.
+ * Returns the user menu items for the given user.
+ * The dashboard item is only included for system admins.
+ * School-role dashboards (/school-manager, /instructor, /student) are
+ * accessed directly via the sidebar once inside the dashboard area.
  */
-export const getMenuItemsForUser = (role?: UserRole | null): UserMenuItem[] => {
+export const getMenuItemsForUser = (
+  user?: UserLike | null,
+  dashboardPathOverride?: DashboardPath | null,
+): UserMenuItem[] => {
   const items: UserMenuItem[] = [];
 
-  const dashboardPath = getDashboardPathForRole(role);
+  const dashboardPath = dashboardPathOverride ?? getDashboardPathForUser(user);
   if (dashboardPath) {
     items.push({
       nameKey: "user.dashboard",

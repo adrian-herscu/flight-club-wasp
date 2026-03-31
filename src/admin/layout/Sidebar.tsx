@@ -35,6 +35,7 @@ import {
   NavMenuSection,
   NavItem,
 } from "../../client/components/patterns/AdminSidebarPatterns";
+import { getRoleKeyFromPath } from "../../shared/roles";
 
 const { getMyManagedSchool, useQuery } = operations as any;
 
@@ -46,7 +47,6 @@ type ManagedSchoolSummary = {
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (arg: boolean) => void;
-  userRole: string | null;
   isDesktop: boolean;
 }
 
@@ -141,10 +141,12 @@ const SIDEBAR_NAV: { [role: string]: SidebarEntry[] } = {
   ],
 };
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole, isDesktop }: SidebarProps) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop }: SidebarProps) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { pathname } = location;
+
+  const roleFromPath = getRoleKeyFromPath(pathname);
 
   const trigger = useRef(null as HTMLButtonElement | null);
   const sidebar = useRef(null as HTMLElement | null);
@@ -221,7 +223,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole, isDesktop }: SidebarPr
       document.querySelector("body")?.classList.remove("sidebar-expanded");
     }
   }, [sidebarExpanded]);
-  const navItems = userRole ? (SIDEBAR_NAV[userRole] ?? []) : [];
+
+  const navItems = roleFromPath ? (SIDEBAR_NAV[roleFromPath] ?? []) : [];
 
   return (
     <SidebarRoot
@@ -257,7 +260,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, userRole, isDesktop }: SidebarPr
         )}
       </SidebarHeader>
 
-      {userRole === "SCHOOL_MANAGER" && <SchoolContextBadge />}
+      {roleFromPath === "SCHOOL_MANAGER" && <SchoolContextBadge />}
 
       <SidebarContent>
         <SidebarNav>
