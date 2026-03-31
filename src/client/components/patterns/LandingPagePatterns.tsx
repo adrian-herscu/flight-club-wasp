@@ -191,6 +191,10 @@ export const LandingCourseMeta = ({ children }: { children: ReactNode }) => (
   <p className="text-sm text-muted-foreground">{children}</p>
 );
 
+export const LandingCourseActionsRow = ({ children }: { children: ReactNode }) => (
+  <div className="mt-2">{children}</div>
+);
+
 export const HeroRoot = ({ children }: { children: ReactNode }) => (
   <div className="relative w-full pt-14">{children}</div>
 );

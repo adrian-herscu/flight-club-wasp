@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
@@ -130,8 +130,38 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const [requestedCountry, setRequestedCountry] = useState("");
   const [requestedCurrency, setRequestedCurrency] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasHydratedManagerFields, setHasHydratedManagerFields] = useState(false);
 
   const isManagerRequest = requestedRole === "SCHOOL_MANAGER";
+
+  useEffect(() => {
+    if (!isManagerRequest || hasHydratedManagerFields) {
+      return;
+    }
+
+    const latestPendingManagerRequest = existingRequests.find(
+      (request) =>
+        request.requestedRole === "SCHOOL_MANAGER" &&
+        request.status === "PENDING",
+    );
+
+    if (!latestPendingManagerRequest) {
+      return;
+    }
+
+    setRequestedSchoolName(latestPendingManagerRequest.requestedSchoolName ?? "");
+    setRequestedWebsiteUrl(latestPendingManagerRequest.requestedWebsiteUrl ?? "");
+    setRequestedPhone(latestPendingManagerRequest.requestedPhone ?? "");
+    setRequestedLogoUrl(latestPendingManagerRequest.requestedLogoUrl ?? "");
+    setRequestedAddressLine1(latestPendingManagerRequest.requestedAddressLine1 ?? "");
+    setRequestedAddressLine2(latestPendingManagerRequest.requestedAddressLine2 ?? "");
+    setRequestedCity(latestPendingManagerRequest.requestedCity ?? "");
+    setRequestedStateProvince(latestPendingManagerRequest.requestedStateProvince ?? "");
+    setRequestedPostalCode(latestPendingManagerRequest.requestedPostalCode ?? "");
+    setRequestedCountry((latestPendingManagerRequest.requestedCountry ?? "").toUpperCase());
+    setRequestedCurrency((latestPendingManagerRequest.requestedCurrency ?? "").toUpperCase());
+    setHasHydratedManagerFields(true);
+  }, [existingRequests, hasHydratedManagerFields, isManagerRequest]);
 
   const handleSubmit = async () => {
     if (!fullName.trim() || !phone.trim()) {

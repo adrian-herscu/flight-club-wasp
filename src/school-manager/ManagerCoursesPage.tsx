@@ -13,10 +13,12 @@ import {
   ManagerCoursesDisclosure,
   ManagerCoursesForm,
   ManagerCoursesGrid,
+  ManagerCoursesInterestListItem,
   ManagerCoursesList,
   ManagerCoursesLoadingText,
   ManagerCoursesMutedText,
   ManagerCoursesParticipantListItem,
+  ManagerCoursesSectionTopSpacing,
   ManagerCoursesTwoColumnFields,
 } from "../client/components/patterns/ManagerCoursesPagePatterns";
 import { Button } from "../client/components/ui/button";
@@ -915,7 +917,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
         </Card>
       </ManagerCoursesGrid>
 
-      <div className="mt-6">
+      <ManagerCoursesSectionTopSpacing>
         <Card>
           <CardHeader>
             <CardTitle>{t("student.courseInterests")}</CardTitle>
@@ -944,38 +946,33 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
             ) : (
               <ManagerCoursesList>
                 {courseInterests.map((interest: CourseInterestItem) => (
-                  <li key={interest.id} className="rounded-md border p-3 text-sm flex items-center gap-3">
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {interest.user.fullName ?? interest.user.email ?? interest.user.id}
-                      </p>
-                      {interest.user.email && interest.user.fullName && (
-                        <p className="text-muted-foreground text-xs">{interest.user.email}</p>
-                      )}
-                    </div>
-                    <span className="text-muted-foreground text-xs mr-2" data-testid="interest-status-badge">
-                      {interest.status}
-                    </span>
-                    {interest.status === "INTERESTED" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={advancingInterestId === interest.id}
-                        onClick={() => handleAdvanceToContacted(interest.id)}
-                        data-testid="mark-contacted-btn"
-                      >
-                        {advancingInterestId === interest.id
-                          ? t("student.markingAsContacted")
-                          : t("student.markAsContacted")}
-                      </Button>
-                    )}
-                  </li>
+                  <ManagerCoursesInterestListItem
+                    key={interest.id}
+                    displayName={interest.user.fullName ?? interest.user.email ?? interest.user.id}
+                    email={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
+                    status={interest.status}
+                    action={
+                      interest.status === "INTERESTED" ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={advancingInterestId === interest.id}
+                          onClick={() => handleAdvanceToContacted(interest.id)}
+                          data-testid="mark-contacted-btn"
+                        >
+                          {advancingInterestId === interest.id
+                            ? t("student.markingAsContacted")
+                            : t("student.markAsContacted")}
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 ))}
               </ManagerCoursesList>
             )}
           </ManagerCoursesCardContent>
         </Card>
-      </div>
+      </ManagerCoursesSectionTopSpacing>
 
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>

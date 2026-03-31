@@ -7,6 +7,7 @@ import {
   LandingCountryFilter,
   LandingCountryOption,
   LandingHiddenCountryOption,
+  LandingCourseActionsRow,
   LandingCourseItem,
   LandingCourseList,
   LandingCourseMeta,
@@ -221,7 +222,7 @@ export default function LandingPage() {
                           {t("landing.capacityLabel")} {course.minCapacity ?? "?"} - {course.maxCapacity ?? "?"}
                         </LandingCourseMeta>
                       )}
-                      <div className="mt-2">
+                      <LandingCourseActionsRow>
                         {user ? (
                           <Button
                             size="sm"
@@ -246,7 +247,7 @@ export default function LandingPage() {
                             <Link to="/login">{t("landing.imInterested")}</Link>
                           </Button>
                         )}
-                      </div>
+                      </LandingCourseActionsRow>
                     </LandingCourseItem>
                   ))}
                 </LandingCourseList>

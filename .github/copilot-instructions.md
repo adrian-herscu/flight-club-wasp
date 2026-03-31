@@ -65,7 +65,7 @@
 ## Testing workflow policy
 - After writing or editing any code, run Problems diagnostics and resolve all IDE errors before continuing.
 - Before marking tests as green, confirm there are no IDE errors in the affected scope.
-- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run the relevant tests first; for E2E tests, watch the `out/wasp-dev.log` file for errors and fix accordingly.
+- Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run `npm run wasp:lint` **and** the relevant tests first; for E2E tests, watch the `out/wasp-dev.log` file for errors and fix accordingly.
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
 - Scope by impact: for infrastructure/testing-framework changes, run all tests; otherwise prefer focused tests for the affected area first, then expand only as needed.
@@ -89,6 +89,7 @@
   - `fetch-docs`: `.github/prompts/fetch-docs.prompt.md`
   - `session-review`: `.github/prompts/session-review.prompt.md` — end-of-session insight triage
   - `solution-selection`: `.github/prompts/solution-selection.prompt.md`
+  - `update-copilot-instructions`: `.github/prompts/update-copilot-instructions.prompt.md` — persist durable learnings into instruction files
   - `troubleshoot-wasp`: `.github/prompts/troubleshoot-wasp.prompt.md`
 
 Only treat the prompts listed above as the active repo prompt set. Other prompt files are reference or maintenance assets unless explicitly requested.
