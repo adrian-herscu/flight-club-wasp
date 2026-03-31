@@ -25,7 +25,9 @@ import { toast } from "../client/hooks/use-toast";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
+  approveStudentEnrollmentFromInterest,
   approveSchoolMemberRequest,
+  getManagerStudentCoursePairs,
   getMyManagedSchool,
   getPendingSchoolMemberRequests,
   rejectSchoolMemberRequest,
@@ -51,6 +53,19 @@ type MemberRequestItem = {
     id: string;
     name: string;
   } | null;
+};
+
+type StudentCoursePairItem = {
+  interestId: string;
+  status: "INTERESTED" | "CONTACTED" | "ENROLLED";
+  student: {
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  course: {
+    title: string;
+  };
 };
 
 type MemberRequestRoleFilter = "ALL" | "INSTRUCTORS" | "STUDENTS";
@@ -82,22 +97,38 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     }
   }, [isManagedSchoolsLoading, managedSchools.length, navigate, user.isSystemAdmin]);
 
-  const { data, isLoading, refetch } = useQuery(getPendingSchoolMemberRequests, {
-    schoolId: selectedSchoolId,
-  });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
-  const [isRejectingId, setIsRejectingId] = useState<string | null>(null);
-  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
-  const [roleFilter, setRoleFilter] = useState<MemberRequestRoleFilter>("ALL");
-  const [statusFilter, setStatusFilter] = useState<MemberRequestStatusFilter>("ALL");
-
   const routeRoleScope: "INSTRUCTOR" | "STUDENT" | null =
     pathname.endsWith("/instructors")
       ? "INSTRUCTOR"
       : pathname.endsWith("/students")
         ? "STUDENT"
         : null;
+
+  const isStudentsCoursePairsRoute = routeRoleScope === "STUDENT";
+
+  const {
+    data: memberRequestsData,
+    isLoading: isMemberRequestsLoading,
+    refetch: refetchMemberRequests,
+  } = useQuery(getPendingSchoolMemberRequests, {
+    schoolId: selectedSchoolId,
+  });
+
+  const {
+    data: studentCoursePairsData,
+    isLoading: isStudentCoursePairsLoading,
+    refetch: refetchStudentCoursePairs,
+  } = useQuery(getManagerStudentCoursePairs, {
+    schoolId: selectedSchoolId,
+  });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
+  const [isRejectingId, setIsRejectingId] = useState<string | null>(null);
+  const [isApprovingEnrollmentId, setIsApprovingEnrollmentId] = useState<string | null>(null);
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
+  const [roleFilter, setRoleFilter] = useState<MemberRequestRoleFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<MemberRequestStatusFilter>("ALL");
 
   const pageTitle =
     routeRoleScope === "INSTRUCTOR"
@@ -106,7 +137,17 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
         ? t("admin.filterStudents")
         : t("admin.memberRequests");
 
-  const requests = (data as MemberRequestItem[] | undefined) ?? [];
+  const requests = (memberRequestsData as MemberRequestItem[] | undefined) ?? [];
+  const studentCoursePairs =
+    (studentCoursePairsData as StudentCoursePairItem[] | undefined) ?? [];
+
+  const isLoading = isStudentsCoursePairsRoute
+    ? isStudentCoursePairsLoading
+    : isMemberRequestsLoading;
+
+  const refetchCurrentView = isStudentsCoursePairsRoute
+    ? refetchStudentCoursePairs
+    : refetchMemberRequests;
 
   const filteredRequests = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -133,6 +174,32 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     });
   }, [requests, routeRoleScope, roleFilter, searchTerm, statusFilter]);
 
+  const filteredStudentCoursePairs = useMemo(() => {
+    const normalized = searchTerm.trim().toLowerCase();
+    const searchFiltered = normalized
+      ? studentCoursePairs.filter((pair) => {
+          const name = (pair.student.fullName ?? pair.student.email ?? "").toLowerCase();
+          const email = (pair.student.email ?? "").toLowerCase();
+          const phone = (pair.student.phone ?? "").toLowerCase();
+          const courseTitle = pair.course.title.toLowerCase();
+          return (
+            name.includes(normalized) ||
+            email.includes(normalized) ||
+            phone.includes(normalized) ||
+            courseTitle.includes(normalized)
+          );
+        })
+      : studentCoursePairs;
+
+    return searchFiltered.filter((pair) => {
+      if (statusFilter === "ALL") return true;
+      if (statusFilter === "PENDING") {
+        return pair.status === "INTERESTED" || pair.status === "CONTACTED";
+      }
+      return pair.status === "ENROLLED";
+    });
+  }, [searchTerm, statusFilter, studentCoursePairs]);
+
   const instructorsPendingRequests = filteredRequests.filter(
     (request) => request.requestedRole === "INSTRUCTOR" && request.status === "PENDING",
   );
@@ -144,6 +211,12 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   );
   const studentsApprovedRequests = filteredRequests.filter(
     (request) => request.requestedRole === "STUDENT" && request.status === "APPROVED",
+  );
+  const studentsPendingPairs = filteredStudentCoursePairs.filter(
+    (pair) => pair.status === "INTERESTED" || pair.status === "CONTACTED",
+  );
+  const studentsApprovedPairs = filteredStudentCoursePairs.filter(
+    (pair) => pair.status === "ENROLLED",
   );
 
   const showPendingSections = statusFilter !== "APPROVED";
@@ -159,7 +232,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     setIsApprovingId(requestId);
     try {
       await approveSchoolMemberRequest({ requestId, schoolId: selectedSchoolId });
-      await refetch();
+      await refetchCurrentView();
       toast({
         title: t("admin.requestApproved"),
         description: t("dashboard.theUserHasBeenApproved"),
@@ -183,7 +256,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
         schoolId: selectedSchoolId,
         rejectionReason: rejectionReasons[requestId],
       });
-      await refetch();
+      await refetchCurrentView();
       toast({
         title: t("admin.requestRejected"),
         description: t("dashboard.theRequestHasBeenRejected"),
@@ -196,6 +269,29 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
       });
     } finally {
       setIsRejectingId(null);
+    }
+  };
+
+  const handleApproveEnrollment = async (interestId: string) => {
+    setIsApprovingEnrollmentId(interestId);
+    try {
+      await approveStudentEnrollmentFromInterest({
+        interestId,
+        schoolId: selectedSchoolId,
+      });
+      await refetchCurrentView();
+      toast({
+        title: t("admin.requestApproved"),
+        description: t("admin.studentEnrollmentApproved"),
+      });
+    } catch (error: unknown) {
+      toast({
+        title: t("admin.approvalFailed"),
+        description: error instanceof Error ? error.message : t("admin.approvalError"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsApprovingEnrollmentId(null);
     }
   };
 
@@ -218,6 +314,58 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
         </ManagerRequestsMutedText>
       </ManagerRequestsSummaryColumn>
     </ManagerRequestsSummaryGrid>
+  );
+
+  const renderStudentCoursePairSummary = (pair: StudentCoursePairItem) => (
+    <ManagerRequestsSummaryGrid>
+      <ManagerRequestsSummaryColumn label={t("dashboard.requesterName")}>
+        <ManagerRequestsPrimaryText>
+          {pair.student.fullName ?? pair.student.email ?? t("common.unknown")}
+        </ManagerRequestsPrimaryText>
+        <ManagerRequestsMutedText>{pair.student.email ?? "-"}</ManagerRequestsMutedText>
+        <ManagerRequestsMutedText>{pair.student.phone ?? "-"}</ManagerRequestsMutedText>
+      </ManagerRequestsSummaryColumn>
+      <ManagerRequestsSummaryColumn label={t("admin.courseTitle")}>
+        <ManagerRequestsPrimaryText>{pair.course.title}</ManagerRequestsPrimaryText>
+      </ManagerRequestsSummaryColumn>
+      <ManagerRequestsSummaryColumn label={t("dashboard.status")}>
+        <ManagerRequestsPrimaryText>{pair.status}</ManagerRequestsPrimaryText>
+      </ManagerRequestsSummaryColumn>
+    </ManagerRequestsSummaryGrid>
+  );
+
+  const renderStudentCoursePairsSection = (
+    sectionTestId: string,
+    title: string,
+    pairs: StudentCoursePairItem[],
+    isPendingSection: boolean,
+  ) => (
+    <ManagerRequestsSection testId={sectionTestId} title={title}>
+      {pairs.length === 0 && !isLoading && (
+        <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+      )}
+
+      {pairs.map((pair) => (
+        <Card key={pair.interestId} data-testid="manager-member-request-card">
+          <ManagerRequestsCardBody>
+            {renderStudentCoursePairSummary(pair)}
+
+            {isPendingSection && (
+              <ManagerRequestsActionsRow>
+                <Button
+                  disabled={isApprovingEnrollmentId === pair.interestId}
+                  onClick={() => handleApproveEnrollment(pair.interestId)}
+                >
+                  {isApprovingEnrollmentId === pair.interestId
+                    ? t("admin.approvingEnrollment")
+                    : t("admin.approveEnrollment")}
+                </Button>
+              </ManagerRequestsActionsRow>
+            )}
+          </ManagerRequestsCardBody>
+        </Card>
+      ))}
+    </ManagerRequestsSection>
   );
 
   const renderPendingSection = (
@@ -370,11 +518,16 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
 
           {isLoading && <ManagerRequestsMutedText>{t("admin.loadingRequests")}</ManagerRequestsMutedText>}
 
-          {!isLoading && filteredRequests.length === 0 && (
+          {!isLoading && !isStudentsCoursePairsRoute && filteredRequests.length === 0 && (
             <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
           )}
 
-          {showPendingSections &&
+          {!isLoading && isStudentsCoursePairsRoute && filteredStudentCoursePairs.length === 0 && (
+            <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+          )}
+
+          {!isStudentsCoursePairsRoute &&
+            showPendingSections &&
             showInstructorSections &&
             renderPendingSection(
               "manager-requests-instructors-pending-section",
@@ -382,7 +535,8 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               instructorsPendingRequests,
             )}
 
-          {showPendingSections &&
+          {!isStudentsCoursePairsRoute &&
+            showPendingSections &&
             showStudentSections &&
             renderPendingSection(
               "manager-requests-students-pending-section",
@@ -390,7 +544,8 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               studentsPendingRequests,
             )}
 
-          {showApprovedSections &&
+          {!isStudentsCoursePairsRoute &&
+            showApprovedSections &&
             showInstructorSections &&
             renderApprovedSection(
               "manager-requests-instructors-approved-section",
@@ -398,12 +553,31 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               instructorsApprovedRequests,
             )}
 
-          {showApprovedSections &&
+          {!isStudentsCoursePairsRoute &&
+            showApprovedSections &&
             showStudentSections &&
             renderApprovedSection(
               "manager-requests-students-approved-section",
               `${t("admin.filterStudents")} • ${t("dashboard.approved")}`,
               studentsApprovedRequests,
+            )}
+
+          {isStudentsCoursePairsRoute &&
+            showPendingSections &&
+            renderStudentCoursePairsSection(
+              "manager-requests-students-pending-section",
+              `${t("admin.filterStudents")} • ${t("dashboard.pending")}`,
+              studentsPendingPairs,
+              true,
+            )}
+
+          {isStudentsCoursePairsRoute &&
+            showApprovedSections &&
+            renderStudentCoursePairsSection(
+              "manager-requests-students-approved-section",
+              `${t("admin.filterStudents")} • ${t("dashboard.approved")}`,
+              studentsApprovedPairs,
+              false,
             )}
         </ManagerRequestsDashboardCardContent>
       </Card>

@@ -104,6 +104,7 @@ The project should continue to evolve within the existing Wasp application struc
 - **School member approval workflow** (Priority: High)
 
   - School managers must be able to review instructor and student requests in distinct flows.
+  - The manager students route must present student-course pairs sourced from course interests and support enrollment approval from that queue.
   - Managers must be able to filter request views by status, including pending and approved.
   - Approval must grant the correct school role and create required supporting records.
   - Rejection must update request state and preserve decision history.
@@ -192,7 +193,7 @@ The project should continue to evolve within the existing Wasp application struc
 ### 5.4 UI/UX highlights
 
 - Public landing page with searchable school and course discovery.
-- Separate manager request views for instructors and students.
+- Separate manager request views for instructors and students, with the students route focused on course-interest enrollment pairs.
 - Sidebar navigation that adapts by role.
 - Manager syllabus views that communicate visibility and usage policy.
 - Account menu shortcuts for dashboard and role requests.

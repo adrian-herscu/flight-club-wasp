@@ -324,9 +324,19 @@ query getManagerCourseInterests {
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
 }
 
+query getManagerStudentCoursePairs {
+  fn: import { getManagerStudentCoursePairs } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
+}
+
 action advanceCourseInterestToContacted {
   fn: import { advanceCourseInterestToContacted } from "@src/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
+}
+
+action approveStudentEnrollmentFromInterest {
+  fn: import { approveStudentEnrollmentFromInterest } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Student, Account, EnrolledStudent, CourseLifecycleEvent]
 }
 //#endregion
 
