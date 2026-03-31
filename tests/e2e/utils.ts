@@ -126,6 +126,61 @@ export const createRandomUser = () => {
   return { email, password: DEFAULT_PASSWORD } as User;
 };
 
+export const provisionFreshEmailUser = async (): Promise<User> => {
+  const user = { email: `${randomUUID()}@test.com`, password: "12345678" } as User;
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/.env.server"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  const seedIdentity = await prisma.authIdentity.findUnique({
+    where: {
+      providerName_providerUserId: {
+        providerName: "email",
+        providerUserId: "seed+user.01@example.test",
+      },
+    },
+  });
+
+  if (!seedIdentity) {
+    throw new Error("Seed auth identity for email provider was not found.");
+  }
+
+  const createdUser = await prisma.user.create({
+    data: {
+      email: user.email,
+      fullName: user.email,
+    },
+  });
+
+  const createdAuth = await prisma.auth.create({
+    data: {
+      userId: createdUser.id,
+    },
+  });
+
+  await prisma.authIdentity.create({
+    data: {
+      providerName: "email",
+      providerUserId: user.email.toLowerCase(),
+      providerData: seedIdentity.providerData,
+      authId: createdAuth.id,
+    },
+  });
+
+  await prisma.$disconnect();
+
+  return user;
+};
+
 const getNextYearLastTwoDigits = () => {
   const nextYear = new Date().getFullYear() + 1;
   return nextYear.toString().slice(-2);
