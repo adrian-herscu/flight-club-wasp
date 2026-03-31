@@ -96,10 +96,9 @@ type CourseInstructorDetails = {
   assignedInstructors: AssignmentInstructorItem[];
 } | null;
 
-type ManagerInterestItem = {
+type CourseInterestItem = {
   id: string;
   status: "INTERESTED" | "CONTACTED";
-  createdAt: string;
   user: {
     id: string;
     fullName: string | null;
@@ -192,7 +191,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     schoolId: selectedSchoolId,
     courseId: selectedInterestsCourseId,
   });
-  const courseInterests = (courseInterestsData as ManagerInterestItem[] | undefined) ?? [];
+  const courseInterests = (courseInterestsData as CourseInterestItem[] | undefined) ?? [];
 
   const [advancingInterestId, setAdvancingInterestId] = useState<string | null>(null);
 
@@ -202,8 +201,13 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     try {
       await advanceCourseInterestToContacted({ schoolId: selectedSchoolId, interestId });
       await refetchCourseInterests();
-    } catch {
-      // ignore
+      toast({ title: t("student.contactedSuccess") });
+    } catch (err) {
+      toast({
+        title: t("student.contactedError"),
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     } finally {
       setAdvancingInterestId(null);
     }
@@ -939,7 +943,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               </ManagerCoursesMutedText>
             ) : (
               <ManagerCoursesList>
-                {courseInterests.map((interest: ManagerInterestItem) => (
+                {courseInterests.map((interest: CourseInterestItem) => (
                   <li key={interest.id} className="rounded-md border p-3 text-sm flex items-center gap-3">
                     <div className="flex-1">
                       <p className="font-medium">

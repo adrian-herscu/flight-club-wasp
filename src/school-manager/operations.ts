@@ -1550,6 +1550,20 @@ export const reopenCourse = async (
 // Course Interest (manager-side)
 // ---------------------------------------------------------------------------
 
+function buildManagedSchoolCourseFilter(schoolId: string) {
+  return {
+    OR: [
+      { schoolId },
+      {
+        schoolId: null,
+        syllabusVersion: {
+          syllabus: { schoolId },
+        },
+      },
+    ],
+  };
+}
+
 /**
  * Returns CourseInterest records for the manager's school, filtered by an
  * optional courseId. Only INTERESTED and CONTACTED records are returned (i.e.
@@ -1572,15 +1586,7 @@ export const getManagerCourseInterests = async (
     where: {
       status: { in: [CourseInterestStatus.INTERESTED, CourseInterestStatus.CONTACTED] },
       course: {
-        OR: [
-          { schoolId: school.id },
-          {
-            schoolId: null,
-            syllabusVersion: {
-              syllabus: { schoolId: school.id },
-            },
-          },
-        ],
+        ...buildManagedSchoolCourseFilter(school.id),
         ...(args.courseId ? { id: args.courseId } : {}),
       },
     },
@@ -1656,17 +1662,7 @@ export const advanceCourseInterestToContacted = async (
   const interest = await prisma.courseInterest.findFirst({
     where: {
       id: interestId,
-      course: {
-        OR: [
-          { schoolId: school.id },
-          {
-            schoolId: null,
-            syllabusVersion: {
-              syllabus: { schoolId: school.id },
-            },
-          },
-        ],
-      },
+      course: buildManagedSchoolCourseFilter(school.id),
     },
     select: { id: true, status: true },
   });
