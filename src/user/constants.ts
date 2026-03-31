@@ -11,6 +11,8 @@ export type UserMenuItem = {
   isAuthRequired: boolean;
 };
 
+type DashboardPath = "/system-admin" | "/school-manager" | "/instructor" | "/student";
+
 type UserLike = {
   isSystemAdmin?: boolean | null;
 };
@@ -21,10 +23,13 @@ type UserLike = {
  * School-role dashboards (/school-manager, /instructor, /student) are
  * accessed directly via the sidebar once inside the dashboard area.
  */
-export const getMenuItemsForUser = (user?: UserLike | null): UserMenuItem[] => {
+export const getMenuItemsForUser = (
+  user?: UserLike | null,
+  dashboardPathOverride?: DashboardPath | null,
+): UserMenuItem[] => {
   const items: UserMenuItem[] = [];
 
-  const dashboardPath = getDashboardPathForUser(user);
+  const dashboardPath = dashboardPathOverride ?? getDashboardPathForUser(user);
   if (dashboardPath) {
     items.push({
       nameKey: "user.dashboard",

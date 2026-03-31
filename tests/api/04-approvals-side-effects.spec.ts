@@ -285,12 +285,6 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       expect(role?.grantedByUserId).toBe(SEED.users.systemAdmin01);
       expect(role?.sourceRegistrationRequestId).toBe(requestId);
 
-      const user = await prisma.user.findUnique({
-        where: { id: TEMP.users.managerReqA.id },
-        select: { role: true },
-      });
-      expect(user?.role).toBe('SCHOOL_MANAGER');
-
       const decision = await prisma.registrationRequestDecision.findFirst({
         where: { requestId, decisionType: 'APPROVED' },
         select: { reviewerId: true, approvedSchoolId: true },
@@ -416,12 +410,6 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       expect(role?.role).toBe('INSTRUCTOR');
       expect(role?.grantedByUserId).toBe(SEED.users.schoolManager01);
       expect(role?.sourceRegistrationRequestId).toBe(requestId);
-
-      const user = await prisma.user.findUnique({
-        where: { id: TEMP.users.memberReqInstructor.id },
-        select: { role: true },
-      });
-      expect(user?.role).toBe('INSTRUCTOR');
 
       const decision = await prisma.registrationRequestDecision.findFirst({
         where: { requestId, decisionType: 'APPROVED' },

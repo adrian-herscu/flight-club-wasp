@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { logout } from "wasp/client/auth";
+import * as operations from "wasp/client/operations";
 import { type User as UserEntity } from "wasp/entities";
 import {
   DropdownItemContent,
@@ -21,11 +22,19 @@ import { getMenuItemsForUser } from "./constants";
 export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const { getMyManagedSchool, useQuery } = operations as any;
+  const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
+  const managedSchools = (managedSchoolsData as Array<{ id: string }> | undefined) ?? [];
+  const dashboardPath = user?.isSystemAdmin
+    ? "/system-admin"
+    : managedSchools.length > 0
+      ? "/school-manager"
+      : null;
   const currentUser = user as Partial<UserEntity> & {
     fullName?: string | null;
     email?: string | null;
   };
-  const menuItems = getMenuItemsForUser(user ?? null);
+  const menuItems = getMenuItemsForUser(user ?? null, dashboardPath);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
