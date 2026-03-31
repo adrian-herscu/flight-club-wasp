@@ -34,6 +34,7 @@ import { toast } from "../client/hooks/use-toast";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
+  advanceCourseInterestToContacted,
   assignInstructorToCourse,
   closeCourse,
   createCourseFromFinalSyllabus,
@@ -42,6 +43,7 @@ const {
   getManagerCourseInstructorDetails,
   getManagerCourseEnrollmentDetails,
   getManagerCoursesForEnrollment,
+  getManagerCourseInterests,
   getMyManagedSchool,
   getManagerSyllabusCatalog,
   getManagerInstructorsForAssignment,
@@ -93,6 +95,21 @@ type CourseInstructorDetails = {
   assignedCount: number;
   assignedInstructors: AssignmentInstructorItem[];
 } | null;
+
+type ManagerInterestItem = {
+  id: string;
+  status: "INTERESTED" | "CONTACTED";
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+  };
+  course: {
+    id: string;
+    title: string;
+  };
+};
 
 type ManagerSyllabusCatalog = {
   courseOpeningCandidates: CatalogItem[];
@@ -165,6 +182,32 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     courseId: selectedAssignmentCourseId,
   });
   const courseInstructorDetails = courseInstructorDetailsData as CourseInstructorDetails;
+
+  const [selectedInterestsCourseId, setSelectedInterestsCourseId] = useState<string | null>(null);
+
+  const {
+    data: courseInterestsData,
+    refetch: refetchCourseInterests,
+  } = useQuery(getManagerCourseInterests, {
+    schoolId: selectedSchoolId,
+    courseId: selectedInterestsCourseId,
+  });
+  const courseInterests = (courseInterestsData as ManagerInterestItem[] | undefined) ?? [];
+
+  const [advancingInterestId, setAdvancingInterestId] = useState<string | null>(null);
+
+  async function handleAdvanceToContacted(interestId: string) {
+    if (advancingInterestId) return;
+    setAdvancingInterestId(interestId);
+    try {
+      await advanceCourseInterestToContacted({ schoolId: selectedSchoolId, interestId });
+      await refetchCourseInterests();
+    } catch {
+      // ignore
+    } finally {
+      setAdvancingInterestId(null);
+    }
+  }
 
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
@@ -867,6 +910,68 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           </ManagerCoursesCardContent>
         </Card>
       </ManagerCoursesGrid>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("student.courseInterests")}</CardTitle>
+          </CardHeader>
+          <ManagerCoursesCardContent>
+            <ManagerCoursesTwoColumnFields>
+              <LabeledSelectField
+                id="interests-course-select"
+                label={t("syllabus.coursePlaceholder")}
+                value={selectedInterestsCourseId ?? ""}
+                onValueChange={(v) => setSelectedInterestsCourseId(v || null)}
+                placeholder={t("syllabus.coursePlaceholder")}
+              >
+                {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
+                  <SelectItem key={course.courseId} value={course.courseId}>
+                    {course.syllabusName} v{course.syllabusVersion}
+                  </SelectItem>
+                ))}
+              </LabeledSelectField>
+            </ManagerCoursesTwoColumnFields>
+
+            {courseInterests.length === 0 ? (
+              <ManagerCoursesMutedText data-testid="no-course-interests">
+                {t("student.noInterestsForCourse")}
+              </ManagerCoursesMutedText>
+            ) : (
+              <ManagerCoursesList>
+                {courseInterests.map((interest: ManagerInterestItem) => (
+                  <li key={interest.id} className="rounded-md border p-3 text-sm flex items-center gap-3">
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {interest.user.fullName ?? interest.user.email ?? interest.user.id}
+                      </p>
+                      {interest.user.email && interest.user.fullName && (
+                        <p className="text-muted-foreground text-xs">{interest.user.email}</p>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground text-xs mr-2" data-testid="interest-status-badge">
+                      {interest.status}
+                    </span>
+                    {interest.status === "INTERESTED" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={advancingInterestId === interest.id}
+                        onClick={() => handleAdvanceToContacted(interest.id)}
+                        data-testid="mark-contacted-btn"
+                      >
+                        {advancingInterestId === interest.id
+                          ? t("student.markingAsContacted")
+                          : t("student.markAsContacted")}
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ManagerCoursesList>
+            )}
+          </ManagerCoursesCardContent>
+        </Card>
+      </div>
 
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>

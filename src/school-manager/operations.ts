@@ -1,4 +1,4 @@
-import { CourseLifecycleStatus, Prisma, SchoolRole, SyllabusVersionStatus } from "@prisma/client";
+import { CourseInterestStatus, CourseLifecycleStatus, Prisma, SchoolRole, SyllabusVersionStatus } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
@@ -96,6 +96,39 @@ const reopenCourseSchema = z.object({
 });
 
 type ReopenCourseInput = z.infer<typeof reopenCourseSchema>;
+
+const managerCourseInterestsSchema = z.object({
+  courseId: z.string().nullable(),
+});
+
+type ManagerCourseInterestsInput = z.infer<typeof managerCourseInterestsSchema>;
+
+const advanceCourseInterestToContactedSchema = z.object({
+  interestId: z.string().min(1),
+});
+
+type AdvanceCourseInterestToContactedInput = z.infer<
+  typeof advanceCourseInterestToContactedSchema
+>;
+
+export type ManagerInterestItem = {
+  id: string;
+  status: CourseInterestStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  notes: string | null;
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  course: {
+    id: string;
+    title: string;
+    startDate: Date | null;
+  };
+};
 
 type SyllabusCatalogItem = {
   syllabusId: string;
@@ -1511,4 +1544,149 @@ export const reopenCourse = async (
   });
 
   return { courseId: course.id, status: CourseLifecycleStatus.REOPENED };
+};
+
+// ---------------------------------------------------------------------------
+// Course Interest (manager-side)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns CourseInterest records for the manager's school, filtered by an
+ * optional courseId. Only INTERESTED and CONTACTED records are returned (i.e.
+ * actionable interests — ENROLLED/CANCELLED are excluded).
+ */
+export const getManagerCourseInterests = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<ManagerInterestItem[]> => {
+  const user = await ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+
+  const args = ensureArgsSchemaOrThrowHttpError(
+    managerCourseInterestsSchema,
+    rawArgs,
+  ) as ManagerCourseInterestsInput;
+
+  const interests = await prisma.courseInterest.findMany({
+    where: {
+      status: { in: [CourseInterestStatus.INTERESTED, CourseInterestStatus.CONTACTED] },
+      course: {
+        OR: [
+          { schoolId: school.id },
+          {
+            schoolId: null,
+            syllabusVersion: {
+              syllabus: { schoolId: school.id },
+            },
+          },
+        ],
+        ...(args.courseId ? { id: args.courseId } : {}),
+      },
+    },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      notes: true,
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+        },
+      },
+      course: {
+        select: {
+          id: true,
+          startDate: true,
+          syllabusVersion: {
+            select: {
+              version: true,
+              syllabus: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ createdAt: "asc" }],
+  });
+
+  return interests.map((interest) => ({
+    id: interest.id,
+    status: interest.status,
+    createdAt: interest.createdAt,
+    updatedAt: interest.updatedAt,
+    notes: interest.notes,
+    user: {
+      id: interest.user.id,
+      fullName: interest.user.fullName,
+      email: interest.user.email,
+      phone: interest.user.phone,
+    },
+    course: {
+      id: interest.course.id,
+      title: `${interest.course.syllabusVersion.syllabus.name} v${interest.course.syllabusVersion.version}`,
+      startDate: interest.course.startDate,
+    },
+  }));
+};
+
+/**
+ * Advances a CourseInterest record from INTERESTED to CONTACTED. The interest
+ * must belong to a course managed by the calling manager.
+ */
+export const advanceCourseInterestToContacted = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<{ id: string; status: CourseInterestStatus }> => {
+  const user = await ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+
+  const { interestId } = ensureArgsSchemaOrThrowHttpError(
+    advanceCourseInterestToContactedSchema,
+    rawArgs,
+  ) as AdvanceCourseInterestToContactedInput;
+
+  const interest = await prisma.courseInterest.findFirst({
+    where: {
+      id: interestId,
+      course: {
+        OR: [
+          { schoolId: school.id },
+          {
+            schoolId: null,
+            syllabusVersion: {
+              syllabus: { schoolId: school.id },
+            },
+          },
+        ],
+      },
+    },
+    select: { id: true, status: true },
+  });
+
+  if (!interest) {
+    throw new HttpError(404, "Course interest not found in your school scope.");
+  }
+
+  if (interest.status !== CourseInterestStatus.INTERESTED) {
+    throw new HttpError(
+      409,
+      "Only INTERESTED records can be advanced to CONTACTED.",
+    );
+  }
+
+  const updated = await prisma.courseInterest.update({
+    where: { id: interestId },
+    data: { status: CourseInterestStatus.CONTACTED },
+    select: { id: true, status: true },
+  });
+
+  return updated;
 };

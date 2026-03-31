@@ -318,6 +318,28 @@ action updateMyManagedSchool {
   fn: import { updateMyManagedSchool } from "@src/school-manager/updateSchoolOperations",
   entities: [User, School, Account]
 }
+
+query getManagerCourseInterests {
+  fn: import { getManagerCourseInterests } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
+}
+
+action advanceCourseInterestToContacted {
+  fn: import { advanceCourseInterestToContacted } from "@src/school-manager/operations",
+  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
+}
+//#endregion
+
+//#region Student Portal
+action expressInterestInCourse {
+  fn: import { expressInterestInCourse } from "@src/portal/student/operations",
+  entities: [User, Course, CourseInterest]
+}
+
+query getMyInterests {
+  fn: import { getMyInterests } from "@src/portal/student/operations",
+  entities: [User, Course, CourseInterest, Syllabus, SyllabusVersion, School]
+}
 //#endregion
 
 //#region Admin Dashboard
