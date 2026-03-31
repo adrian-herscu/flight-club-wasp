@@ -1,15 +1,16 @@
 import { Cookie, expect, test } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { logUserIn, provisionFreshEmailUser } from "./utils.js";
 
 test.describe("4.1 public discovery", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
 
-  test("[4.2][STD-AUTH-001] existing seeded user can log in through translated login form", async ({ page }) => {
+  test("[4.2][STD-AUTH-001] existing user can log in through translated login form", async ({ page }) => {
+    const user = await provisionFreshEmailUser();
     await logUserIn({
       page,
-      user: { email: "seed+school_manager.01@example.test", password: "12345678" },
+      user,
       expectedRedirectPath: "/",
     });
     await expect(page).toHaveURL(/\/$/);
@@ -26,9 +27,10 @@ test.describe("4.1 public discovery", () => {
   });
 
   test("[4.1][STD-PUB-003] logged in users can see schools and courses on landing", async ({ page }) => {
+    const user = await provisionFreshEmailUser();
     await logUserIn({
       page,
-      user: { email: "seed+school_manager.01@example.test", password: "12345678" },
+      user,
       expectedRedirectPath: "/",
     });
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();

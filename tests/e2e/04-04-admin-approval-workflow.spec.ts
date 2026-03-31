@@ -1,16 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { createTestSystemAdmin, logUserIn, provisionFreshEmailUser, type User } from "./utils.js";
 
 test.describe("4.4 admin approval workflow", () => {
-  const systemAdminUser = {
-    email: "seed+system_admin.01@example.test",
-    password: "12345678",
-  };
+  let systemAdminUser: User;
+  let requesterUser: User;
 
-  const requesterUser = {
-    email: "seed+user.01@example.test",
-    password: "12345678",
-  };
+  test.beforeAll(async () => {
+    [systemAdminUser, requesterUser] = await Promise.all([
+      createTestSystemAdmin(),
+      provisionFreshEmailUser(),
+    ]);
+  });
 
   const fillSchoolManagerRequestForm = async (
     page: Page,
@@ -62,13 +62,14 @@ test.describe("4.4 admin approval workflow", () => {
     await expect(page.getByRole("heading", { name: "Users" })).toBeHidden();
   });
 
-  test("[4.11][STD-NAV-003] system admin sees seeded users without applying status filter", async ({ page }) => {
+  test("[4.11][STD-NAV-003] system admin sees provisioned user without applying status filter", async ({ page }) => {
     await loginAsSystemAdmin(page);
 
     await page.goto("/system-admin/users");
     await page.waitForURL("**/system-admin/users");
     await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
-    await expect(page.getByText("seed+system_admin.01@example.test")).toBeVisible();
+    // The admin should see themselves in the user list
+    await expect(page.getByText(systemAdminUser.email)).toBeVisible();
   });
 
   test("[4.11][4.7][STD-NAV-003][STD-SYL-001][STD-SYL-002] system admin can access syllabuses from sidebar and view catalog", async ({ page }) => {

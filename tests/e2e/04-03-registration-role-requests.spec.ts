@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { createTestCourseWithManager, logUserIn, provisionFreshEmailUser } from "./utils.js";
 
 async function submitRegistrationForm(page: Page) {
   const submitBtn = page.getByRole("button", { name: /submit|continue|next/i }).last();
@@ -32,12 +32,10 @@ async function expectPendingRequestVisible(
 
 test.describe("4.3 registration and role requests", () => {
   test("[4.3][STD-REG-011][STD-REG-013] school manager request duplicate is blocked deterministically", async ({ page }) => {
+    const user = await provisionFreshEmailUser();
     await logUserIn({
       page,
-      user: {
-        email: "seed+user.01@example.test",
-        password: "12345678",
-      },
+      user,
       expectedRedirectPath: "/registration",
     });
 
@@ -69,79 +67,68 @@ test.describe("4.3 registration and role requests", () => {
   test("[4.3][STD-REG-012] approved role cannot be re-requested for the same school", async ({ page }) => {
     test.slow();
 
-    const requesterEmail = "seed+user.02@example.test";
-    const managerEmail = "seed+school_manager.01@example.test";
+    // Generate isolated data: fresh requester + fresh manager who owns a fresh school
+    const [requester, { manager, schoolId }] = await Promise.all([
+      provisionFreshEmailUser(),
+      createTestCourseWithManager(),
+    ]);
 
+    // Step 1: requester submits instructor request for the generated school
     await logUserIn({
       page,
-      user: {
-        email: requesterEmail,
-        password: "12345678",
-      },
+      user: requester,
       expectedRedirectPath: "/registration",
     });
 
-    await page.goto(
-      "/registration?role=INSTRUCTOR&schoolId=seed-school-cloudbase-paragliding",
-    );
+    await page.goto(`/registration?role=INSTRUCTOR&schoolId=${schoolId}`);
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
-    await page.locator("#fullName").fill("Seed User 02");
+    await page.locator("#fullName").fill("Test Requester");
     await page.locator("#phone").fill("+1 555 0199");
     await submitRegistrationForm(page);
 
-    const alreadyApproved = (await page.getByText(/already hold this role for the selected school/i).count()) > 0;
+    // Step 2: manager approves the request
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
 
-    if (!alreadyApproved) {
-      await logUserIn({
-        page,
-        user: {
-          email: managerEmail,
-          password: "12345678",
-        },
-        expectedRedirectPath: "/",
-      });
+    await page.goto("/school-manager/member-requests/instructors");
+    await expect(
+      page.getByTestId("manager-requests-instructors-pending-section").first(),
+    ).toBeVisible();
 
-      await page.goto("/school-manager/member-requests/instructors");
+    const pendingSection = page.locator("[data-testid='manager-requests-instructors-pending-section']");
+    const pendingCard = pendingSection
+      .locator("[data-testid='manager-member-request-card']")
+      .filter({ hasText: requester.email })
+      .first();
+
+    if (await pendingCard.count()) {
+      await pendingCard.getByRole("button", { name: /approve/i }).click();
+      const approvedSection = page.locator("[data-testid='manager-requests-instructors-approved-section']");
       await expect(
-        page.getByTestId("manager-requests-instructors-pending-section").first(),
+        approvedSection
+          .locator("[data-testid='manager-member-request-card']")
+          .filter({ hasText: requester.email })
+          .first(),
       ).toBeVisible();
-
-      const pendingSection = page.locator("[data-testid='manager-requests-instructors-pending-section']");
-      const pendingCard = pendingSection
-        .locator("[data-testid='manager-member-request-card']")
-        .filter({ hasText: requesterEmail })
-        .first();
-
-      if (await pendingCard.count()) {
-        await pendingCard.getByRole("button", { name: /approve/i }).click();
-        const approvedSection = page.locator("[data-testid='manager-requests-instructors-approved-section']");
-        await expect(
-          approvedSection
-            .locator("[data-testid='manager-member-request-card']")
-            .filter({ hasText: requesterEmail })
-            .first(),
-        ).toBeVisible();
-      }
-
-      await logUserIn({
-        page,
-        user: {
-          email: requesterEmail,
-          password: "12345678",
-        },
-        expectedRedirectPath: "/registration",
-      });
-
-      await page.goto(
-        "/registration?role=INSTRUCTOR&schoolId=seed-school-cloudbase-paragliding",
-      );
-      await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-
-      await page.locator("#fullName").fill("Seed User 02");
-      await page.locator("#phone").fill("+1 555 0199");
-      await submitRegistrationForm(page);
     }
+
+    // Step 3: requester tries to request the same role again — must fail
+    await logUserIn({
+      page,
+      user: requester,
+      expectedRedirectPath: "/registration",
+    });
+
+    await page.goto(`/registration?role=INSTRUCTOR&schoolId=${schoolId}`);
+    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
+
+    await page.locator("#fullName").fill("Test Requester");
+    await page.locator("#phone").fill("+1 555 0199");
+    await submitRegistrationForm(page);
 
     await expectSubmissionErrorVisible(page);
   });

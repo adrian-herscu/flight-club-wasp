@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ensureSidebarOpen, logUserIn } from "./utils";
-
-const selectLanguage = async (page: Page, languageLabel: string) => {
-  await page.getByRole("combobox").click();
-  await page.getByRole("option", { name: languageLabel }).click();
-};
+import {
+  createTestCourseWithManager,
+  createTestSystemAdmin,
+  ensureSidebarOpen,
+  logUserIn,
+  provisionFreshEmailUser,
+  type User,
+} from "./utils.js";
 
 const expectSidebarOnScreen = async (page: Page) => {
   await ensureSidebarOpen(page);
@@ -57,7 +59,7 @@ type NavStep = {
 
 type RoleScenario = {
   testName: string;
-  email: string;
+  provisionUser: () => Promise<User>;
   dashboardRoot: string;
   visibilityRules: VisibilityRule[];
   navSteps: NavStep[];
@@ -66,7 +68,7 @@ type RoleScenario = {
 const roleScenarios: RoleScenario[] = [
   {
     testName: "[4.11][STD-NAV-001][STD-NAV-003][@smoke] system admin can open each visible sidebar menu route",
-    email: "seed+system_admin.01@example.test",
+    provisionUser: () => createTestSystemAdmin(),
     dashboardRoot: "/system-admin",
     visibilityRules: [
       { name: "Dashboard", visible: true },
@@ -95,7 +97,10 @@ const roleScenarios: RoleScenario[] = [
   },
   {
     testName: "[4.11][STD-NAV-002][STD-NAV-004] school manager can open each visible sidebar menu route",
-    email: "seed+school_manager.01@example.test",
+    provisionUser: async () => {
+      const { manager } = await createTestCourseWithManager();
+      return manager;
+    },
     dashboardRoot: "/school-manager",
     visibilityRules: [
       { name: "Dashboard", visible: true },
@@ -145,8 +150,10 @@ const roleScenarios: RoleScenario[] = [
     ],
   },
   {
+    // Any authenticated user can visit /instructor — the page has no role guard.
+    // The sidebar shows INSTRUCTOR nav items based on the URL path alone.
     testName: "[4.11][STD-NAV-005] instructor sees only instructor-appropriate sidebar links",
-    email: "seed+instructor.01@example.test",
+    provisionUser: () => provisionFreshEmailUser(),
     dashboardRoot: "/instructor",
     visibilityRules: [
       { name: "Dashboard", visible: true },
@@ -168,8 +175,9 @@ const roleScenarios: RoleScenario[] = [
     ],
   },
   {
+    // Any authenticated user can visit /student — the page has no role guard.
     testName: "[4.11][STD-NAV-006] student sees only student-appropriate sidebar links",
-    email: "seed+student.01@example.test",
+    provisionUser: () => provisionFreshEmailUser(),
     dashboardRoot: "/student",
     visibilityRules: [
       { name: "Dashboard", visible: true },
@@ -195,12 +203,11 @@ const roleScenarios: RoleScenario[] = [
 test.describe("4.11 role-based navigation", () => {
   roleScenarios.forEach((scenario) => {
     test(scenario.testName, async ({ page }) => {
+      const user = await scenario.provisionUser();
+
       await logUserIn({
         page,
-        user: {
-          email: scenario.email,
-          password: "12345678",
-        },
+        user,
         expectedRedirectPath: "/",
       });
 
@@ -232,12 +239,10 @@ test.describe("4.11 role-based navigation", () => {
   test("[4.11][STD-NAV-009] wide screens keep sidebar open", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
 
+    const { manager } = await createTestCourseWithManager();
     await logUserIn({
       page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
+      user: manager,
       expectedRedirectPath: "/",
     });
 
@@ -278,12 +283,10 @@ test.describe("4.11 role-based navigation", () => {
   test("[4.11][STD-NAV-010] wide screens keep main content clear of the persistent sidebar", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
 
+    const { manager } = await createTestCourseWithManager();
     await logUserIn({
       page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
+      user: manager,
       expectedRedirectPath: "/",
     });
 
@@ -311,12 +314,10 @@ test.describe("4.11 role-based navigation", () => {
   test("[4.11][STD-NAV-011] narrow dashboard keeps a 3-line menu button and right-aligned controls", async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 960 });
 
+    const { manager } = await createTestCourseWithManager();
     await logUserIn({
       page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
+      user: manager,
       expectedRedirectPath: "/",
     });
 
@@ -356,12 +357,10 @@ test.describe("4.11 role-based navigation", () => {
   });
 
   test("[4.11][STD-NAV-007] authenticated plain user does not see admin/manager sidebar links", async ({ page }) => {
+    const user = await provisionFreshEmailUser();
     await logUserIn({
       page,
-      user: {
-        email: "seed+user.01@example.test",
-        password: "12345678",
-      },
+      user,
       expectedRedirectPath: "/registration",
     });
 

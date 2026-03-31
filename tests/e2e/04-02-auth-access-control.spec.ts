@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { createTestSystemAdmin, logUserIn, provisionFreshEmailUser } from "./utils.js";
 
 test.describe("4.2 authentication and access control", () => {
 
@@ -11,12 +11,10 @@ test.describe("4.2 authentication and access control", () => {
   });
 
   test("[4.2][STD-AUTH-007] non-admin users cannot access admin-only pages", async ({ page }) => {
+    const user = await provisionFreshEmailUser();
     await logUserIn({
       page,
-      user: {
-        email: "seed+user.01@example.test",
-        password: "12345678",
-      },
+      user,
       expectedRedirectPath: "/",
     });
 
@@ -28,12 +26,10 @@ test.describe("4.2 authentication and access control", () => {
   });
 
   test("[4.2][STD-AUTH-008] non-manager users cannot access manager-only member request pages", async ({ page }) => {
+    const admin = await createTestSystemAdmin();
     await logUserIn({
       page,
-      user: {
-        email: "seed+system_admin.01@example.test",
-        password: "12345678",
-      },
+      user: admin,
       expectedRedirectPath: "/",
     });
 

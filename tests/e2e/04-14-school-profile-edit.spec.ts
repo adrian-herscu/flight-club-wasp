@@ -1,17 +1,17 @@
 import { expect, test } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { createTestCourseWithManager, logUserIn } from "./utils.js";
 
 test.describe("4.14 school manager school profile editing", () => {
   test("[4.14][STD-SCH-001][STD-SCH-003] school manager can edit school details and see persisted values", async ({
     page,
   }) => {
+    // Set up test data: manager + school + syllabus + course
+    const { manager } = await createTestCourseWithManager();
+
     await test.step("Log in as school manager and open My School", async () => {
       await logUserIn({
         page,
-        user: {
-          email: "seed+school_manager.01@example.test",
-          password: "12345678",
-        },
+        user: manager,
         expectedRedirectPath: "/",
       });
 
@@ -22,9 +22,9 @@ test.describe("4.14 school manager school profile editing", () => {
     });
 
     const uniqueSuffix = Date.now().toString().slice(-6);
-    const updatedName = `Cloudbase Managed ${uniqueSuffix}`;
+    const updatedName = `School-Edited-${uniqueSuffix}`;
     const updatedPhone = `+1 555 ${uniqueSuffix}`;
-    const updatedCity = `Boulder ${uniqueSuffix}`;
+    const updatedCity = `Test-City-${uniqueSuffix}`;
 
     await test.step("Edit school profile fields and save", async () => {
       await page.getByLabel("Name").fill(updatedName);

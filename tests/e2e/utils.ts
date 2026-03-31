@@ -135,7 +135,7 @@ export const provisionFreshEmailUser = async (): Promise<User> => {
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/.env.server"),
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
     override: false,
   });
 
@@ -179,6 +179,142 @@ export const provisionFreshEmailUser = async (): Promise<User> => {
   await prisma.$disconnect();
 
   return user;
+};
+
+/**
+ * Creates a complete test object graph server-side:
+ * - School with unique name
+ * - Syllabus published version
+ * - Course from that syllabus
+ * - Owned by a test manager user
+ *
+ * This avoids the need for UI flows to create these in tests.
+ */
+export const createTestCourseWithManager = async (): Promise<{
+  manager: User;
+  schoolId: string;
+  schoolName: string;
+  syllabusId: string;
+  syllabusVersionId: string;
+  courseId: string;
+  syllabusName: string;
+  courseStartDate: Date;
+}> => {
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    // Create manager user
+    const manager = await provisionFreshEmailUser();
+    const managerUser = await prisma.user.findUnique({
+      where: { email: manager.email },
+    });
+    if (!managerUser) throw new Error(`Manager user not found: ${manager.email}`);
+
+    // Generate unique identifiers
+    const timestamp = Date.now();
+    const uuidPart = randomUUID().substring(0, 8);
+    const schoolName = `School-${timestamp}-${uuidPart}`;
+    const syllabusName = `Syllabus-${timestamp}-${uuidPart}`;
+
+    // Create School (manager will be the admin)
+    const school = await prisma.school.create({
+      data: {
+        name: schoolName,
+        country: "US",
+        city: "Test City",
+        addressLine1: "123 Test St",
+        postalCode: "12345",
+        currency: "USD",
+        adminId: managerUser.id,
+      },
+    });
+
+    // Create Account (manager -> school relationship)
+    await prisma.account.create({
+      data: {
+        userId: managerUser.id,
+        schoolId: school.id,
+        currency: "USD",
+      },
+    });
+
+    // Create UserSchoolRole (required by ensureSchoolManager guard)
+    await prisma.userSchoolRole.create({
+      data: {
+        userId: managerUser.id,
+        schoolId: school.id,
+        role: "SCHOOL_MANAGER",
+      },
+    });
+
+    // Create Syllabus
+    const syllabus = await prisma.syllabus.create({
+      data: {
+        name: syllabusName,
+        schoolId: school.id,
+      },
+    });
+
+    // Create SyllabusVersion (final/published)
+    const courseStartDate = new Date();
+    courseStartDate.setMonth(courseStartDate.getMonth() + 3);
+
+    const syllabusVersion = await prisma.syllabusVersion.create({
+      data: {
+        syllabusId: syllabus.id,
+        version: 1,
+        status: "FINAL",
+      },
+    });
+
+    // Create Course from the syllabus
+    const course = await prisma.course.create({
+      data: {
+        syllabusVersionId: syllabusVersion.id,
+        schoolId: school.id,
+        startDate: courseStartDate,
+        hourlyRate: 100,
+      },
+    });
+
+    // Create initial CourseLifecycleEvent (REOPENED status - means course is open)
+    // Note: CourseLifecycleStatus only has CLOSED and REOPENED;
+    // REOPENED means the course is available/open
+    await prisma.courseLifecycleEvent.create({
+      data: {
+        courseId: course.id,
+        changedByUserId: managerUser.id,
+        status: "REOPENED",
+      },
+    });
+
+    await prisma.$disconnect();
+
+    return {
+      manager,
+      schoolId: school.id,
+      schoolName: school.name,
+      syllabusId: syllabus.id,
+      syllabusVersionId: syllabusVersion.id,
+      courseId: course.id,
+      syllabusName: syllabus.name,
+      courseStartDate: course.startDate!,
+    };
+  } catch (error) {
+    await prisma.$disconnect();
+    throw error;
+  }
 };
 
 const getNextYearLastTwoDigits = () => {
@@ -234,6 +370,191 @@ export const makeStripePayment = async ({
   } else {
     await expect(page.getByText(planId)).toBeVisible();
   }
+};
+
+/**
+ * Creates a complete test object graph: manager user + school + syllabus + course.
+ * All data is generated uniquely per test to avoid collisions in parallel runs.
+ */
+export const createTestManagerWithSchoolAndCourse = async (): Promise<{
+  manager: User;
+  schoolName: string;
+  courseName: string;
+  courseDateStr: string;
+}> => {
+  const manager = await provisionFreshEmailUser();
+  
+  // Generate unique identifiers using timestamps + partial UUID
+  const timestamp = Date.now();
+  const uuidPart = randomUUID().substring(0, 8);
+  const schoolName = `School-${timestamp}-${uuidPart}`;
+  const courseName = `Course-${timestamp}-${uuidPart}`;
+  const courseDate = new Date();
+  courseDate.setMonth(courseDate.getMonth() + 3); // 3 months ahead
+  const courseDateStr = courseDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  // Register school for this manager via the signup/registration flow
+  // This happens implicitly in the UI tests
+  return {
+    manager,
+    schoolName,
+    courseName,
+    courseDateStr,
+  };
+};
+
+/**
+ * Creates a user with isSystemAdmin: true.
+ * Used for tests that need access to the /system-admin routes.
+ */
+export const createTestSystemAdmin = async (): Promise<User> => {
+  const user = await provisionFreshEmailUser();
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+  try {
+    await prisma.user.update({
+      where: { email: user.email },
+      data: { isSystemAdmin: true },
+    });
+    return user;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates a school manager user with TWO managed schools.
+ * Used for tests that verify the school-switching combobox.
+ */
+export const createTestManagerWithTwoSchools = async (): Promise<{
+  manager: User;
+  school1Id: string;
+  school1Name: string;
+  school2Id: string;
+  school2Name: string;
+}> => {
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+  try {
+    const manager = await provisionFreshEmailUser();
+    const managerUser = await prisma.user.findUnique({ where: { email: manager.email } });
+    if (!managerUser) throw new Error(`Manager user not found: ${manager.email}`);
+
+    const ts = Date.now();
+    const u1 = randomUUID().substring(0, 8);
+    const u2 = randomUUID().substring(0, 8);
+    const school1Name = `SchoolA-${ts}-${u1}`;
+    const school2Name = `SchoolB-${ts}-${u2}`;
+
+    const school1 = await prisma.school.create({
+      data: {
+        name: school1Name,
+        country: "US",
+        city: "City A",
+        addressLine1: "1 School Ave",
+        postalCode: "10001",
+        currency: "USD",
+        adminId: managerUser.id,
+      },
+    });
+    await prisma.account.create({
+      data: { userId: managerUser.id, schoolId: school1.id, currency: "USD" },
+    });
+    await prisma.userSchoolRole.create({
+      data: { userId: managerUser.id, schoolId: school1.id, role: "SCHOOL_MANAGER" },
+    });
+
+    const school2 = await prisma.school.create({
+      data: {
+        name: school2Name,
+        country: "US",
+        city: "City B",
+        addressLine1: "2 School Blvd",
+        postalCode: "20002",
+        currency: "USD",
+        adminId: managerUser.id,
+      },
+    });
+    await prisma.account.create({
+      data: { userId: managerUser.id, schoolId: school2.id, currency: "USD" },
+    });
+    await prisma.userSchoolRole.create({
+      data: { userId: managerUser.id, schoolId: school2.id, role: "SCHOOL_MANAGER" },
+    });
+
+    return { manager, school1Id: school1.id, school1Name, school2Id: school2.id, school2Name };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates a unique student user for testing course interests and enrollments.
+ */
+export const createTestStudentUser = async (): Promise<User> => {
+  return provisionFreshEmailUser();
+};
+
+/**
+ * Creates a unique instructor user for testing course assignments.
+ */
+export const createTestInstructorUser = async (): Promise<User> => {
+  return provisionFreshEmailUser();
+};
+
+/**
+ * Generates a unique school name for tests.
+ */
+export const generateUniqueSchoolName = (): string => {
+  const timestamp = Date.now();
+  const uuidPart = randomUUID().substring(0, 8);
+  return `School-${timestamp}-${uuidPart}`;
+};
+
+/**
+ * Generates a unique course name for tests.
+ */
+export const generateUniqueSyllabusName = (): string => {
+  const timestamp = Date.now();
+  const uuidPart = randomUUID().substring(0, 8);
+  return `Syllabus-${timestamp}-${uuidPart}`;
+};
+
+/**
+ * Generates a date string for a course start date (3 months from now).
+ */
+export const generateFutureCourseDate = (): string => {
+  const courseDate = new Date();
+  courseDate.setMonth(courseDate.getMonth() + 3);
+  return courseDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 export const acceptAllCookies = async (page: Page) => {

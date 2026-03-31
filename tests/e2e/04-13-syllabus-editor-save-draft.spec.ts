@@ -1,8 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { logUserIn } from "./utils";
+import { createTestCourseWithManager, logUserIn } from "./utils.js";
 
-const SCHOOL_MANAGER_EMAIL = "seed+school_manager.01@example.test";
-const SCHOOL_MANAGER_PASSWORD = "12345678";
+let testManager: any; // Re-use same manager for all tests in suite to avoid setup overhead
 
 const navigateToSyllabusesSection = async (
   page: import("@playwright/test").Page,
@@ -11,8 +10,7 @@ const navigateToSyllabusesSection = async (
   const targetPath = "/school-manager/syllabuses";
   const targetUrl = `${targetPath}?section=${section}`;
 
-  // Guard: parallel tests sharing school_manager.01 can invalidate session;
-  // re-login and retry a few times before failing.
+  // Navigate and retry on session invalidation
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.goto(targetUrl);
     const current = new URL(page.url());
@@ -24,7 +22,7 @@ const navigateToSyllabusesSection = async (
     if (current.pathname === "/login") {
       await logUserIn({
         page,
-        user: { email: SCHOOL_MANAGER_EMAIL, password: SCHOOL_MANAGER_PASSWORD },
+        user: testManager,
         expectedRedirectPath: targetPath,
       });
       continue;
@@ -67,9 +65,12 @@ const lessonNameInputs = (page: import("@playwright/test").Page) =>
 
 test.describe("4.13 Syllabus editor - save draft revision", () => {
   test.beforeEach(async ({ page }) => {
+    // Create test manager once per test (not per suite) to ensure isolation
+    testManager = (await createTestCourseWithManager()).manager;
+    
     await logUserIn({
       page,
-      user: { email: SCHOOL_MANAGER_EMAIL, password: SCHOOL_MANAGER_PASSWORD },
+      user: testManager,
       expectedRedirectPath: "/",
     });
   });
