@@ -15,9 +15,14 @@ Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testin
 ## Run procedure (desktop)
 0. Provide a concise implementation plan and wait for explicit user approval before making any test/code/config changes.
 1. Prefer the configured test tooling (`runTests` integration) or the VS Code Testing panel for scoped runs; use the package script only when you specifically need the full local shell flow.
-2. Ensure PostgreSQL is running and `DATABASE_URL` in `.env.server` points to it.
-3. Before e2e execution, run `npm run db:reset` and start Wasp explicitly (`npm run wasp:start:bg` for automation-style flow, or `npm run wasp:start` for interactive local flow).
-4. `tests/e2e/global-setup.ts` should only verify app readiness on `127.0.0.1:3000`/`3001`.
+2. Ensure PostgreSQL is running and `DATABASE_URL` in the project root `.env.server` points to it.
+3. Apply the repo DB reset rule from `.github/instructions/database-operations.instructions.md` when schema, migrations, or deterministic fixtures changed.
+4. Before E2E execution, check whether the frontend is already healthy and reuse it when possible, for example:
+  - `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`
+  - If the response is healthy, reuse the running app.
+  - If the response is unhealthy or nothing is listening, start Wasp explicitly (`npm run wasp:start:bg` for automation-style flow, or `npm run wasp:start` for interactive local flow).
+5. If failures look bizarre after the app is up (for example title renders but React UI does not mount), run `npm run wasp:restart` and inspect `out/wasp-dev.log` before deeper debugging.
+6. `tests/e2e/global-setup.ts` should only verify app readiness on `127.0.0.1:3000`/`3001`.
 
 ### `wasp:start:bg` contract
 - `npm run wasp:start:bg` must spawn Wasp detached and exit immediately.
@@ -27,6 +32,7 @@ Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testin
 ## Startup behavior to preserve
 - Keep `baseURL` aligned to `http://127.0.0.1:3000`.
 - Keep startup/reset orchestration in scripts/CI actions, not in Playwright config.
+- Keep server health-check and reuse/start logic in scripts or the invoking workflow, not in Playwright config.
 - Keep `tests/e2e/global-setup.ts` focused on readiness polling only.
 
 ## Maintenance checklist
@@ -50,7 +56,7 @@ Use this skill when running or fixing `tests/e2e` locally (CLI or VS Code Testin
   - Fix: stop conflicting DB or use the existing DB intentionally
 - title test passes but tests cannot find `Log in` or cookie-consent buttons
   - Cause: the HTML shell loaded, but the React app did not mount due to a stale/cached virtual entry or a declaration import/export mismatch in `main.wasp`
-  - Fix: explicitly restart the dev server to clear ports (e.g. `npm run wasp:restart` inside `tests/e2e`; logs: `out/wasp-dev.log`), inspect the browser console, and verify `main.wasp` declaration imports align with component exports
+  - Fix: reuse the current server only if it is healthy; otherwise restart with `npm run wasp:restart`, inspect the browser console, and verify `main.wasp` declaration imports align with component exports
 - tests pass in CLI but fail in VS Code panel
   - Cause: extension/config mismatch
   - Fix: ensure Playwright extension installed and `playwright.config.ts` resolved from `tests/e2e`
@@ -146,7 +152,7 @@ Use all three for critical flows to reduce false positives.
 - Plan-first gate: do not edit files or run validation-changing actions before the user approves the plan.
 - Do not edit generated Wasp output (`.wasp/out/**`).
 - Prefer fixing source config/script in `tests/e2e`.
-- Keep the fail-fast contract explicit: app server must be started before tests/e2e.
+- Keep the fail-fast contract explicit: tests/e2e reuses a healthy existing app when available, otherwise the invoking workflow must start it before the suite runs.
 
 ## Generated artifacts policy
 - Keep non-source artifacts under `out/` (for example `out/test-results`, `out/playwright-report`, `out/coverage`, `out/wasp-dev.log`).

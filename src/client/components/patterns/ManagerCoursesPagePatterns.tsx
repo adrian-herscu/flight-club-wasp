@@ -142,3 +142,32 @@ export const ManagerCoursesDetailsPanel = ({
     </div>
   );
 };
+
+export const ManagerCoursesSectionTopSpacing = ({ children }: { children: ReactNode }) => {
+  return <div className="mt-6">{children}</div>;
+};
+
+export const ManagerCoursesInterestListItem = ({
+  action,
+  displayName,
+  email,
+  status,
+}: {
+  action?: ReactNode;
+  displayName: ReactNode;
+  email?: ReactNode;
+  status: ReactNode;
+}) => {
+  return (
+    <li className="rounded-md border p-3 text-sm flex items-center gap-3">
+      <div className="flex-1">
+        <p className="font-medium">{displayName}</p>
+        {email ? <p className="text-muted-foreground text-xs">{email}</p> : null}
+      </div>
+      <p className="text-muted-foreground text-xs mr-2" data-testid="interest-status-badge">
+        {status}
+      </p>
+      {action}
+    </li>
+  );
+};

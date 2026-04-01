@@ -1,11 +1,22 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ensureSidebarOpen, logUserIn } from "./utils";
+import {
+  createTestCourseWithManager,
+  createTestManagerWithTwoSchools,
+  ensureSidebarOpen,
+  logUserIn,
+  provisionFreshEmailUser,
+  type User,
+} from "./utils.js";
 
 test.describe("4.5 school-manager member approval workflow", () => {
-  const schoolManagerUser = {
-    email: "seed+school_manager.01@example.test",
-    password: "12345678",
-  };
+  let schoolManagerUser: User;
+  let testSchoolId: string;
+
+  test.beforeAll(async () => {
+    const result = await createTestCourseWithManager();
+    schoolManagerUser = result.manager;
+    testSchoolId = result.schoolId;
+  });
 
   const dismissCookieBanner = async (page: Page) => {
     const cookieAcceptButton = page.getByRole("button", { name: /Accept all/i });
@@ -16,26 +27,28 @@ test.describe("4.5 school-manager member approval workflow", () => {
 
   const submitMemberRequest = async ({
     page,
-    requesterEmail,
+    requester,
     expectedRedirectPath,
+    schoolId,
     role,
     fullName,
     phone,
   }: {
     page: Page;
-    requesterEmail: string;
+    requester: User;
     expectedRedirectPath: "/" | "/registration";
+    schoolId: string;
     role: "INSTRUCTOR" | "STUDENT";
     fullName: string;
     phone: string;
   }) => {
     await logUserIn({
       page,
-      user: { email: requesterEmail, password: "12345678" },
+      user: requester,
       expectedRedirectPath,
     });
 
-    await page.goto(`/registration?role=${role}&schoolId=seed-school-cloudbase-paragliding`);
+    await page.goto(`/registration?role=${role}&schoolId=${schoolId}`);
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
     await dismissCookieBanner(page);
@@ -46,6 +59,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await submitBtn.click();
     await page.waitForURL(/registration|\/$/);
   };
+
   test.skip("[4.6][STD-SCH-001][STD-SCH-002][inactive] manager can view school profile", async ({ page }) => {
     await page.goto("/school-manager/school");
     await page.waitForURL("**/school-manager/school");
@@ -80,11 +94,11 @@ test.describe("4.5 school-manager member approval workflow", () => {
   test("[4.7][4.12][STD-SYL-008][STD-I18N-005][STD-I18N-006] rtl layout: sidebar stays anchored to right on syllabuses page", async ({
     page,
   }) => {
-    await page.goto("/login");
-    await page.fill('input[name="email"]', "seed+school_manager.01@example.test");
-    await page.fill('input[name="password"]', "12345678");
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
+    await logUserIn({
+      page,
+      user: schoolManagerUser,
+      expectedRedirectPath: "/",
+    });
 
     await page.goto("/school-manager/syllabuses?section=catalog");
     await page.waitForURL("**/school-manager/syllabuses?section=catalog");
@@ -175,12 +189,13 @@ test.describe("4.5 school-manager member approval workflow", () => {
   });
 
   test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003] manager can view and approve instructor member requests (UI smoke)", async ({ page }) => {
-    const requesterEmail = "seed+user.01@example.test";
+    const requester = await provisionFreshEmailUser();
 
     await submitMemberRequest({
       page,
-      requesterEmail,
+      requester,
       expectedRedirectPath: "/registration",
+      schoolId: testSchoolId,
       role: "INSTRUCTOR",
       fullName: "Manager Test User",
       phone: "+1 555 0171",
@@ -194,7 +209,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
 
     await page.goto("/school-manager/member-requests/instructors");
     await page.waitForURL("**/school-manager/member-requests/instructors");
-      await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByTestId("manager-requests-instructors-pending-section")).toBeVisible();
 
     const instructorPendingSection = page.getByTestId("manager-requests-instructors-pending-section");
@@ -207,7 +222,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
 
     const requesterPendingCard = instructorPendingSection
       .getByTestId("manager-member-request-card")
-      .filter({ hasText: requesterEmail })
+      .filter({ hasText: requester.email })
       .first();
 
     const hasRequesterPendingCard = (await requesterPendingCard.count()) > 0;
@@ -225,10 +240,13 @@ test.describe("4.5 school-manager member approval workflow", () => {
   });
 
   test("[4.5][STD-MGR-004][STD-MGR-005][STD-MGR-006] manager can view and filter student member requests", async ({ page }) => {
+    const studentRequester = await provisionFreshEmailUser();
+
     await submitMemberRequest({
       page,
-      requesterEmail: "seed+student.02@example.test",
-      expectedRedirectPath: "/",
+      requester: studentRequester,
+      expectedRedirectPath: "/registration",
+      schoolId: testSchoolId,
       role: "STUDENT",
       fullName: "Manager Test Student",
       phone: "+1 555 0172",
@@ -255,9 +273,11 @@ test.describe("4.5 school-manager member approval workflow", () => {
   });
 
   test("[4.6][STD-SCH-010] manager with two schools can switch the current school to manage", async ({ page }) => {
+    const { manager, school1Name, school2Name } = await createTestManagerWithTwoSchools();
+
     await logUserIn({
       page,
-      user: schoolManagerUser,
+      user: manager,
       expectedRedirectPath: "/",
     });
 
@@ -268,29 +288,25 @@ test.describe("4.5 school-manager member approval workflow", () => {
     const schoolsPanel = page.getByTestId("manager-schools-list");
     await expect(schoolsPanel).toBeVisible();
 
+    // Determine which school is currently selected by checking panel text
     const currentPanelText = (await schoolsPanel.textContent()) ?? "";
-    const currentAccountId = currentPanelText.includes("seed-account-manager-cloudbase-annex")
-      ? "seed-account-manager-cloudbase-annex"
-      : "seed-account-manager-cloudbase";
-    const targetAccountId =
-      currentAccountId === "seed-account-manager-cloudbase"
-        ? "seed-account-manager-cloudbase-annex"
-        : "seed-account-manager-cloudbase";
+    const isSchool1Current = currentPanelText.includes(school1Name);
+    const targetSchoolName = isSchool1Current ? school2Name : school1Name;
 
-    // Use sidebar school selector
+    // Use sidebar school selector to switch
     await ensureSidebarOpen(page);
     const sidebarSelector = page.locator("aside").getByRole("combobox").first();
     await sidebarSelector.click();
     const options = page.getByRole("option");
     if ((await options.count()) < 2) {
       await page.keyboard.press("Escape");
-      await expect(schoolsPanel).toContainText(currentAccountId);
+      await expect(schoolsPanel).toContainText(isSchool1Current ? school1Name : school2Name);
       return;
     }
 
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
 
-    await expect(schoolsPanel).toContainText(targetAccountId);
+    await expect(schoolsPanel).toContainText(targetSchoolName);
   });
 });

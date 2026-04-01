@@ -13,10 +13,12 @@ import {
   ManagerCoursesDisclosure,
   ManagerCoursesForm,
   ManagerCoursesGrid,
+  ManagerCoursesInterestListItem,
   ManagerCoursesList,
   ManagerCoursesLoadingText,
   ManagerCoursesMutedText,
   ManagerCoursesParticipantListItem,
+  ManagerCoursesSectionTopSpacing,
   ManagerCoursesTwoColumnFields,
 } from "../client/components/patterns/ManagerCoursesPagePatterns";
 import { Button } from "../client/components/ui/button";
@@ -34,6 +36,7 @@ import { toast } from "../client/hooks/use-toast";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
+  advanceCourseInterestToContacted,
   assignInstructorToCourse,
   closeCourse,
   createCourseFromFinalSyllabus,
@@ -42,6 +45,7 @@ const {
   getManagerCourseInstructorDetails,
   getManagerCourseEnrollmentDetails,
   getManagerCoursesForEnrollment,
+  getManagerCourseInterests,
   getMyManagedSchool,
   getManagerSyllabusCatalog,
   getManagerInstructorsForAssignment,
@@ -93,6 +97,20 @@ type CourseInstructorDetails = {
   assignedCount: number;
   assignedInstructors: AssignmentInstructorItem[];
 } | null;
+
+type CourseInterestItem = {
+  id: string;
+  status: "INTERESTED" | "CONTACTED";
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+  };
+  course: {
+    id: string;
+    title: string;
+  };
+};
 
 type ManagerSyllabusCatalog = {
   courseOpeningCandidates: CatalogItem[];
@@ -165,6 +183,37 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     courseId: selectedAssignmentCourseId,
   });
   const courseInstructorDetails = courseInstructorDetailsData as CourseInstructorDetails;
+
+  const [selectedInterestsCourseId, setSelectedInterestsCourseId] = useState<string | null>(null);
+
+  const {
+    data: courseInterestsData,
+    refetch: refetchCourseInterests,
+  } = useQuery(getManagerCourseInterests, {
+    schoolId: selectedSchoolId,
+    courseId: selectedInterestsCourseId,
+  });
+  const courseInterests = (courseInterestsData as CourseInterestItem[] | undefined) ?? [];
+
+  const [advancingInterestId, setAdvancingInterestId] = useState<string | null>(null);
+
+  async function handleAdvanceToContacted(interestId: string) {
+    if (advancingInterestId) return;
+    setAdvancingInterestId(interestId);
+    try {
+      await advanceCourseInterestToContacted({ schoolId: selectedSchoolId, interestId });
+      await refetchCourseInterests();
+      toast({ title: t("student.contactedSuccess") });
+    } catch (err) {
+      toast({
+        title: t("student.contactedError"),
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setAdvancingInterestId(null);
+    }
+  }
 
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
@@ -867,6 +916,63 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           </ManagerCoursesCardContent>
         </Card>
       </ManagerCoursesGrid>
+
+      <ManagerCoursesSectionTopSpacing>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("student.courseInterests")}</CardTitle>
+          </CardHeader>
+          <ManagerCoursesCardContent>
+            <ManagerCoursesTwoColumnFields>
+              <LabeledSelectField
+                id="interests-course-select"
+                label={t("syllabus.coursePlaceholder")}
+                value={selectedInterestsCourseId ?? ""}
+                onValueChange={(v) => setSelectedInterestsCourseId(v || null)}
+                placeholder={t("syllabus.coursePlaceholder")}
+              >
+                {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
+                  <SelectItem key={course.courseId} value={course.courseId}>
+                    {course.syllabusName} v{course.syllabusVersion}
+                  </SelectItem>
+                ))}
+              </LabeledSelectField>
+            </ManagerCoursesTwoColumnFields>
+
+            {courseInterests.length === 0 ? (
+              <ManagerCoursesMutedText data-testid="no-course-interests">
+                {t("student.noInterestsForCourse")}
+              </ManagerCoursesMutedText>
+            ) : (
+              <ManagerCoursesList>
+                {courseInterests.map((interest: CourseInterestItem) => (
+                  <ManagerCoursesInterestListItem
+                    key={interest.id}
+                    displayName={interest.user.fullName ?? interest.user.email ?? interest.user.id}
+                    email={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
+                    status={interest.status}
+                    action={
+                      interest.status === "INTERESTED" ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={advancingInterestId === interest.id}
+                          onClick={() => handleAdvanceToContacted(interest.id)}
+                          data-testid="mark-contacted-btn"
+                        >
+                          {advancingInterestId === interest.id
+                            ? t("student.markingAsContacted")
+                            : t("student.markAsContacted")}
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                ))}
+              </ManagerCoursesList>
+            )}
+          </ManagerCoursesCardContent>
+        </Card>
+      </ManagerCoursesSectionTopSpacing>
 
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>

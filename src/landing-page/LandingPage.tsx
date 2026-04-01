@@ -1,10 +1,13 @@
 import { useState } from "react";
 import * as operations from "wasp/client/operations";
+import { useAuth } from "wasp/client/auth";
+import { Link } from "wasp/client/router";
 import { useTranslation } from "react-i18next";
 import {
   LandingCountryFilter,
   LandingCountryOption,
   LandingHiddenCountryOption,
+  LandingCourseActionsRow,
   LandingCourseItem,
   LandingCourseList,
   LandingCourseMeta,
@@ -28,8 +31,10 @@ import {
   LandingSchoolWebsite,
   LandingStatusText,
 } from "../client/components/patterns/LandingPagePatterns";
+import { Button } from "../client/components/ui/button";
+import { toast } from "../client/hooks/use-toast";
 
-const { getLandingSchoolsWithCourses, useQuery } = operations as any;
+const { getLandingSchoolsWithCourses, expressInterestInCourse, useQuery } = operations as any;
 
 type LandingCourse = {
   id: string;
@@ -69,11 +74,14 @@ function formatDate(dateValue: string | null, language: string, fallbackText: st
 export default function LandingPage() {
   const { t, i18n } = useTranslation();
   const { data, isLoading, error } = useQuery(getLandingSchoolsWithCourses);
+  const { data: user } = useAuth();
   const schools = (data as LandingSchool[] | undefined) ?? [];
 
   const [courseFilter, setCourseFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
+  const [pendingInterests, setPendingInterests] = useState<Set<string>>(new Set());
+  const [expressedInterests, setExpressedInterests] = useState<Set<string>>(new Set());
 
   const normalise = (s: string) => s.toLowerCase().trim();
 
@@ -98,6 +106,26 @@ export default function LandingPage() {
         normalise(school.country).includes(locTerm)
       );
     });
+
+  async function handleExpressInterest(courseId: string) {
+    if (!user) return;
+    if (pendingInterests.has(courseId)) return;
+
+    setPendingInterests((prev) => new Set(prev).add(courseId));
+    try {
+      await expressInterestInCourse({ courseId });
+      setExpressedInterests((prev) => new Set(prev).add(courseId));
+      toast({ title: t("landing.interestExpressedTitle"), description: t("landing.interestExpressedDescription") });
+    } catch {
+      toast({ title: t("landing.interestErrorTitle"), variant: "destructive" });
+    } finally {
+      setPendingInterests((prev) => {
+        const next = new Set(prev);
+        next.delete(courseId);
+        return next;
+      });
+    }
+  }
 
   return (
     <LandingPageShell>
@@ -194,6 +222,32 @@ export default function LandingPage() {
                           {t("landing.capacityLabel")} {course.minCapacity ?? "?"} - {course.maxCapacity ?? "?"}
                         </LandingCourseMeta>
                       )}
+                      <LandingCourseActionsRow>
+                        {user ? (
+                          <Button
+                            size="sm"
+                            variant={expressedInterests.has(course.id) ? "secondary" : "outline"}
+                            disabled={pendingInterests.has(course.id) || expressedInterests.has(course.id)}
+                            onClick={() => handleExpressInterest(course.id)}
+                            data-testid="express-interest-btn"
+                          >
+                            {expressedInterests.has(course.id)
+                              ? t("landing.interestedConfirmed")
+                              : pendingInterests.has(course.id)
+                                ? t("landing.interestSending")
+                                : t("landing.imInterested")}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            asChild
+                            data-testid="express-interest-login-btn"
+                          >
+                            <Link to="/login">{t("landing.imInterested")}</Link>
+                          </Button>
+                        )}
+                      </LandingCourseActionsRow>
                     </LandingCourseItem>
                   ))}
                 </LandingCourseList>

@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { detectLanguageFromText, logUserIn } from "./utils";
+import { createTestCourseWithManager, detectLanguageFromText, logUserIn } from "./utils.js";
 
 async function selectLanguage(page: Page, languageLabel: string) {
   await page.getByRole("combobox").click();
@@ -130,12 +130,10 @@ test.describe("4.12 internationalization and RTL", () => {
   test("[4.12][STD-I18N-009] school manager dashboard keeps header controls aligned in RTL", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
 
+    const { manager } = await createTestCourseWithManager();
     await logUserIn({
       page,
-      user: {
-        email: "seed+school_manager.01@example.test",
-        password: "12345678",
-      },
+      user: manager,
       expectedRedirectPath: "/",
     });
 
@@ -162,7 +160,8 @@ test.describe("4.12 internationalization and RTL", () => {
     expect(controlsGeometry).not.toBeNull();
     // In RTL the sidebar is on the physical RIGHT; controls must be on the physical LEFT
     // (inline-end = left in RTL), away from the sidebar.
-    expect(controlsGeometry!.languageLeft).toBeLessThan(controlsGeometry!.headerMidX);
+    // Allow 5px tolerance for Firefox sub-pixel floating-point geometry differences
+    expect(controlsGeometry!.languageLeft).toBeLessThan(controlsGeometry!.headerMidX + 5);
   });
 });
 

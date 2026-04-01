@@ -100,11 +100,11 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 |---|---|---|---|---|---|
 | STD-MGR-001 | FC-008 | Manager can open separate instructor and student member-request routes. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) — `manager member requests panel is split by instructors/students and supports pending/approved filtering` |
 | STD-MGR-002 | FC-008 | Instructor route shows only instructor requests. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
-| STD-MGR-003 | FC-008 | Student route shows only student requests. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
+| STD-MGR-003 | FC-008 / FC-017 | Student route shows student-course pairs sourced from course interests in manager school scope. | P0 | Covered (API+E2E) | API: [tests/api/09-student-course-enrollment-approval.spec.ts](../tests/api/09-student-course-enrollment-approval.spec.ts); E2E: [tests/e2e/04-17-students-course-pairs-approval.spec.ts](../tests/e2e/04-17-students-course-pairs-approval.spec.ts). |
 | STD-MGR-004 | FC-008 | Manager can filter member requests by pending status. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
 | STD-MGR-005 | FC-008 | Manager can filter member requests by approved status. | P0 | Covered | [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) |
 | STD-MGR-006 | FC-008 | Manager can approve an instructor request and see it move to approved view. | P0 | Covered (API+E2E) | API: [04-approvals-side-effects.spec.ts](../../api-tests/tests/04-approvals-side-effects.spec.ts) validates transition/side effects; E2E: [04-05-school-manager-member-approval.spec.ts](../../e2e-tests/tests/04-05-school-manager-member-approval.spec.ts) keeps route+approve smoke. |
-| STD-MGR-007 | FC-008 | Manager can approve a student request and see it move to approved view. | P0 | Covered (API) | [04-approvals-side-effects.spec.ts](../../api-tests/tests/04-approvals-side-effects.spec.ts) validates student approval and profile/role side effects. |
+| STD-MGR-007 | FC-008 / FC-012 / FC-017 | Manager can approve enrollment from a student course-interest pair, creating required membership/profile/enrollment side effects and setting interest to ENROLLED. | P0 | Covered (API+E2E) | API: [tests/api/09-student-course-enrollment-approval.spec.ts](../tests/api/09-student-course-enrollment-approval.spec.ts); E2E: [tests/e2e/04-17-students-course-pairs-approval.spec.ts](../tests/e2e/04-17-students-course-pairs-approval.spec.ts). |
 | STD-MGR-008 | FC-008 | Manager can reject instructor request and see updated state/history. | P0 | Partial | API rejection covered in [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts), but E2E history visibility remains unproven. |
 | STD-MGR-009 | FC-008 | Manager can reject student request and see updated state/history. | P0 | Partial | API rejection covered in [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts), but E2E history visibility remains unproven. |
 | STD-MGR-010 | FC-008 | Manager only sees requests for their authorized school. | P0 | Covered (API) | [03-rejections-and-listing.spec.ts](../../api-tests/tests/03-rejections-and-listing.spec.ts) validates cross-school request exclusion in list operation. |
@@ -211,6 +211,20 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-INT-004 | FC-006 | Concurrent duplicate submissions do not create duplicate requests. | P1 | Covered (API) | [02-registration-duplicate-and-role-hold.spec.ts](../../api-tests/tests/02-registration-duplicate-and-role-hold.spec.ts) — `[STD-INT-004] concurrent duplicate submissions produce exactly one pending request`. |
 | STD-INT-005 | FC-012 / FC-013 | Concurrent enrollment/assignment attempts preserve integrity and show deterministic outcomes. | P1 | Gap | No active concurrency/integrity E2E coverage. |
 
+## 4.14 Course interest (course-first student flow)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CIN-001 | FC-017 | Logged-in student can express interest in a course and a CourseInterest(INTERESTED) record is created. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `creates a CourseInterest(INTERESTED) record for a logged-in user`. E2E: [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts). |
+| STD-CIN-002 | FC-017 | Re-expressing interest on an already-INTERESTED course is idempotent and produces exactly one record. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `is idempotent`. |
+| STD-CIN-003 | FC-017 | Unauthenticated user is redirected to login when clicking I'm Interested. | P0 | Partial | Landing page renders a login link for unauthenticated visitors; E2E redirect flow not yet asserted. |
+| STD-CIN-004 | FC-017 | Student dashboard lists the student's CourseInterest records with status. | P1 | Gap | No active test asserts the My Interests list in the student dashboard. |
+| STD-CIN-005 | FC-017 | Manager can view CourseInterest(INTERESTED/CONTACTED) records per course. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `returns INTERESTED records for the managed school`. E2E: [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts). |
+| STD-CIN-006 | FC-017 | Manager can advance interest status from INTERESTED to CONTACTED. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `advances INTERESTED to CONTACTED`. |
+| STD-CIN-007 | FC-017 | Advancing a non-INTERESTED record returns 409 Conflict. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `returns 409 when interest is already CONTACTED`. |
+| STD-CIN-008 | FC-017 / FC-015 | Unauthenticated calls to interest operations return 401. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — auth gate tests for all operations. |
+| STD-CIN-009 | FC-017 / FC-015 | Non-manager cannot call manager interest operations. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — role gate tests. |
+
 ## 5. Coverage Summary by PRD Story
 
 | PRD Story | Coverage summary |
@@ -231,6 +245,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | FC-014 Navigate admin features by role | Covered for admin, school manager, instructor, student, and plain authenticated users in active E2E navigation tests. |
 | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; approval-action 401/403 role gates remain covered, E2E route denial remains covered, and manager school-scope denial is now API-covered for enrollment/assignment actions. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
+| FC-017 Express course interest (course-first student flow) | **Covered (API)**; 9 API tests cover the full interest lifecycle, auth/role gates, and idempotency. Landing page UI and student dashboard list are implemented; E2E smoke coverage is a remaining gap. |
 
 ## 6. Highest-Priority Gaps to Implement Next
 
@@ -242,8 +257,9 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 6. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
 7. E2E coverage for enrollment/assignment user flows and integrity under concurrency.
 8. Registration request-history visibility and status persistence tests.
+9. E2E smoke for course-interest flow: unauthenticated redirect, student dashboard list, manager CONTACTED advance.
 
 ## 7. Notes
 
- - As of March 2026, **46 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, enrollment/assignment integrity, and approval side effects. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.
+ - As of March 2026, **55 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, enrollment/assignment integrity, approval side effects, and the course-first interest pipeline. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.
  

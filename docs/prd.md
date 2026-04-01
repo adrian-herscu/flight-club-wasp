@@ -104,6 +104,7 @@ The project should continue to evolve within the existing Wasp application struc
 - **School member approval workflow** (Priority: High)
 
   - School managers must be able to review instructor and student requests in distinct flows.
+  - The manager students route must present student-course pairs sourced from course interests and support enrollment approval from that queue.
   - Managers must be able to filter request views by status, including pending and approved.
   - Approval must grant the correct school role and create required supporting records.
   - Rejection must update request state and preserve decision history.
@@ -192,7 +193,7 @@ The project should continue to evolve within the existing Wasp application struc
 ### 5.4 UI/UX highlights
 
 - Public landing page with searchable school and course discovery.
-- Separate manager request views for instructors and students.
+- Separate manager request views for instructors and students, with the students route focused on course-interest enrollment pairs.
 - Sidebar navigation that adapts by role.
 - Manager syllabus views that communicate visibility and usage policy.
 - Account menu shortcuts for dashboard and role requests.
@@ -471,3 +472,17 @@ The project helps a prospective school community move from discovery to particip
   - Sidebar positioning remains usable in RTL layouts.
   - Key labels on critical manager pages can be translated.
   - Localized rendering does not remove access to required actions or route navigation.
+
+### 10.17 Express course interest (course-first student flow)
+
+- **ID**: FC-017
+- **Description**: As a prospective student, I want to express interest in a specific course from the landing page so that I can start my enrollment journey from a course, not a school.
+- **Acceptance criteria**:
+
+  - A logged-in user can click "I'm Interested" on any course item on the landing page and have a `CourseInterest(INTERESTED)` record created.
+  - An unauthenticated visitor clicking "I'm Interested" is redirected to the login page.
+  - Expressing interest on an already-INTERESTED course is idempotent.
+  - The student dashboard shows a "My Interests" list with course title, school name, and current status.
+  - A school manager can view all `CourseInterest(INTERESTED/CONTACTED)` records for their school's courses in the Courses page.
+  - A school manager can advance an interest from `INTERESTED` to `CONTACTED`.
+  - All interest operations enforce authentication and role authorization on the server side.

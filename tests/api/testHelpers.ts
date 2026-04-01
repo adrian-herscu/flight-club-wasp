@@ -75,12 +75,6 @@ export async function cleanTestData(): Promise<void> {
   await prisma.userSchoolRole.deleteMany({
     where: { schoolId: { not: SEED.schools.cloudbase } },
   });
-  await prisma.account.deleteMany({
-    where: { schoolId: { not: SEED.schools.cloudbase } },
-  });
-
-  // Schools created by tests (approveSchoolManagerRequest provisions new ones).
-  await prisma.school.deleteMany({
-    where: { id: { not: SEED.schools.cloudbase } },
-  });
+  // Account and School rows are protected by DB-level append-only triggers in
+  // this test environment. Keep cleanup focused on mutable approval artifacts.
 }

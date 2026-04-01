@@ -11,6 +11,7 @@ Use this skill when adding or updating database seeds for this Wasp app, especia
 - auth config: `main.wasp`
 - Data model + enums: `schema.prisma`
 - Migration history: `migrations/*`
+- DB reset trigger and ownership: `.github/instructions/database-operations.instructions.md`
 - Never edit generated files under `.wasp/out/**`.
 
 ## Current project assumptions
@@ -63,9 +64,8 @@ Use this skill when adding or updating database seeds for this Wasp app, especia
 - If a migration was already applied and must be squashed locally:
   - Expect reset/reapply of local DB.
   - Do **not** rewrite applied history in shared/prod environments.
-- After any schema/migration update run:
-  - `wasp db migrate-dev`
-  - no need to set DATABASE_URL
+- When `schema.prisma` or `migrations/*` change, follow the repo reset rule in `.github/instructions/database-operations.instructions.md`.
+- Treat reset and seeding as one local workflow: `npm run wasp:db:reset` reapplies the migration history, including deterministic seed migrations.
 
 ## Verification checklist (required)
 - Count seeded users (expected set present).

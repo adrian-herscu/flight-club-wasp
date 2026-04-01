@@ -1,22 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-import { logUserIn } from "./utils";
+import { createTestCourseWithManager, logUserIn } from "./utils.js";
 
 const closeButtonName = /close|închide|סגור/i;
 const reopenButtonName = /reopen|redeschide|פתח מחדש/i;
 const closedCoursesSummaryName = /closed courses|cursuri închise|קורסים סגורים/i;
-const MANAGER_EMAIL = "seed+school_manager.01@example.test";
-const MANAGER_PASSWORD = "12345678";
 
 test.describe("4.15 course close/reopen", () => {
   test("[STD-CRS-006] manager can close and reopen a course from closed panel", async ({ page }) => {
+    // Set up test data: manager + school + syllabus + course
+    const { manager } = await createTestCourseWithManager();
+
     await test.step("Sign in as school manager and open Courses page", async () => {
       await logUserIn({
         page,
-        user: {
-          email: MANAGER_EMAIL,
-          password: MANAGER_PASSWORD,
-        },
+        user: manager,
         expectedRedirectPath: "/",
       });
 
