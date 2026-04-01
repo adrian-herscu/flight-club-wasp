@@ -15,6 +15,7 @@ This project benefits from validating flows directly in PostgreSQL first, especi
 - Data model/enums/relations: `schema.prisma`
 - Migration history: `migrations/*`
 - SQL workflow checks: `queries/*.sql`
+- DB reset rule: `.github/instructions/database-operations.instructions.md`
 - Existing seeding conventions: `.github/skills/wasp-db-seeding/SKILL.md`
 
 Never edit generated files under `.wasp/out/**`.
@@ -79,7 +80,7 @@ Common drift patterns:
 If drift exists, patch trigger function definitions in a migration before workflow seeds.
 
 ## Minimal verification checklist
-- Run: `wasp db migrate-dev`
+- Apply the repo DB reset rule from `.github/instructions/database-operations.instructions.md`.
 - Confirm migration applies in shadow DB and dev DB.
 - Execute each workflow SQL file.
 - Verify assertions show expected rows/counts/status.

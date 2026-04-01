@@ -8,7 +8,8 @@
 
 ## KNOWN ISSUES
 - Sometimes the vscode built in tools are not available. In such cases, inform the developer, and use the CLI instead.
-- Sometimes the vscode 'execute/runTests' tool does not execute all expected pre-test script steps, which can cause e2e `connection refused` errors. In such cases, run `npm run db:reset` and `npm run wasp:start:bg`, then rerun tests. If that still fails, inform the developer and use the CLI.
+- DB reset/seeding ownership lives in `.github/instructions/database-operations.instructions.md` and `.github/skills/wasp-db-seeding/SKILL.md`.
+- Wasp restart and E2E server reuse ownership lives in `.github/instructions/advanced-troubleshooting.instructions.md` and `.github/skills/e2e-playwright-maintenance/SKILL.md`.
 
 ## Thinking and response style
 - Consider a few viable solutions first, then choose the best one.
@@ -66,7 +67,7 @@
 - After writing or editing any code, run Problems diagnostics and resolve all IDE errors before continuing.
 - Before marking tests as green, confirm there are no IDE errors in the affected scope.
 - Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run `npm run wasp:lint` **and** the relevant tests first; for E2E tests, watch the `out/wasp-dev.log` file for errors and fix accordingly.
-- For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, then re-run relevant tests to green.
+- For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, ensure `npm run wasp:lint` passes, then re-run relevant tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
 - Scope by impact: for infrastructure/testing-framework changes, run all tests; otherwise prefer focused tests for the affected area first, then expand only as needed.
 - For GUI/navigation changes, add or update a dedicated E2E flow that covers login and opening each visible sidebar menu item per affected user role; this flow must fail before the fix and pass after.

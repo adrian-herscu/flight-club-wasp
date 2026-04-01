@@ -35,7 +35,7 @@ You have completed a task and tests are passing. Now extract durable lessons fro
 
 | Category | Target file | Proposed wording | Rationale |
 |---|---|---|---|
-| Instruction | `.github/instructions/wasp-operations.instructions.md` | "After schema changes, always run `wasp db reset --force` before testing to clear stale migrations." | Every schema edit this session required this step. |
+| Instruction | `.github/instructions/wasp-operations.instructions.md` | "After schema changes, always run `npm run wasp:db:reset` before testing to clear stale migrations." | Every schema edit this session required this step. |
 | Skill | `.github/skills/wasp-db-seeding/SKILL.md` | "For multi-role registration tests, seed both the role request and the auto-generated audit record to ensure workflow determinism." | Test flakiness traced to missing audit seeding. |
 
 ---
