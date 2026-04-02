@@ -154,7 +154,7 @@ The project should continue to evolve within the existing Wasp application struc
 
 - Anonymous users land on the public home page and browse schools and courses.
 - A user signs in or creates an account via email or Google.
-- After authentication, the user reaches the registration flow to request school manager, instructor, or student access.
+- After authentication, the user either continues a pending course-interest action from landing or reaches the registration flow to request school manager, instructor, or student access.
 - System admins enter through the admin dashboard and review school manager onboarding requests.
 - School managers enter through the admin area and use dedicated sidebar routes for school setup, member approvals, and syllabus/course operations.
 
@@ -481,8 +481,12 @@ The project helps a prospective school community move from discovery to particip
 - **Acceptance criteria**:
 
   - A logged-in user can click "I'm Interested" on any course item on the landing page and have a `CourseInterest(INTERESTED)` record created.
-  - An unauthenticated visitor clicking "I'm Interested" is redirected to the login page.
+  - On the first unauthenticated click of "I'm Interested", the app persists a single pending course intent on the client and redirects to the login page.
+  - While that pending unauthenticated intent exists, additional anonymous "I'm Interested" clicks are ignored and do not replace the first selected course.
+  - After login/signup, the pending course intent is consumed at most once, converted into `CourseInterest(INTERESTED)` if needed, and then cleared.
   - Expressing interest on an already-INTERESTED course is idempotent.
+  - On landing, courses already marked `INTERESTED` or `CONTACTED` for the signed-in user render as non-clickable "Interested" state.
+  - On landing, courses approved to `ENROLLED` for the signed-in user show an "Enrolled" label.
   - The student dashboard shows a "My Interests" list with course title, school name, and current status.
   - A school manager can view all `CourseInterest(INTERESTED/CONTACTED)` records for their school's courses in the Courses page.
   - A school manager can advance an interest from `INTERESTED` to `CONTACTED`.

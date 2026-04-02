@@ -195,6 +195,15 @@ export const LandingCourseActionsRow = ({ children }: { children: ReactNode }) =
   <div className="mt-2">{children}</div>
 );
 
+export const LandingCourseEnrolledLabel = ({ children }: { children: ReactNode }) => (
+  <p
+    data-testid="landing-course-enrolled-label"
+    className="text-sm font-medium text-emerald-700"
+  >
+    {children}
+  </p>
+);
+
 export const HeroRoot = ({ children }: { children: ReactNode }) => (
   <div className="relative w-full pt-14">{children}</div>
 );

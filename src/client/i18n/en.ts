@@ -646,6 +646,7 @@ export const en = {
     dateToBeAnnounced: "Date to be announced",
     imInterested: "I'm Interested",
     interestedConfirmed: "Interested ✓",
+    enrolledLabel: "Enrolled",
     interestSending: "Sending…",
     interestExpressedTitle: "Interest recorded",
     interestExpressedDescription: "You'll appear on the manager's radar for this course.",

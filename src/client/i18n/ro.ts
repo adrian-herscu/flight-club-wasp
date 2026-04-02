@@ -641,6 +641,7 @@ export const ro = {
     dateToBeAnnounced: "Data urmează să fie anunțată",
     imInterested: "Sunt interesat",
     interestedConfirmed: "Interesat ✓",
+    enrolledLabel: "Înscris",
     interestSending: "Se trimite…",
     interestExpressedTitle: "Interes înregistrat",
     interestExpressedDescription: "Vei apărea pe lista managerului pentru acest curs.",

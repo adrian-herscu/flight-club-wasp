@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as operations from "wasp/client/operations";
 import { useAuth } from "wasp/client/auth";
-import { Link } from "wasp/client/router";
 import { useTranslation } from "react-i18next";
 import {
   LandingCountryFilter,
   LandingCountryOption,
   LandingHiddenCountryOption,
   LandingCourseActionsRow,
+  LandingCourseEnrolledLabel,
   LandingCourseItem,
   LandingCourseList,
   LandingCourseMeta,
@@ -42,6 +42,8 @@ type LandingCourse = {
   startDate: string | null;
   minCapacity: number | null;
   maxCapacity: number | null;
+  canExpressInterest: boolean;
+  viewerInterestStatus: LandingCourseInterestStatus | null;
 };
 
 type LandingSchool = {
@@ -53,6 +55,80 @@ type LandingSchool = {
   country: string;
   courses: LandingCourse[];
 };
+
+type LandingCourseInterestStatus = "INTERESTED" | "CONTACTED" | "ENROLLED" | "CANCELLED";
+
+type PendingAnonymousInterestIntent = {
+  courseId: string;
+  createdAt: number;
+};
+
+const PENDING_ANONYMOUS_INTEREST_KEY = "landing.pendingAnonCourseInterest";
+const PENDING_ANONYMOUS_INTEREST_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readPendingAnonymousInterestIntent(): PendingAnonymousInterestIntent | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(PENDING_ANONYMOUS_INTEREST_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as PendingAnonymousInterestIntent;
+    const isValid =
+      typeof parsed?.courseId === "string" &&
+      parsed.courseId.length > 0 &&
+      typeof parsed?.createdAt === "number";
+
+    if (!isValid) {
+      window.localStorage.removeItem(PENDING_ANONYMOUS_INTEREST_KEY);
+      return null;
+    }
+
+    if (Date.now() - parsed.createdAt > PENDING_ANONYMOUS_INTEREST_TTL_MS) {
+      window.localStorage.removeItem(PENDING_ANONYMOUS_INTEREST_KEY);
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    window.localStorage.removeItem(PENDING_ANONYMOUS_INTEREST_KEY);
+    return null;
+  }
+}
+
+function savePendingAnonymousInterestIntent(courseId: string): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (readPendingAnonymousInterestIntent()) {
+    return false;
+  }
+
+  const payload: PendingAnonymousInterestIntent = {
+    courseId,
+    createdAt: Date.now(),
+  };
+
+  window.localStorage.setItem(PENDING_ANONYMOUS_INTEREST_KEY, JSON.stringify(payload));
+  return true;
+}
+
+function clearPendingAnonymousInterestIntent(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(PENDING_ANONYMOUS_INTEREST_KEY);
+}
+
+function shouldDisableInterestButtonByStatus(status: LandingCourseInterestStatus | null): boolean {
+  return status === "INTERESTED" || status === "CONTACTED" || status === "ENROLLED";
+}
 
 function formatDate(dateValue: string | null, language: string, fallbackText: string): string {
   if (!dateValue) {
@@ -81,7 +157,11 @@ export default function LandingPage() {
   const [locationFilter, setLocationFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [pendingInterests, setPendingInterests] = useState<Set<string>>(new Set());
-  const [expressedInterests, setExpressedInterests] = useState<Set<string>>(new Set());
+  const [interestStatusesByCourseId, setInterestStatusesByCourseId] = useState<Map<string, LandingCourseInterestStatus>>(new Map());
+  const [anonymousFlowLocked, setAnonymousFlowLocked] = useState(false);
+  const inFlightInterestsRef = useRef<Set<string>>(new Set());
+  const anonymousRedirectLockedRef = useRef(false);
+  const hasProcessedPendingAnonymousIntentRef = useRef(false);
 
   const normalise = (s: string) => s.toLowerCase().trim();
 
@@ -107,18 +187,54 @@ export default function LandingPage() {
       );
     });
 
-  async function handleExpressInterest(courseId: string) {
-    if (!user) return;
-    if (pendingInterests.has(courseId)) return;
+  useEffect(() => {
+    setAnonymousFlowLocked(Boolean(readPendingAnonymousInterestIntent()));
+  }, []);
 
+  useEffect(() => {
+    const nextStatuses = new Map<string, LandingCourseInterestStatus>();
+    for (const school of schools) {
+      for (const course of school.courses) {
+        if (course.viewerInterestStatus) {
+          nextStatuses.set(course.id, course.viewerInterestStatus);
+        }
+      }
+    }
+    setInterestStatusesByCourseId(nextStatuses);
+  }, [schools]);
+
+  async function submitCourseInterest(
+    courseId: string,
+    options?: { shouldClearPendingAnonymousIntentOnCompletion?: boolean },
+  ) {
+    if (!user) return;
+    if (inFlightInterestsRef.current.has(courseId)) return;
+
+    const existingStatus = interestStatusesByCourseId.get(courseId) ?? null;
+    if (shouldDisableInterestButtonByStatus(existingStatus)) {
+      return;
+    }
+
+    inFlightInterestsRef.current.add(courseId);
     setPendingInterests((prev) => new Set(prev).add(courseId));
+
     try {
-      await expressInterestInCourse({ courseId });
-      setExpressedInterests((prev) => new Set(prev).add(courseId));
+      const result = await expressInterestInCourse({ courseId });
+      const status = (result?.status as LandingCourseInterestStatus | undefined) ?? "INTERESTED";
+      setInterestStatusesByCourseId((prev) => {
+        const next = new Map(prev);
+        next.set(courseId, status);
+        return next;
+      });
       toast({ title: t("landing.interestExpressedTitle"), description: t("landing.interestExpressedDescription") });
     } catch {
       toast({ title: t("landing.interestErrorTitle"), variant: "destructive" });
     } finally {
+      if (options?.shouldClearPendingAnonymousIntentOnCompletion) {
+        clearPendingAnonymousInterestIntent();
+      }
+
+      inFlightInterestsRef.current.delete(courseId);
       setPendingInterests((prev) => {
         const next = new Set(prev);
         next.delete(courseId);
@@ -126,6 +242,47 @@ export default function LandingPage() {
       });
     }
   }
+
+  function handleAnonymousInterest(courseId: string) {
+    if (anonymousRedirectLockedRef.current) {
+      return;
+    }
+
+    anonymousRedirectLockedRef.current = true;
+    savePendingAnonymousInterestIntent(courseId);
+    setAnonymousFlowLocked(true);
+    window.location.assign("/login");
+  }
+
+  useEffect(() => {
+    if (!user || isLoading || hasProcessedPendingAnonymousIntentRef.current) {
+      return;
+    }
+
+    const pendingIntent = readPendingAnonymousInterestIntent();
+    if (!pendingIntent) {
+      return;
+    }
+
+    hasProcessedPendingAnonymousIntentRef.current = true;
+
+    const isTargetCourseActionable = schools.some((school) =>
+      school.courses.some(
+        (course) =>
+          course.id === pendingIntent.courseId &&
+          course.canExpressInterest,
+      ),
+    );
+
+    if (!isTargetCourseActionable) {
+      clearPendingAnonymousInterestIntent();
+      return;
+    }
+
+    void submitCourseInterest(pendingIntent.courseId, {
+      shouldClearPendingAnonymousIntentOnCompletion: true,
+    });
+  }, [user, isLoading, schools]);
 
   return (
     <LandingPageShell>
@@ -223,15 +380,23 @@ export default function LandingPage() {
                         </LandingCourseMeta>
                       )}
                       <LandingCourseActionsRow>
-                        {user ? (
+                        {user && interestStatusesByCourseId.get(course.id) === "ENROLLED" ? (
+                          <LandingCourseEnrolledLabel>
+                            {t("landing.enrolledLabel")}
+                          </LandingCourseEnrolledLabel>
+                        ) : user ? (
                           <Button
                             size="sm"
-                            variant={expressedInterests.has(course.id) ? "secondary" : "outline"}
-                            disabled={pendingInterests.has(course.id) || expressedInterests.has(course.id)}
-                            onClick={() => handleExpressInterest(course.id)}
+                            variant={shouldDisableInterestButtonByStatus(interestStatusesByCourseId.get(course.id) ?? null) ? "secondary" : "outline"}
+                            disabled={
+                              !course.canExpressInterest ||
+                              pendingInterests.has(course.id) ||
+                              shouldDisableInterestButtonByStatus(interestStatusesByCourseId.get(course.id) ?? null)
+                            }
+                            onClick={() => void submitCourseInterest(course.id)}
                             data-testid="express-interest-btn"
                           >
-                            {expressedInterests.has(course.id)
+                            {shouldDisableInterestButtonByStatus(interestStatusesByCourseId.get(course.id) ?? null)
                               ? t("landing.interestedConfirmed")
                               : pendingInterests.has(course.id)
                                 ? t("landing.interestSending")
@@ -241,10 +406,11 @@ export default function LandingPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            asChild
+                            disabled={!course.canExpressInterest || anonymousFlowLocked}
+                            onClick={() => handleAnonymousInterest(course.id)}
                             data-testid="express-interest-login-btn"
                           >
-                            <Link to="/login">{t("landing.imInterested")}</Link>
+                            {t("landing.imInterested")}
                           </Button>
                         )}
                       </LandingCourseActionsRow>

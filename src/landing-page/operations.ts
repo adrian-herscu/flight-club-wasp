@@ -1,4 +1,5 @@
 import {
+  CourseInterestStatus,
   CourseLifecycleStatus,
   SyllabusVersionStatus,
 } from "@prisma/client";
@@ -11,6 +12,8 @@ export type LandingCourse = {
   minCapacity: number | null;
   maxCapacity: number | null;
   hourlyRate: number | null;
+  canExpressInterest: boolean;
+  viewerInterestStatus: CourseInterestStatus | null;
 };
 
 export type LandingSchoolWithCourses = {
@@ -25,7 +28,7 @@ export type LandingSchoolWithCourses = {
 
 export const getLandingSchoolsWithCourses = async (
   _args: unknown,
-  _context: unknown,
+  context: { user?: { id: string } | null },
 ): Promise<LandingSchoolWithCourses[]> => {
   const [schools, finalCourses, publishedSyllabusVersions] = await Promise.all([
     prisma.school.findMany({
@@ -110,6 +113,26 @@ export const getLandingSchoolsWithCourses = async (
     (course) => latestStatusByCourseId.get(course.id) !== CourseLifecycleStatus.CLOSED,
   );
 
+  const viewerInterestByCourseId = new Map<string, CourseInterestStatus>();
+  if (context.user?.id && openFinalCourses.length > 0) {
+    const viewerInterests = await prisma.courseInterest.findMany({
+      where: {
+        userId: context.user.id,
+        courseId: {
+          in: openFinalCourses.map((course) => course.id),
+        },
+      },
+      select: {
+        courseId: true,
+        status: true,
+      },
+    });
+
+    for (const interest of viewerInterests) {
+      viewerInterestByCourseId.set(interest.courseId, interest.status);
+    }
+  }
+
   const syllabusVersionIdsWithOpenCourseRows = new Set(
     openFinalCourses.map((course) => course.syllabusVersion.id),
   );
@@ -121,8 +144,7 @@ export const getLandingSchoolsWithCourses = async (
           (course) =>
             course.schoolId === school.id ||
             (course.schoolId === null &&
-              (course.syllabusVersion.syllabus.schoolId === null ||
-                course.syllabusVersion.syllabus.schoolId === school.id)),
+              course.syllabusVersion.syllabus.schoolId === school.id),
         )
         .map((course) => ({
           id: course.id,
@@ -131,14 +153,15 @@ export const getLandingSchoolsWithCourses = async (
           minCapacity: course.minCapacity,
           maxCapacity: course.maxCapacity,
           hourlyRate: course.hourlyRate,
+          canExpressInterest: true,
+          viewerInterestStatus: viewerInterestByCourseId.get(course.id) ?? null,
         }));
 
       const fallbackFinalSyllabusCourses = publishedSyllabusVersions
         .filter(
           (syllabusVersion) =>
             !syllabusVersionIdsWithOpenCourseRows.has(syllabusVersion.id) &&
-            (syllabusVersion.syllabus.schoolId === null ||
-              syllabusVersion.syllabus.schoolId === school.id),
+            syllabusVersion.syllabus.schoolId === school.id,
         )
         .map((syllabusVersion) => ({
           id: syllabusVersion.id,
@@ -147,6 +170,8 @@ export const getLandingSchoolsWithCourses = async (
           minCapacity: null,
           maxCapacity: null,
           hourlyRate: null,
+          canExpressInterest: false,
+          viewerInterestStatus: null,
         }));
 
       const courses = [...openRealCourses, ...fallbackFinalSyllabusCourses];

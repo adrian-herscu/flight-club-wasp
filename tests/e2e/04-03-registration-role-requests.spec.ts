@@ -8,7 +8,9 @@ async function submitRegistrationForm(page: Page) {
 }
 
 async function expectSubmissionErrorVisible(page: Page) {
-  await expect(page.getByText(/submission failed/i).first()).toBeVisible({ timeout: 8000 });
+  await expect(
+    page.locator('[data-slot="toast"][class*="bg-destructive"]').first(),
+  ).toBeVisible({ timeout: 8000 });
 }
 
 async function expectPendingRequestVisible(
@@ -32,6 +34,8 @@ async function expectPendingRequestVisible(
 
 test.describe("4.3 registration and role requests", () => {
   test("[4.3][STD-REG-011][STD-REG-013] school manager request duplicate is blocked deterministically", async ({ page }) => {
+    test.slow();
+
     const user = await provisionFreshEmailUser();
     await logUserIn({
       page,

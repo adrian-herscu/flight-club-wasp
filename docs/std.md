@@ -219,13 +219,16 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 |---|---|---|---|---|---|
 | STD-CIN-001 | FC-017 | Logged-in student can express interest in a course and a CourseInterest(INTERESTED) record is created. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `creates a CourseInterest(INTERESTED) record for a logged-in user`. E2E: [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts). |
 | STD-CIN-002 | FC-017 | Re-expressing interest on an already-INTERESTED course is idempotent and produces exactly one record. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `is idempotent`. |
-| STD-CIN-003 | FC-017 | Unauthenticated user is redirected to login when clicking I'm Interested. | P0 | Partial | Landing page renders a login link for unauthenticated visitors; E2E redirect flow not yet asserted. |
+| STD-CIN-003 | FC-017 | Unauthenticated user is redirected to login when clicking I'm Interested. | P0 | Covered (E2E) | [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts) — `[STD-CIN-003] first anonymous click redirects to login and resumes as interested after login`. |
 | STD-CIN-004 | FC-017 | Student dashboard lists the student's CourseInterest records with status. | P1 | Gap | No active test asserts the My Interests list in the student dashboard. |
 | STD-CIN-005 | FC-017 | Manager can view CourseInterest(INTERESTED/CONTACTED) records per course. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `returns INTERESTED records for the managed school`. E2E: [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts). |
 | STD-CIN-006 | FC-017 | Manager can advance interest status from INTERESTED to CONTACTED. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `advances INTERESTED to CONTACTED`. |
 | STD-CIN-007 | FC-017 | Advancing a non-INTERESTED record returns 409 Conflict. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — `returns 409 when interest is already CONTACTED`. |
 | STD-CIN-008 | FC-017 / FC-015 | Unauthenticated calls to interest operations return 401. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — auth gate tests for all operations. |
 | STD-CIN-009 | FC-017 / FC-015 | Non-manager cannot call manager interest operations. | P0 | Covered (API) | [api-tests/tests/08-course-interest.spec.ts](../../api-tests/tests/08-course-interest.spec.ts) — role gate tests. |
+| STD-CIN-010 | FC-017 | Landing shows enrolled label for approved student-course interests. | P1 | Covered (E2E) | [tests/e2e/04-17-students-course-pairs-approval.spec.ts](../../tests/e2e/04-17-students-course-pairs-approval.spec.ts) — `[STD-CIN-010]` assertion for landing enrolled label after manager approval. |
+| STD-CIN-011 | FC-017 | Landing disables repeated clicks for already interested (`INTERESTED`/`CONTACTED`) courses. | P1 | Covered (E2E) | [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts) — interested button becomes disabled and remains non-clickable. |
+| STD-CIN-012 | FC-017 | Anonymous pending interest is consumed once after login and cleared from local storage. | P1 | Covered (E2E) | [tests/e2e/04-16-course-interest.spec.ts](../../tests/e2e/04-16-course-interest.spec.ts) — pending anonymous intent is created, auto-applied post-login, and cleared. |
 
 ## 5. Coverage Summary by PRD Story
 
@@ -247,7 +250,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | FC-014 Navigate admin features by role | Covered for admin, school manager, instructor, student, and plain authenticated users in active E2E navigation tests. |
 | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; approval-action 401/403 role gates remain covered, E2E route denial remains covered, and manager school-scope denial is now API-covered for enrollment/assignment actions. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
-| FC-017 Express course interest (course-first student flow) | **Covered (API)**; 9 API tests cover the full interest lifecycle, auth/role gates, and idempotency. Landing page UI and student dashboard list are implemented; E2E smoke coverage is a remaining gap. |
+| FC-017 Express course interest (course-first student flow) | Covered (API+E2E) for logged-in interest creation, anonymous redirect/continuation, manager queue visibility, and enrollment label feedback. Remaining gap: dedicated student dashboard My Interests assertions. |
 
 ## 6. Highest-Priority Gaps to Implement Next
 

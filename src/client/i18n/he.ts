@@ -642,6 +642,7 @@ export const he = {
     dateToBeAnnounced: "התאריך יפורסם בהמשך",
     imInterested: "אני מעוניין",
     interestedConfirmed: "מעוניין ✓",
+    enrolledLabel: "רשום",
     interestSending: "שולח…",
     interestExpressedTitle: "עניין נרשם",
     interestExpressedDescription: "תופיע ברשימת המנהל עבור קורס זה.",
