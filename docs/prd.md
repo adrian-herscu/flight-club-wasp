@@ -83,6 +83,7 @@ The project should continue to evolve within the existing Wasp application struc
 - **Authentication and account access** (Priority: High)
 
   - The platform must support email/password authentication and Google sign-in through the existing auth configuration.
+  - Logging out from account navigation must redirect users to the anonymous landing page (`/`).
   - Authenticated users must be redirected to appropriate entry points and prevented from opening protected routes without authentication.
   - Users must be able to access account settings and role request entry points from the account menu.
 

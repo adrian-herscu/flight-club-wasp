@@ -23,7 +23,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { getMyManagedSchool, useQuery } = operations as any;
-  const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
+  const { data: managedSchoolsData } = useQuery(getMyManagedSchool, undefined, { enabled: Boolean(user) });
   const managedSchools = (managedSchoolsData as Array<{ id: string }> | undefined) ?? [];
   const dashboardPath = user?.isSystemAdmin
     ? "/system-admin"
@@ -35,6 +35,12 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
     email?: string | null;
   };
   const menuItems = getMenuItemsForUser(user ?? null, dashboardPath);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    await logout();
+    window.location.assign("/");
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -61,7 +67,7 @@ export function UserDropdown({ user }: { user: Partial<UserEntity> }) {
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuItem onClick={() => logout()}>
+        <DropdownMenuItem onClick={() => void handleLogout()}>
           <DropdownItemContent>
             <LogOut size="1.1rem" />
             {t("auth.logout")}

@@ -58,6 +58,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-AUTH-004 | FC-003 | Authenticated user can open account page. | P1 | Partial | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) visits `/account`, but this is used as setup rather than asserted as a protected workflow outcome. |
 | STD-AUTH-005 | FC-003 | Request Roles entry point is reachable from the account menu. | P1 | Covered | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) — `registered users can open Request Roles from user menu` |
 | STD-AUTH-006 | FC-003 | Google sign-in option is visible when provider configuration is enabled. | P1 | Partial | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) checks button visibility and translation only; it does not prove OAuth flow initiation or success. |
+| STD-AUTH-010 | FC-003 | Logging out from desktop and mobile account navigation redirects to the anonymous landing page (`/`). | P0 | Covered | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) — `[STD-AUTH-010]` logout redirect coverage for desktop and mobile navigation. |
 | STD-AUTH-007 | FC-015 | Non-admin user cannot access admin-only pages. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-007]` |
 | STD-AUTH-008 | FC-015 | Non-manager user cannot access manager-only pages. | P0 | Covered | [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts) — `[STD-AUTH-008]` |
  | STD-AUTH-009 | FC-015 | Sensitive actions validate authorization on the server side, not only by hidden UI links. | P0 | Covered (API) | [api-tests/tests/01-role-gates.spec.ts](../../api-tests/tests/01-role-gates.spec.ts) — 10 tests validate 401/403 for approveSchoolManagerRequest and approveSchoolMemberRequest. E2E: [04-02-auth-access-control.spec.ts](../../e2e-tests/tests/04-02-auth-access-control.spec.ts). |
@@ -231,7 +232,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 |---|---|
 | FC-001 Browse public schools and courses | Mostly covered; optional-data tolerance still incomplete. |
 | FC-002 Filter public discovery results | Mostly covered; empty-state UX messaging still incomplete. |
-| FC-003 Authenticate and reach protected areas | Partial; login, i18n, and protected-route redirect are covered; account-route assertion depth and Google OAuth execution remain incomplete. |
+| FC-003 Authenticate and reach protected areas | Partial; login, i18n, protected-route redirect, and logout-to-landing behavior are covered; account-route assertion depth and Google OAuth execution remain incomplete. |
 | FC-004 Submit school-manager registration request | Partial; deep-link submission works, but real entry path and request-history coverage are missing. |
 | FC-005 Submit instructor or student requests | Partial; submission exists, but school-selection validation and history coverage are incomplete. |
  | FC-006 Prevent invalid or duplicate role requests | **Covered (API)**; 5 API tests validate duplicate pending requests, approved-role hold, and concurrent race conditions. E2E smoke test also covers basic blocking. |

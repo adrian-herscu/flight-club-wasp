@@ -70,4 +70,38 @@ test.describe("4.2 authentication and access control - account menu", () => {
     await requestRolesLink.click();
     await expect(page).toHaveURL(/\/registration/);
   });
+
+  test("[4.2][STD-AUTH-010] desktop logout redirects to anonymous landing page", async ({ page }) => {
+    await openAccountUserMenu({ page, user: manager });
+
+    const logoutItem = page.getByRole("menuitem").filter({ hasText: /log ?out/i }).first();
+    await expect(logoutItem).toBeVisible();
+    await logoutItem.click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
+  });
+
+  test("[4.2][STD-AUTH-010] mobile logout redirects to anonymous landing page", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 960 });
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/registration");
+    await expect(page).toHaveURL(/\/registration/);
+
+    const menuTrigger = page.getByRole("button", { name: /open main menu/i });
+    await expect(menuTrigger).toBeVisible();
+    await menuTrigger.click();
+
+    const logoutButton = page.getByRole("button", { name: /log ?out/i }).first();
+    await expect(logoutButton).toBeVisible();
+    await logoutButton.click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
+  });
 });

@@ -18,6 +18,12 @@ export const UserMenuItems = ({
   const { t } = useTranslation();
   const menuItems = getMenuItemsForUser(user ?? null);
 
+  const handleLogout = async () => {
+    onItemClick?.();
+    await logout();
+    window.location.assign("/");
+  };
+
   return (
     <>
       {menuItems.map((item) => {
@@ -32,8 +38,7 @@ export const UserMenuItems = ({
       })}
       <MenuListItemButton
         onClick={() => {
-          logout();
-          onItemClick?.();
+          void handleLogout();
         }}
       >
           <LogOut size="1.1rem" />
