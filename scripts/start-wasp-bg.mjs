@@ -15,7 +15,7 @@ const pidPath = path.join(outDir, '.wasp-dev.pid');
 
 fs.mkdirSync(outDir, { recursive: true });
 
-const logFd = fs.openSync(logPath, 'a');
+const logFd = fs.openSync(logPath, 'w');
 
 const child = spawn('wasp', ['start'], {
   cwd: appDir,
