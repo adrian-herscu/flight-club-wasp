@@ -137,23 +137,26 @@ jobs:
     needs:
       - api-tests-full
       - e2e-regression
-    if: ${{ needs.api-tests-full.result == 'success' && needs.e2e-regression.result == 'success' }}
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Download API coverage artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: api-tests-coverage-nightly
           path: _artifacts/api
 
       - name: Download Playwright report artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: playwright-report-nightly-chromium
           path: _artifacts/e2e/chromium
 
       - name: Download Firefox Playwright report artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: playwright-report-nightly-firefox
@@ -162,11 +165,38 @@ jobs:
       - name: Build combined Pages site
         run: |
           mkdir -p site/api site/e2e/chromium site/e2e/firefox
-          cp -R _artifacts/api/. site/api/
-          cp -R _artifacts/e2e/chromium/. site/e2e/chromium/
-          cp -R _artifacts/e2e/firefox/. site/e2e/firefox/
 
-          cat > site/index.html << 'EOF'
+          if [ -d _artifacts/api ] && [ "$(find _artifacts/api -mindepth 1 -print -quit)" ]; then
+            cp -R _artifacts/api/. site/api/
+          fi
+
+          if [ -d _artifacts/e2e/chromium ] && [ "$(find _artifacts/e2e/chromium -mindepth 1 -print -quit)" ]; then
+            cp -R _artifacts/e2e/chromium/. site/e2e/chromium/
+          fi
+
+          if [ -d _artifacts/e2e/firefox ] && [ "$(find _artifacts/e2e/firefox -mindepth 1 -print -quit)" ]; then
+            cp -R _artifacts/e2e/firefox/. site/e2e/firefox/
+          fi
+
+          api_status="${{ needs.api-tests-full.result }}"
+          e2e_status="${{ needs.e2e-regression.result }}"
+          api_link='<span>API Coverage Report (not available)</span>'
+          chromium_link='<span>E2E Playwright Report (Chromium) (not available)</span>'
+          firefox_link='<span>E2E Playwright Report (Firefox) (not available)</span>'
+
+          if [ -f site/api/index.html ]; then
+            api_link='<a href="./api/index.html">API Coverage Report</a>'
+          fi
+
+          if [ -f site/e2e/chromium/index.html ]; then
+            chromium_link='<a href="./e2e/chromium/index.html">E2E Playwright Report (Chromium)</a>'
+          fi
+
+          if [ -f site/e2e/firefox/index.html ]; then
+            firefox_link='<a href="./e2e/firefox/index.html">E2E Playwright Report (Firefox)</a>'
+          fi
+
+          cat > site/index.html <<EOF
           <!doctype html>
           <html lang="en">
             <head>
@@ -176,10 +206,12 @@ jobs:
             </head>
             <body>
               <h1>Nightly Test Reports</h1>
+              <p>API job status: ${api_status}</p>
+              <p>E2E job status: ${e2e_status}</p>
               <ul>
-                <li><a href="./e2e/chromium/index.html">E2E Playwright Report (Chromium)</a></li>
-                <li><a href="./e2e/firefox/index.html">E2E Playwright Report (Firefox)</a></li>
-                <li><a href="./api/index.html">API Coverage Report</a></li>
+                <li>${chromium_link}</li>
+                <li>${firefox_link}</li>
+                <li>${api_link}</li>
               </ul>
             </body>
           </html>
@@ -193,7 +225,7 @@ jobs:
 
   publish-report:
     needs: prepare-pages-artifact
-    if: ${{ needs.prepare-pages-artifact.result == 'success' }}
+    if: ${{ always() && needs.prepare-pages-artifact.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

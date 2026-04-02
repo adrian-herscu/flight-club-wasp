@@ -1,6 +1,7 @@
 # Flight Club Platform
 
 [![Deploy](https://github.com/adrian-herscu/flight-club-wasp/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/adrian-herscu/flight-club-wasp/actions/workflows/deploy.yml)
+[![Nightly Build](https://github.com/adrian-herscu/flight-club-wasp/actions/workflows/nightly.yml/badge.svg?branch=main)](https://github.com/adrian-herscu/flight-club-wasp/actions/workflows/nightly.yml)
 [![Nightly Report](https://img.shields.io/badge/Nightly%20Report-GitHub%20Pages-2EAD33?logo=playwright&logoColor=white)](https://adrian-herscu.github.io/flight-club-wasp/)
 [![Railway](https://img.shields.io/badge/Deployed%20on-Railway-0B0D0E?logo=railway&logoColor=white)](https://flight-club-wasp-client-production.up.railway.app/)
 
