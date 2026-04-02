@@ -137,6 +137,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-SYL-010 | FC-010 | Manager can edit a syllabus in the editor and save a new draft revision from manager-owned content. | P0 | Covered (API+E2E) | API: [06-syllabus-draft-revision-regression.spec.ts](../../api-tests/tests/06-syllabus-draft-revision-regression.spec.ts); E2E: [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — edit lesson names, add/remove lessons, and save a new draft revision. |
 | STD-SYL-011 | FC-010 | Manager can delete a single editable draft syllabus after explicit confirmation. | P0 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — `manager can delete a single draft from catalog after confirmation` |
 | STD-SYL-012 | FC-010 | Manager can delete all editable drafts in scope after explicit confirmation. | P1 | Covered | [04-13-syllabus-editor-save-draft.spec.ts](../../e2e-tests/tests/04-13-syllabus-editor-save-draft.spec.ts) — `manager can delete all editable drafts from catalog after confirmation` |
+| STD-SYL-013 | FC-010 | Publishing to FINAL is rejected when the source draft has no lessons. | P0 | Covered (API) | [06-syllabus-draft-revision-regression.spec.ts](../../api-tests/tests/06-syllabus-draft-revision-regression.spec.ts) — `[STD-SYL-013] rejects publishing a draft syllabus version without lessons`. |
 
 ## 4.8 Course creation and management
 

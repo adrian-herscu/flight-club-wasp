@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
 
 import {
   createDraftSyllabusFromTemplate,
@@ -7,6 +8,7 @@ import {
   saveDraftSyllabusRevision,
 } from '../../src/school-manager/operations.js';
 import { ctx, SEED } from './testHelpers.js';
+import { prisma } from './wasp-server-stub.js';
 
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
 
@@ -78,5 +80,37 @@ describe('4.10 syllabus draft revision regression (API)', () => {
     expect(savedDetails?.status).toBe('DRAFT');
     expect(savedDetails?.lessons).toHaveLength(editedLessons.length);
     expect(savedDetails?.lessons.at(-1)?.name).toBe('Added in regression test');
+  });
+
+  it('[STD-SYL-013] rejects publishing a draft syllabus version without lessons', async () => {
+    const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+    const syllabus = await prisma.syllabus.create({
+      data: {
+        name: `No Lessons Draft ${suffix}`,
+        schoolId: SEED.schools.cloudbase,
+      },
+      select: { id: true },
+    });
+
+    const draftVersion = await prisma.syllabusVersion.create({
+      data: {
+        syllabusId: syllabus.id,
+        version: 1,
+        status: 'DRAFT',
+      },
+      select: { id: true },
+    });
+
+    await expect(
+      publishDraftSyllabusVersion(
+        {
+          schoolId: SEED.schools.cloudbase,
+          sourceVersionId: draftVersion.id,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+    });
   });
 });

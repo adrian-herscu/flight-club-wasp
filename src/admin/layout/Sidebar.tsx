@@ -12,13 +12,6 @@ import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
 import * as operations from "wasp/client/operations";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../client/components/ui/select";
-import {
   SchoolContextBadgeBox,
   SchoolContextBadgeContainer,
   SchoolLabel,
@@ -57,6 +50,24 @@ const SchoolContextBadge = () => {
   const { selectedSchool, selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(schools);
   const currentSchoolName = selectedSchool?.name;
 
+  const handleSchoolSelectorKeyDown = (event: React.KeyboardEvent<HTMLSelectElement>) => {
+    if (schools.length < 2) {
+      return;
+    }
+
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const currentIndex = schools.findIndex((school) => school.id === selectedSchoolId);
+    const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex = (safeCurrentIndex + delta + schools.length) % schools.length;
+    setSelectedSchoolId(schools[nextIndex].id);
+  };
+
   if (!isLoading && !currentSchoolName) {
     return null;
   }
@@ -68,18 +79,29 @@ const SchoolContextBadge = () => {
         {isLoading ? (
           <SchoolNameText>{t("admin.loading")}</SchoolNameText>
         ) : schools.length > 1 ? (
-          <Select value={selectedSchoolId ?? ""} onValueChange={setSelectedSchoolId}>
-            <SelectTrigger style={{ marginTop: "0.25rem", height: "2rem", fontSize: "0.75rem", position: "relative", zIndex: 50 }}>
-              <SelectValue placeholder={t("school.selectManagedSchool")} />
-            </SelectTrigger>
-            <SelectContent side="bottom" align="start" style={{ zIndex: 10000 }}>
-              {schools.map((school) => (
-                <SelectItem key={school.id} value={school.id}>
-                  {school.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            aria-label={t("school.selectManagedSchool")}
+            value={selectedSchoolId ?? ""}
+            onChange={(event) => setSelectedSchoolId(event.target.value)}
+            onKeyDown={handleSchoolSelectorKeyDown}
+            style={{
+              marginTop: "0.25rem",
+              height: "2rem",
+              width: "100%",
+              borderRadius: "0.375rem",
+              border: "1px solid hsl(var(--border))",
+              backgroundColor: "hsl(var(--background))",
+              paddingLeft: "0.5rem",
+              paddingRight: "0.5rem",
+              fontSize: "0.75rem",
+            }}
+          >
+            {schools.map((school) => (
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
+            ))}
+          </select>
         ) : (
           <SchoolNameText>{currentSchoolName}</SchoolNameText>
         )}

@@ -45,6 +45,7 @@ export function useManagedSchoolSelection<T extends ManagedSchoolLike>(schools: 
       setSelectedSchoolId(null);
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(STORAGE_KEY);
+        broadcastSelectionChange(null);
       }
       return;
     }
@@ -63,12 +64,18 @@ export function useManagedSchoolSelection<T extends ManagedSchoolLike>(schools: 
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, newSchoolId);
+      broadcastSelectionChange(newSchoolId);
     }
   }, [schools, selectedSchoolId]);
 
-  const selectedSchool = useMemo(
-    () => schools.find((school) => school.id === selectedSchoolId) ?? schools[0] ?? null,
+  const effectiveSelectedSchoolId = useMemo(
+    () => selectedSchoolId ?? schools[0]?.id ?? null,
     [schools, selectedSchoolId],
+  );
+
+  const selectedSchool = useMemo(
+    () => schools.find((school) => school.id === effectiveSelectedSchoolId) ?? schools[0] ?? null,
+    [effectiveSelectedSchoolId, schools],
   );
 
   const updateSelectedSchoolId = (schoolId: string) => {
@@ -88,7 +95,7 @@ export function useManagedSchoolSelection<T extends ManagedSchoolLike>(schools: 
   };
 
   return {
-    selectedSchoolId,
+    selectedSchoolId: effectiveSelectedSchoolId,
     selectedSchool,
     setSelectedSchoolId: updateSelectedSchoolId,
   };

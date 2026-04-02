@@ -270,33 +270,55 @@ export const createTestCourseWithManager = async (): Promise<{
     const courseStartDate = new Date();
     courseStartDate.setMonth(courseStartDate.getMonth() + 3);
 
-    const syllabusVersion = await prisma.syllabusVersion.create({
-      data: {
-        syllabusId: syllabus.id,
-        version: 1,
-        status: "FINAL",
-      },
-    });
+    const { syllabusVersion, course } = await prisma.$transaction(async (tx) => {
+      const createdSyllabusVersion = await tx.syllabusVersion.create({
+        data: {
+          syllabusId: syllabus.id,
+          version: 1,
+          status: "FINAL",
+        },
+      });
 
-    // Create Course from the syllabus
-    const course = await prisma.course.create({
-      data: {
-        syllabusVersionId: syllabusVersion.id,
-        schoolId: school.id,
-        startDate: courseStartDate,
-        hourlyRate: 100,
-      },
-    });
+      await tx.syllabusLesson.createMany({
+        data: [
+          {
+            syllabusVersionId: createdSyllabusVersion.id,
+            position: 1,
+            name: "Intro ground briefing",
+            description: "Initial lesson created by E2E fixture for valid FINAL syllabus data.",
+            durationMinutes: 45,
+          },
+          {
+            syllabusVersionId: createdSyllabusVersion.id,
+            position: 2,
+            name: "Basic flight preparation",
+            description: "Follow-up lesson created by E2E fixture for course-based workflows.",
+            durationMinutes: 60,
+          },
+        ],
+      });
 
-    // Create initial CourseLifecycleEvent (REOPENED status - means course is open)
-    // Note: CourseLifecycleStatus only has CLOSED and REOPENED;
-    // REOPENED means the course is available/open
-    await prisma.courseLifecycleEvent.create({
-      data: {
-        courseId: course.id,
-        changedByUserId: managerUser.id,
-        status: "REOPENED",
-      },
+      const createdCourse = await tx.course.create({
+        data: {
+          syllabusVersionId: createdSyllabusVersion.id,
+          schoolId: school.id,
+          startDate: courseStartDate,
+          hourlyRate: 100,
+        },
+      });
+
+      await tx.courseLifecycleEvent.create({
+        data: {
+          courseId: createdCourse.id,
+          changedByUserId: managerUser.id,
+          status: "REOPENED",
+        },
+      });
+
+      return {
+        syllabusVersion: createdSyllabusVersion,
+        course: createdCourse,
+      };
     });
 
     await prisma.$disconnect();

@@ -826,6 +826,10 @@ export const publishDraftSyllabusVersion = async (
     throw new HttpError(403, "You can publish only drafts in your role scope.");
   }
 
+  if (sourceVersion.lessons.length === 0) {
+    throw new HttpError(400, "Cannot publish a FINAL syllabus version without lessons.");
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     const latestVersion = await tx.syllabusVersion.findFirst({
       where: { syllabusId: sourceVersion.syllabusId },
