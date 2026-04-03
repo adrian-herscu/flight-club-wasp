@@ -55,13 +55,6 @@ describe('4.3 registration request guardrails (API)', () => {
       },
     });
 
-    await prisma.userSchoolRole.deleteMany({
-      where: {
-        userId: SEED.users.instructor01,
-        schoolId: SEED.schools.cloudbase,
-        role: 'STUDENT',
-      },
-    });
   });
 
   it('[STD-REG-002][STD-REG-011][STD-REG-013] school manager duplicate request is blocked', async () => {
@@ -105,7 +98,7 @@ describe('4.3 registration request guardrails (API)', () => {
     );
   });
 
-  it('[STD-REG-010][STD-REG-011][STD-REG-013] student duplicate request is blocked', async () => {
+  it('[STD-REG-010] student registration via form is rejected — students join via course-interest flow', async () => {
     const args = {
       fullName: 'API Instructor 01',
       phone: '+1 555 2003',
@@ -113,12 +106,10 @@ describe('4.3 registration request guardrails (API)', () => {
       targetSchoolId: SEED.schools.cloudbase,
     };
 
-    await submitRegistrationRequest(args, ctx.instructor);
-
     await expectHttpError(
       submitRegistrationRequest(args, ctx.instructor),
-      409,
-      DUPLICATE_PENDING_MESSAGE,
+      400,
+      'Student membership is granted through the course-interest flow, not direct registration.',
     );
   });
 

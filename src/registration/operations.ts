@@ -401,6 +401,13 @@ export const submitRegistrationRequest = async (
     rawArgs,
   ) as SubmitRegistrationRequestInput;
 
+  if (args.requestedRole === "STUDENT") {
+    throw new HttpError(
+      400,
+      "Student membership is granted through the course-interest flow, not direct registration.",
+    );
+  }
+
   if (args.targetSchoolId) {
     const school = await prisma.school.findUnique({
       where: { id: args.targetSchoolId },

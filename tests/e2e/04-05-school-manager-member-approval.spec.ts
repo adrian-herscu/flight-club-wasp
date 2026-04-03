@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   createTestCourseWithManager,
   createTestManagerWithTwoSchools,
+  createTestStudentUser,
   ensureSidebarOpen,
   logUserIn,
   provisionFreshEmailUser,
@@ -269,26 +270,42 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await expect(instructorApprovedSection.first()).toBeVisible();
   });
 
-  test("[4.5][STD-MGR-004][STD-MGR-005][STD-MGR-006] manager can view and filter student member requests", async ({ page }) => {
+  test("[4.5][STD-MGR-004][STD-MGR-005] manager can view and filter student-course pairs from course-interest flow", async ({ page }) => {
     test.slow();
-    const studentRequester = await provisionFreshEmailUser();
 
-    await submitMemberRequest({
-      page,
-      requester: studentRequester,
-      expectedRedirectPath: "/registration",
-      schoolName: testSchoolName,
-      role: "STUDENT",
-      fullName: "Manager Test Student",
-      phone: "+1 555 0172",
+    // Create a fresh course under the shared manager's school so the student
+    // can express interest on the landing page.
+    const { schoolName: freshSchoolName, syllabusName, courseStartDate } = await createTestCourseWithManager(
+      // reuse the existing schoolManagerUser by overriding the manager param
+    );
+    const studentRequester = await createTestStudentUser();
+
+    const courseDateStr = courseStartDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
 
-    await logUserIn({
-      page,
-      user: schoolManagerUser,
-      expectedRedirectPath: "/",
-    });
+    // Student expresses interest via landing page
+    await logUserIn({ page, user: studentRequester, expectedRedirectPath: "/" });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
+    const schoolCard = page
+      .getByTestId("landing-school-card")
+      .filter({ hasText: freshSchoolName })
+      .first();
+    const courseCard = schoolCard
+      .getByTestId("landing-course-item")
+      .filter({ hasText: syllabusName })
+      .filter({ hasText: courseDateStr })
+      .first();
+
+    await courseCard.getByTestId("express-interest-btn").click();
+    await expect(courseCard.getByTestId("express-interest-btn")).toContainText(/interested/i);
+
+    // Manager opens the Students page and sees the pending pair
+    await logUserIn({ page, user: schoolManagerUser, expectedRedirectPath: "/" });
     await page.goto("/school-manager/member-requests/students");
     await page.waitForURL("**/school-manager/member-requests/students");
     await expect(page.getByTestId("manager-requests-students-pending-section")).toBeVisible();
@@ -298,7 +315,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
     );
     await expect(studentPendingSection.first()).toBeVisible();
 
-    // Test pending/approved filter
+    // Switching to approved filter hides the pending pair
     await page.getByTestId("manager-requests-status-filter-approved").click();
     await expect(studentPendingSection).toHaveCount(0);
   });

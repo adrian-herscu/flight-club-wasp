@@ -36,7 +36,7 @@ const {
   useQuery,
 } = operations as any;
 
-type RegistrationRole = "SCHOOL_MANAGER" | "INSTRUCTOR" | "STUDENT";
+type RegistrationRole = "SCHOOL_MANAGER" | "INSTRUCTOR";
 
 type SchoolOption = {
   id: string;
@@ -349,7 +349,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
           >
             <SelectItem value="SCHOOL_MANAGER">{t("registration.schoolManager")}</SelectItem>
             <SelectItem value="INSTRUCTOR">{t("registration.instructor")}</SelectItem>
-            <SelectItem value="STUDENT">{t("registration.student")}</SelectItem>
           </LabeledSelectField>
 
           {isManagerRequest ? (

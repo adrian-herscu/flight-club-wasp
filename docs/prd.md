@@ -341,16 +341,17 @@ The project helps a prospective school community move from discovery to particip
   - Submitting the form creates a pending registration request.
   - The user can later see the submitted request and its status.
 
-### 10.5 Submit instructor or student registration requests
+### 10.5 Submit an instructor registration request
 
 - **ID**: FC-005
-- **Description**: As a registered user, I want to request instructor or student access for a selected school so that I can join that school in the right capacity.
+- **Description**: As a registered user, I want to request instructor access for a selected school so that I can join that school in the right capacity.
 - **Acceptance criteria**:
 
-  - A signed-in user can select instructor or student role in the registration flow.
+  - A signed-in user can select the instructor role in the registration flow.
   - The form requires selection of an existing school.
   - School options include recognizable school identity, including website and logo where available.
   - Submission creates a pending request tied to the selected school.
+  - Student membership is not available through the registration form; students join by expressing interest in a course and receiving manager approval.
 
 ### 10.6 Prevent invalid or duplicate role requests
 
@@ -361,7 +362,7 @@ The project helps a prospective school community move from discovery to particip
   - The system prevents duplicate pending requests for the same user, role, and school context.
   - The system returns a clear error or inline message when a request cannot be submitted.
   - Existing approved roles cannot be re-requested without a defined escalation path.
-  - Request prevention logic applies consistently across school manager, instructor, and student request types.
+  - Request prevention logic applies consistently across school manager and instructor request types.
 
 ### 10.7 Review and decide school manager requests
 
