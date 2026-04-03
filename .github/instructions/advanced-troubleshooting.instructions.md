@@ -1,5 +1,5 @@
 ---
-applyTo: "app/main.wasp,app/src/**/*.{ts,tsx},app/schema.prisma"
+applyTo: "main.wasp,src/**/*.{ts,tsx},schema.prisma"
 ---
 
 # Advanced Wasp features and troubleshooting

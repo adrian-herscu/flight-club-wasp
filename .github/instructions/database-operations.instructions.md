@@ -1,5 +1,5 @@
 ---
-applyTo: "app/main.wasp,app/schema.prisma,app/src/**/*.{ts,tsx}"
+applyTo: "main.wasp,schema.prisma,src/**/*.{ts,tsx}"
 ---
 
 # Database, entities, queries, actions

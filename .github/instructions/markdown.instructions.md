@@ -1,6 +1,6 @@
 ---
 description: 'Documentation and content creation standards'
-applyTo: 'README.md, **/README.md, E2E_SETUP_SUMMARY.md, app/docs/**/*.md, api-tests/**/*.md, e2e-tests/**/*.md'
+applyTo: 'README.md, **/README.md, E2E_SETUP_SUMMARY.md, docs/**/*.md, api-tests/**/*.md, e2e-tests/**/*.md'
 ---
 
 ## Markdown Content Rules

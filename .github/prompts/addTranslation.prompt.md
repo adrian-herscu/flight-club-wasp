@@ -26,7 +26,7 @@ Do **not** create a parallel localization system.
 3. **Create the new locale file(s) in the same architecture**
 	- Use the same directory and file conventions as existing locales.
 	- For this repository's expected structure, prefer:
-	  - `app/src/client/i18n/<locale>.ts`
+	  - `src/client/i18n/<locale>.ts`
 
 4. **Translate all keys completely**
 	- Translate every source key with natural native phrasing.

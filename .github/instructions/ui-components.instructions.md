@@ -1,5 +1,5 @@
 ---
-applyTo: "app/src/client/components/ui/**/*.{ts,tsx},app/src/client/**/*.{ts,tsx}"
+applyTo: "src/client/components/ui/**/*.{ts,tsx},src/client/**/*.{ts,tsx}"
 ---
 
 # UI components (ShadCN)

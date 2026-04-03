@@ -1,5 +1,5 @@
 ---
-applyTo: "app/main.wasp,app/schema.prisma,app/src/**/*.{ts,tsx},app/src/**/*.css"
+applyTo: "main.wasp,schema.prisma,src/**/*.{ts,tsx},src/**/*.css"
 ---
 
 # Project conventions (Wasp)

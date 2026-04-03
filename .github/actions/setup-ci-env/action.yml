@@ -6,7 +6,7 @@ inputs:
     description: PostgreSQL connection URL to write in env files
     required: true
   sendgrid-api-key:
-    description: SendGrid API key used in app/.env.server
+    description: SendGrid API key used in .env.server
     required: false
     default: ''
 

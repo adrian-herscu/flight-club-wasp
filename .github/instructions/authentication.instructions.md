@@ -1,5 +1,5 @@
 ---
-applyTo: "app/main.wasp,app/schema.prisma,app/src/auth/**/*.{ts,tsx},app/src/**/*auth*.{ts,tsx}"
+applyTo: "main.wasp,schema.prisma,src/auth/**/*.{ts,tsx},src/**/*auth*.{ts,tsx}"
 ---
 
 # Authentication rules (Wasp)

@@ -7,14 +7,14 @@
  *
  * This is NOT a mock:
  *   - HttpError is the identical class copied from the generated SDK source at
- *     app/.wasp/out/sdk/wasp/server/HttpError.ts — behaviour is preserved exactly.
+ *     .wasp/out/sdk/wasp/server/HttpError.ts — behaviour is preserved exactly.
  *   - prisma is a real PrismaClient connected to the database in .env.server —
  *     every operation runs real Prisma queries against real data.
  */
 
 import { PrismaClient } from '@prisma/client';
 
-// Identical to app/.wasp/out/sdk/wasp/server/HttpError.ts
+// Identical to .wasp/out/sdk/wasp/server/HttpError.ts
 export class HttpError extends Error {
   public statusCode: number;
   public data: unknown;
