@@ -34,6 +34,7 @@
 - Treat `schema.prisma` as the source of truth for data models and relationships.
 
 ## Project conventions
+- The product is under active development: do not preserve legacy data states, operations, compatibility shims, or docs unless the user explicitly requests backward compatibility or a staged migration.
 - Use TypeScript (`.ts` / `.tsx`) for app code.
 - Keep feature code grouped under `src/{featureName}`.
 - Keep feature query/action implementations in `operations.ts` inside the relevant feature folder.

@@ -31,18 +31,15 @@ type InterestItem = {
 };
 
 function interestStatusLabel(status: CourseInterestStatus, t: (key: string) => string): string {
-  switch (status) {
-    case "INTERESTED":
-      return t("student.statusInterested");
-    case "CONTACTED":
-      return t("student.statusContacted");
-    case "ENROLLED":
-      return t("student.statusEnrolled");
-    case "CANCELLED":
-      return t("student.statusCancelled");
-    default:
-      return String(status);
+  if (status === "ENROLLED") {
+    return t("student.statusEnrolled");
   }
+
+  if (status === "CANCELLED") {
+    return t("student.statusCancelled");
+  }
+
+  return t("student.statusInterested");
 }
 
 const StudentDashboardPage = ({ user }: { user: AuthUser }) => {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { expressInterestInCourse } from '../../src/portal/student/operations.js';
 import {
   approveStudentEnrollmentFromInterest,
+  cancelCourseInterestForManager,
   getManagerStudentCoursePairs,
 } from '../../src/school-manager/operations.js';
 import { cleanTestData, ctx, SEED } from './testHelpers.js';
@@ -116,5 +117,60 @@ describe('4.5 students page enrollment workflow (API)', () => {
 
     expect(enrollment?.courseId).toBe(targetCourse.id);
     expect(enrollment?.studentId).toBe(student?.id);
+  });
+
+  it('[STD-CIN-016] manager-cancelled interest no longer appears in pending student-course pairs', async () => {
+    const tempUser = await createTempUser();
+    const targetCourse = await getSeedCourseForSchool(SEED.schools.cloudbase);
+
+    const interest = await expressInterestInCourse(
+      { courseId: targetCourse.id },
+      { user: { id: tempUser.id } } as any,
+    );
+
+    await cancelCourseInterestForManager(
+      {
+        schoolId: SEED.schools.cloudbase,
+        interestId: interest.id,
+      },
+      ctx.schoolManager as any,
+    );
+
+    const pairs = (await getManagerStudentCoursePairs(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager as any,
+    )) as Array<{ interestId: string; status: string }>;
+
+    expect(pairs.some((pair) => pair.interestId === interest.id && pair.status !== 'ENROLLED')).toBe(false);
+  });
+
+  it('[STD-CIN-017] manager cannot cancel an enrolled interest', async () => {
+    const tempUser = await createTempUser();
+    const targetCourse = await getSeedCourseForSchool(SEED.schools.cloudbase);
+
+    const interest = await expressInterestInCourse(
+      { courseId: targetCourse.id },
+      { user: { id: tempUser.id } } as any,
+    );
+
+    await approveStudentEnrollmentFromInterest(
+      {
+        schoolId: SEED.schools.cloudbase,
+        interestId: interest.id,
+      },
+      ctx.schoolManager as any,
+    );
+
+    await expect(
+      cancelCourseInterestForManager(
+        {
+          schoolId: SEED.schools.cloudbase,
+          interestId: interest.id,
+        },
+        ctx.schoolManager as any,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
   });
 });

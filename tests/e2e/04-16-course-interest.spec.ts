@@ -77,6 +77,60 @@ async function createGlobalUnscopedCourseFixture(): Promise<{ title: string }> {
 }
 
 test.describe("4.16 course interest flow", () => {
+  test("[4.16][STD-CIN-013][STD-CIN-014] student can cancel interest and later re-express it", async ({ page }) => {
+    const { manager, schoolName, syllabusName, courseStartDate } = await createTestCourseWithManager();
+    const interestedStudent = await createTestStudentUser();
+
+    const courseDateStr = courseStartDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    await logUserIn({
+      page,
+      user: interestedStudent,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const schoolCard = page.getByTestId("landing-school-card").filter({ hasText: schoolName }).first();
+    const targetCourseCard = schoolCard
+      .getByTestId("landing-course-item")
+      .filter({ hasText: syllabusName })
+      .filter({ hasText: courseDateStr })
+      .first();
+
+    const interestButton = targetCourseCard.getByTestId("express-interest-btn");
+    await interestButton.click();
+    await expect(interestButton).toContainText(/interested/i);
+    await expect(interestButton).toBeEnabled();
+
+    await interestButton.click();
+    await expect(interestButton).toContainText(/i('| a)m interested/i);
+
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager/member-requests/students");
+    await expect(page.getByText(interestedStudent.email).first()).toHaveCount(0);
+
+    await logUserIn({
+      page,
+      user: interestedStudent,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/");
+    await targetCourseCard.getByTestId("express-interest-btn").click();
+    await expect(targetCourseCard.getByTestId("express-interest-btn")).toContainText(/interested/i);
+  });
+
   test("[4.16][STD-CIN-005] landing does not show globally-unscoped courses under school cards", async ({ page }) => {
     const fixture = await createGlobalUnscopedCourseFixture();
 
@@ -127,7 +181,7 @@ test.describe("4.16 course interest flow", () => {
       expect(pendingIntent).toBeTruthy();
     });
 
-    await test.step("After login, the selected course is automatically marked as interested and button is disabled", async () => {
+    await test.step("After login, the selected course is automatically marked as interested and button stays enabled", async () => {
       await logUserIn({
         page,
         user: interestedStudent,
@@ -150,7 +204,7 @@ test.describe("4.16 course interest flow", () => {
       await expect(targetCourseCard).toBeVisible();
 
       const interestButton = targetCourseCard.getByTestId("express-interest-btn");
-      await expect(interestButton).toBeDisabled();
+      await expect(interestButton).toBeEnabled();
       await expect(interestButton).toContainText(/interested/i);
 
       const pendingIntent = await page.evaluate((storageKey) => {
@@ -205,8 +259,8 @@ test.describe("4.16 course interest flow", () => {
       await expect(interestButton).toBeEnabled();
       await interestButton.click();
 
-      await expect.poll(async () => interestButton.isEnabled()).toBe(false);
       await expect(interestButton).toContainText(/interested/i);
+      await expect(interestButton).toBeEnabled();
     });
 
     await test.step("Manager opens the course interest panel for the same course", async () => {
@@ -258,7 +312,6 @@ test.describe("4.16 course interest flow", () => {
       const interestEntry = page.getByText(interestedStudent.email).first();
       await expect(interestEntry).toBeVisible();
       await expect(page.getByTestId("interest-status-badge").first()).toContainText("INTERESTED");
-      await expect(page.getByTestId("mark-contacted-btn").first()).toBeVisible();
     });
   });
 });

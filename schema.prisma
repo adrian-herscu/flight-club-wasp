@@ -44,7 +44,6 @@ enum LessonEvaluationStatus {
 
 enum CourseInterestStatus {
   INTERESTED
-  CONTACTED
   ENROLLED
   CANCELLED
 }

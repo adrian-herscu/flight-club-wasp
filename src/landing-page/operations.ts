@@ -13,6 +13,7 @@ export type LandingCourse = {
   maxCapacity: number | null;
   hourlyRate: number | null;
   canExpressInterest: boolean;
+  viewerInterestId: string | null;
   viewerInterestStatus: CourseInterestStatus | null;
 };
 
@@ -113,7 +114,10 @@ export const getLandingSchoolsWithCourses = async (
     (course) => latestStatusByCourseId.get(course.id) !== CourseLifecycleStatus.CLOSED,
   );
 
-  const viewerInterestByCourseId = new Map<string, CourseInterestStatus>();
+  const viewerInterestByCourseId = new Map<
+    string,
+    { id: string; status: CourseInterestStatus }
+  >();
   if (context.user?.id && openFinalCourses.length > 0) {
     const viewerInterests = await prisma.courseInterest.findMany({
       where: {
@@ -123,13 +127,17 @@ export const getLandingSchoolsWithCourses = async (
         },
       },
       select: {
+        id: true,
         courseId: true,
         status: true,
       },
     });
 
     for (const interest of viewerInterests) {
-      viewerInterestByCourseId.set(interest.courseId, interest.status);
+      viewerInterestByCourseId.set(interest.courseId, {
+        id: interest.id,
+        status: interest.status,
+      });
     }
   }
 
@@ -147,6 +155,16 @@ export const getLandingSchoolsWithCourses = async (
               course.syllabusVersion.syllabus.schoolId === school.id),
         )
         .map((course) => ({
+          ...(viewerInterestByCourseId.get(course.id)
+            ? {
+                viewerInterestId: viewerInterestByCourseId.get(course.id)?.id ?? null,
+                viewerInterestStatus:
+                  viewerInterestByCourseId.get(course.id)?.status ?? null,
+              }
+            : {
+                viewerInterestId: null,
+                viewerInterestStatus: null,
+              }),
           id: course.id,
           title: `${course.syllabusVersion.syllabus.name} v${course.syllabusVersion.version}`,
           startDate: course.startDate,
@@ -154,7 +172,6 @@ export const getLandingSchoolsWithCourses = async (
           maxCapacity: course.maxCapacity,
           hourlyRate: course.hourlyRate,
           canExpressInterest: true,
-          viewerInterestStatus: viewerInterestByCourseId.get(course.id) ?? null,
         }));
 
       const fallbackFinalSyllabusCourses = publishedSyllabusVersions
@@ -171,6 +188,7 @@ export const getLandingSchoolsWithCourses = async (
           maxCapacity: null,
           hourlyRate: null,
           canExpressInterest: false,
+          viewerInterestId: null,
           viewerInterestStatus: null,
         }));
 

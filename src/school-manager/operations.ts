@@ -126,12 +126,12 @@ type ApproveStudentEnrollmentFromInterestInput = z.infer<
   typeof approveStudentEnrollmentFromInterestSchema
 >;
 
-const advanceCourseInterestToContactedSchema = z.object({
+const cancelCourseInterestForManagerSchema = z.object({
   interestId: z.string().min(1),
 });
 
-type AdvanceCourseInterestToContactedInput = z.infer<
-  typeof advanceCourseInterestToContactedSchema
+type CancelCourseInterestForManagerInput = z.infer<
+  typeof cancelCourseInterestForManagerSchema
 >;
 
 export type ManagerInterestItem = {
@@ -1696,7 +1696,7 @@ async function ensureApprovedStudentRegistrationRequestId(
 
 /**
  * Returns student-course pairs sourced from CourseInterest records in the
- * manager's school scope. Includes INTERESTED/CONTACTED/ENROLLED states.
+ * manager's school scope. Includes actionable pending and enrolled states.
  */
 export const getManagerStudentCoursePairs = async (
   rawArgs: unknown,
@@ -1714,11 +1714,7 @@ export const getManagerStudentCoursePairs = async (
   const interests = await prisma.courseInterest.findMany({
     where: {
       status: {
-        in: [
-          CourseInterestStatus.INTERESTED,
-          CourseInterestStatus.CONTACTED,
-          CourseInterestStatus.ENROLLED,
-        ],
+        in: [CourseInterestStatus.INTERESTED, CourseInterestStatus.ENROLLED],
       },
       course: {
         ...buildManagedSchoolCourseFilter(school.id),
@@ -1925,8 +1921,7 @@ export const approveStudentEnrollmentFromInterest = async (
 
 /**
  * Returns CourseInterest records for the manager's school, filtered by an
- * optional courseId. Only INTERESTED and CONTACTED records are returned (i.e.
- * actionable interests — ENROLLED/CANCELLED are excluded).
+ * optional courseId. Only actionable INTERESTED records are returned (ENROLLED/CANCELLED are excluded).
  */
 export const getManagerCourseInterests = async (
   rawArgs: unknown,
@@ -1943,7 +1938,7 @@ export const getManagerCourseInterests = async (
 
   const interests = await prisma.courseInterest.findMany({
     where: {
-      status: { in: [CourseInterestStatus.INTERESTED, CourseInterestStatus.CONTACTED] },
+      status: { in: [CourseInterestStatus.INTERESTED] },
       course: {
         ...buildManagedSchoolCourseFilter(school.id),
         ...(args.courseId ? { id: args.courseId } : {}),
@@ -2001,11 +1996,8 @@ export const getManagerCourseInterests = async (
   }));
 };
 
-/**
- * Advances a CourseInterest record from INTERESTED to CONTACTED. The interest
- * must belong to a course managed by the calling manager.
- */
-export const advanceCourseInterestToContacted = async (
+
+export const cancelCourseInterestForManager = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ id: string; status: CourseInterestStatus }> => {
@@ -2014,9 +2006,9 @@ export const advanceCourseInterestToContacted = async (
   const school = await getManagedSchoolForUserId(user.id, schoolId);
 
   const { interestId } = ensureArgsSchemaOrThrowHttpError(
-    advanceCourseInterestToContactedSchema,
+    cancelCourseInterestForManagerSchema,
     rawArgs,
-  ) as AdvanceCourseInterestToContactedInput;
+  ) as CancelCourseInterestForManagerInput;
 
   const interest = await prisma.courseInterest.findFirst({
     where: {
@@ -2030,16 +2022,20 @@ export const advanceCourseInterestToContacted = async (
     throw new HttpError(404, "Course interest not found in your school scope.");
   }
 
-  if (interest.status !== CourseInterestStatus.INTERESTED) {
-    throw new HttpError(
-      409,
-      "Only INTERESTED records can be advanced to CONTACTED.",
-    );
+  if (interest.status === CourseInterestStatus.ENROLLED) {
+    throw new HttpError(409, "Enrolled course interest cannot be cancelled.");
+  }
+
+  if (interest.status === CourseInterestStatus.CANCELLED) {
+    return {
+      id: interest.id,
+      status: interest.status,
+    };
   }
 
   const updated = await prisma.courseInterest.update({
-    where: { id: interestId },
-    data: { status: CourseInterestStatus.CONTACTED },
+    where: { id: interest.id },
+    data: { status: CourseInterestStatus.CANCELLED },
     select: { id: true, status: true },
   });
 

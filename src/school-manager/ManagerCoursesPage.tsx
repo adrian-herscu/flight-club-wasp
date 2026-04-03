@@ -1,3 +1,4 @@
+import { type CourseInterestStatus } from "@prisma/client";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
@@ -36,8 +37,8 @@ import { toast } from "../client/hooks/use-toast";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
-  advanceCourseInterestToContacted,
   assignInstructorToCourse,
+  cancelCourseInterestForManager,
   closeCourse,
   createCourseFromFinalSyllabus,
   enrollStudentInCourse,
@@ -100,7 +101,7 @@ type CourseInstructorDetails = {
 
 type CourseInterestItem = {
   id: string;
-  status: "INTERESTED" | "CONTACTED";
+  status: CourseInterestStatus;
   user: {
     id: string;
     fullName: string | null;
@@ -195,23 +196,23 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   });
   const courseInterests = (courseInterestsData as CourseInterestItem[] | undefined) ?? [];
 
-  const [advancingInterestId, setAdvancingInterestId] = useState<string | null>(null);
+  const [cancellingInterestId, setCancellingInterestId] = useState<string | null>(null);
 
-  async function handleAdvanceToContacted(interestId: string) {
-    if (advancingInterestId) return;
-    setAdvancingInterestId(interestId);
+  async function handleCancelInterest(interestId: string) {
+    if (cancellingInterestId) return;
+    setCancellingInterestId(interestId);
     try {
-      await advanceCourseInterestToContacted({ schoolId: selectedSchoolId, interestId });
+      await cancelCourseInterestForManager({ schoolId: selectedSchoolId, interestId });
       await refetchCourseInterests();
-      toast({ title: t("student.contactedSuccess") });
+      toast({ title: t("admin.interestCancelled") });
     } catch (err) {
       toast({
-        title: t("student.contactedError"),
+        title: t("admin.interestCancelFailed"),
         description: err instanceof Error ? err.message : undefined,
         variant: "destructive",
       });
     } finally {
-      setAdvancingInterestId(null);
+      setCancellingInterestId(null);
     }
   }
 
@@ -952,19 +953,17 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                     email={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
                     status={interest.status}
                     action={
-                      interest.status === "INTERESTED" ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={advancingInterestId === interest.id}
-                          onClick={() => handleAdvanceToContacted(interest.id)}
-                          data-testid="mark-contacted-btn"
-                        >
-                          {advancingInterestId === interest.id
-                            ? t("student.markingAsContacted")
-                            : t("student.markAsContacted")}
-                        </Button>
-                      ) : undefined
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={cancellingInterestId === interest.id}
+                        onClick={() => handleCancelInterest(interest.id)}
+                        data-testid="cancel-interest-btn"
+                      >
+                        {cancellingInterestId === interest.id
+                          ? t("admin.cancellingInterest")
+                          : t("admin.cancelInterest")}
+                      </Button>
                     }
                   />
                 ))}

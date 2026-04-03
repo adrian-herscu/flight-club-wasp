@@ -33,7 +33,7 @@ Workflow implementation planning and status tracking: see [queries/README.md](..
 - `School`: `currency` (ISO 4217 code, e.g., USD, GBP, EUR), optional default hourly rate baseline (`defaultHourlyRate`, whole currency units)
 - `Course`: `minCapacity`, `maxCapacity`, default hourly rate (`hourlyRate`, whole currency units).
 - `CourseLesson`: required `syllabusLessonId`, optional extra-session marker (`isExtra`), `bufferMinutes`, optional lesson-level price override (`lessonPrice`, whole currency units)
-- `CourseInterest.status`: `INTERESTED`, `CONTACTED`, `ENROLLED`, `CANCELLED`
+- `CourseInterest.status`: supported lifecycle values are `INTERESTED`, `ENROLLED`, and `CANCELLED`.
 - `Account.balanceMinor`: current balance in minor units (cents); `currency` matches school currency (or EUR for the system school)
 - `Transaction.amountMinor`: always positive; `type` (`DEPOSIT`/`WITHDRAWAL`) determines debit/credit direction; `linkedTransactionId` cross-references the counterpart leg of a transfer
 

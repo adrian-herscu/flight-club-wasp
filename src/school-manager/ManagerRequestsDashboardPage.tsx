@@ -1,3 +1,4 @@
+import { type CourseInterestStatus } from "@prisma/client";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -26,6 +27,7 @@ import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
   approveStudentEnrollmentFromInterest,
+  cancelCourseInterestForManager,
   approveSchoolMemberRequest,
   getManagerStudentCoursePairs,
   getMyManagedSchool,
@@ -57,7 +59,7 @@ type MemberRequestItem = {
 
 type StudentCoursePairItem = {
   interestId: string;
-  status: "INTERESTED" | "CONTACTED" | "ENROLLED";
+  status: CourseInterestStatus;
   student: {
     fullName: string | null;
     email: string | null;
@@ -67,6 +69,10 @@ type StudentCoursePairItem = {
     title: string;
   };
 };
+
+function isPendingInterestStatus(status: CourseInterestStatus): boolean {
+  return status !== "ENROLLED" && status !== "CANCELLED";
+}
 
 type MemberRequestRoleFilter = "ALL" | "INSTRUCTORS" | "STUDENTS";
 type MemberRequestStatusFilter = "ALL" | "PENDING" | "APPROVED";
@@ -126,6 +132,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
   const [isRejectingId, setIsRejectingId] = useState<string | null>(null);
   const [isApprovingEnrollmentId, setIsApprovingEnrollmentId] = useState<string | null>(null);
+  const [isCancellingInterestId, setIsCancellingInterestId] = useState<string | null>(null);
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [roleFilter, setRoleFilter] = useState<MemberRequestRoleFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<MemberRequestStatusFilter>("ALL");
@@ -194,7 +201,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     return searchFiltered.filter((pair) => {
       if (statusFilter === "ALL") return true;
       if (statusFilter === "PENDING") {
-        return pair.status === "INTERESTED" || pair.status === "CONTACTED";
+        return isPendingInterestStatus(pair.status);
       }
       return pair.status === "ENROLLED";
     });
@@ -212,8 +219,8 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const studentsApprovedRequests = filteredRequests.filter(
     (request) => request.requestedRole === "STUDENT" && request.status === "APPROVED",
   );
-  const studentsPendingPairs = filteredStudentCoursePairs.filter(
-    (pair) => pair.status === "INTERESTED" || pair.status === "CONTACTED",
+  const studentsPendingPairs = filteredStudentCoursePairs.filter((pair) =>
+    isPendingInterestStatus(pair.status),
   );
   const studentsApprovedPairs = filteredStudentCoursePairs.filter(
     (pair) => pair.status === "ENROLLED",
@@ -295,6 +302,29 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
+  const handleCancelInterest = async (interestId: string) => {
+    setIsCancellingInterestId(interestId);
+    try {
+      await cancelCourseInterestForManager({
+        interestId,
+        schoolId: selectedSchoolId,
+      });
+      await refetchCurrentView();
+      toast({
+        title: t("admin.interestCancelled"),
+        description: t("admin.interestCancelledDescription"),
+      });
+    } catch (error: unknown) {
+      toast({
+        title: t("admin.interestCancelFailed"),
+        description: error instanceof Error ? error.message : t("admin.approvalError"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancellingInterestId(null);
+    }
+  };
+
   const renderRequestSummary = (request: MemberRequestItem) => (
     <ManagerRequestsSummaryGrid>
       <ManagerRequestsSummaryColumn label={t("dashboard.requestedRole")}>
@@ -353,7 +383,22 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
             {isPendingSection && (
               <ManagerRequestsActionsRow>
                 <Button
-                  disabled={isApprovingEnrollmentId === pair.interestId}
+                  variant="outline"
+                  disabled={
+                    isCancellingInterestId === pair.interestId ||
+                    isApprovingEnrollmentId === pair.interestId
+                  }
+                  onClick={() => handleCancelInterest(pair.interestId)}
+                >
+                  {isCancellingInterestId === pair.interestId
+                    ? t("admin.cancellingInterest")
+                    : t("admin.cancelInterest")}
+                </Button>
+                <Button
+                  disabled={
+                    isApprovingEnrollmentId === pair.interestId ||
+                    isCancellingInterestId === pair.interestId
+                  }
                   onClick={() => handleApproveEnrollment(pair.interestId)}
                 >
                   {isApprovingEnrollmentId === pair.interestId

@@ -485,9 +485,10 @@ The project helps a prospective school community move from discovery to particip
   - While that pending unauthenticated intent exists, additional anonymous "I'm Interested" clicks are ignored and do not replace the first selected course.
   - After login/signup, the pending course intent is consumed at most once, converted into `CourseInterest(INTERESTED)` if needed, and then cleared.
   - Expressing interest on an already-INTERESTED course is idempotent.
-  - On landing, courses already marked `INTERESTED` or `CONTACTED` for the signed-in user render as non-clickable "Interested" state.
+  - On landing, pre-enrollment courses marked `INTERESTED` stay visibly interested, and clicking "Interested" again cancels that interest.
+  - A cancelled pre-enrollment interest can later be re-opened from landing by clicking "I'm Interested" again.
   - On landing, courses approved to `ENROLLED` for the signed-in user show an "Enrolled" label.
   - The student dashboard shows a "My Interests" list with course title, school name, and current status.
-  - A school manager can view all `CourseInterest(INTERESTED/CONTACTED)` records for their school's courses in the Courses page.
-  - A school manager can advance an interest from `INTERESTED` to `CONTACTED`.
+  - A school manager can view pending course-interest records for their school's courses in the Courses page.
+  - A school manager can cancel a pending interest before enrollment from the students queue.
   - All interest operations enforce authentication and role authorization on the server side.

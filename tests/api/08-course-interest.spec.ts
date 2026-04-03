@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  cancelMyCourseInterest,
   expressInterestInCourse,
   getMyInterests,
 } from '../../src/portal/student/operations.js';
 import {
-  advanceCourseInterestToContacted,
+  approveStudentEnrollmentFromInterest,
+  cancelCourseInterestForManager,
   getManagerCourseInterests,
   createCourseFromFinalSyllabus,
 } from '../../src/school-manager/operations.js';
@@ -155,6 +157,41 @@ describe('8 course interest flow (API)', () => {
     });
   });
 
+  describe('cancelMyCourseInterest', () => {
+    it('[STD-CIN-013] student can cancel a pre-enrollment interest', async () => {
+      const courseId = await createTestCourse();
+      const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
+
+      const result = await cancelMyCourseInterest({ interestId: interest.id }, ctx.student) as {
+        id: string;
+        status: string;
+      };
+
+      expect(result.status).toBe('CANCELLED');
+
+      const record = await prisma.courseInterest.findUnique({
+        where: { id: interest.id },
+        select: { status: true },
+      });
+      expect(record?.status).toBe('CANCELLED');
+    });
+
+    it('[STD-CIN-014] cancelled interest can be re-opened by expressing interest again', async () => {
+      const courseId = await createTestCourse();
+      const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
+
+      await cancelMyCourseInterest({ interestId: interest.id }, ctx.student);
+
+      const reopened = await expressInterestInCourse({ courseId }, ctx.student) as {
+        id: string;
+        status: string;
+      };
+
+      expect(reopened.id).toBe(interest.id);
+      expect(reopened.status).toBe('INTERESTED');
+    });
+  });
+
   describe('getMyInterests', () => {
     it('returns a list of interests (may include previous test data)', async () => {
       const result = await getMyInterests(undefined, ctx.student) as unknown[];
@@ -221,90 +258,54 @@ describe('8 course interest flow (API)', () => {
     });
   });
 
-  describe('advanceCourseInterestToContacted', () => {
-    it('[STD-CIN-006] advances INTERESTED to CONTACTED', async () => {
+
+  describe('getManagerCourseInterests lifecycle filtering', () => {
+    it('[STD-CIN-006] excludes cancelled interests from the manager actionable interests list', async () => {
       const courseId = await createTestCourse();
       const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
 
-      const result = await advanceCourseInterestToContacted(
+      await cancelCourseInterestForManager(
+        { schoolId: SEED.schools.cloudbase, interestId: interest.id },
+        ctx.schoolManager,
+      );
+
+      const result = await getManagerCourseInterests(
+        { schoolId: SEED.schools.cloudbase, courseId },
+        ctx.schoolManager,
+      ) as { id: string }[];
+
+      expect(result.some((item) => item.id === interest.id)).toBe(false);
+    });
+
+    it('[STD-CIN-007] excludes enrolled interests from the manager actionable interests list', async () => {
+      const courseId = await createTestCourse();
+      const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
+
+      await approveStudentEnrollmentFromInterest(
+        { schoolId: SEED.schools.cloudbase, interestId: interest.id },
+        ctx.schoolManager,
+      );
+
+      const result = await getManagerCourseInterests(
+        { schoolId: SEED.schools.cloudbase, courseId },
+        ctx.schoolManager,
+      ) as { id: string }[];
+
+      expect(result.some((item) => item.id === interest.id)).toBe(false);
+    });
+  });
+
+  describe('cancelCourseInterestForManager', () => {
+    it('[STD-CIN-015] manager can cancel a pending course interest in school scope', async () => {
+      const courseId = await createTestCourse();
+      const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
+
+      const result = await cancelCourseInterestForManager(
         { schoolId: SEED.schools.cloudbase, interestId: interest.id },
         ctx.schoolManager,
       ) as { id: string; status: string };
 
-      expect(result.status).toBe('CONTACTED');
-
-      const record = await prisma.courseInterest.findUnique({
-        where: { id: interest.id },
-        select: { status: true },
-      });
-      expect(record?.status).toBe('CONTACTED');
-    });
-
-    it('[STD-CIN-007] returns 409 when interest is already CONTACTED', async () => {
-      const courseId = await createTestCourse();
-      const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
-      await advanceCourseInterestToContacted(
-        { schoolId: SEED.schools.cloudbase, interestId: interest.id },
-        ctx.schoolManager,
-      );
-
-      await expectHttpError(
-        advanceCourseInterestToContacted(
-          { schoolId: SEED.schools.cloudbase, interestId: interest.id },
-          ctx.schoolManager,
-        ),
-        409,
-        'Only INTERESTED records can be advanced to CONTACTED.',
-      );
-    });
-
-    it('returns 404 when interest does not belong to the managed school', async () => {
-      // Create a course for cloudbase school
-      const courseId = await createTestCourse();
-      const interest = await expressInterestInCourse({ courseId }, ctx.student) as { id: string };
-
-      // Try to advance with a fake interest ID that won't match any course in the manager's scope
-      await expectHttpError(
-        advanceCourseInterestToContacted(
-          { schoolId: SEED.schools.cloudbase, interestId: 'non-existent-interest-' + Date.now() },
-          ctx.schoolManager,
-        ),
-        404,
-        'Course interest not found in your school scope.',
-      );
-    });
-
-    it('returns 404 for unknown interest id', async () => {
-      await expectHttpError(
-        advanceCourseInterestToContacted(
-          { schoolId: SEED.schools.cloudbase, interestId: 'non-existent-interest-id' },
-          ctx.schoolManager,
-        ),
-        404,
-        'Course interest not found in your school scope.',
-      );
-    });
-
-    it('returns 403 for non-manager user', async () => {
-      await expectHttpError(
-        advanceCourseInterestToContacted(
-          { interestId: 'some-id' },
-          ctx.student,
-        ),
-        403,
-        'Only school managers can access this resource.',
-      );
-    });
-
-    it('returns 401 for unauthenticated user', async () => {
-      await expectHttpError(
-        advanceCourseInterestToContacted(
-          { interestId: 'some-id' },
-          ctx.unauthenticated,
-        ),
-        401,
-        'Only authenticated users can access manager features.',
-      );
+      expect(result.status).toBe('CANCELLED');
     });
   });
 });

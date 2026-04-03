@@ -329,8 +329,8 @@ query getManagerStudentCoursePairs {
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
 }
 
-action advanceCourseInterestToContacted {
-  fn: import { advanceCourseInterestToContacted } from "@src/school-manager/operations",
+action cancelCourseInterestForManager {
+  fn: import { cancelCourseInterestForManager } from "@src/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
 }
 
@@ -344,6 +344,11 @@ action approveStudentEnrollmentFromInterest {
 action expressInterestInCourse {
   fn: import { expressInterestInCourse } from "@src/portal/student/operations",
   entities: [User, Course, CourseInterest]
+}
+
+action cancelMyCourseInterest {
+  fn: import { cancelMyCourseInterest } from "@src/portal/student/operations",
+  entities: [User, CourseInterest]
 }
 
 query getMyInterests {

@@ -11,6 +11,10 @@ const expressInterestInCourseSchema = z.object({
   courseId: z.string().min(1),
 });
 
+const cancelMyCourseInterestSchema = z.object({
+  interestId: z.string().min(1),
+});
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -74,7 +78,7 @@ export const expressInterestInCourse = async (
       });
       return updated;
     }
-    // Already INTERESTED, CONTACTED, or ENROLLED — return as-is.
+    // Already INTERESTED or ENROLLED — return as-is.
     return { id: existing.id, status: existing.status };
   }
 
@@ -88,6 +92,54 @@ export const expressInterestInCourse = async (
   });
 
   return created;
+};
+
+export const cancelMyCourseInterest = async (
+  rawArgs: unknown,
+  context: { user?: { id: string } | null },
+): Promise<{ id: string; status: CourseInterestStatus }> => {
+  if (!context.user) {
+    throw new HttpError(401, "You must be logged in to cancel course interest.");
+  }
+
+  const { interestId } = ensureArgsSchemaOrThrowHttpError(
+    cancelMyCourseInterestSchema,
+    rawArgs,
+  );
+
+  const interest = await prisma.courseInterest.findFirst({
+    where: {
+      id: interestId,
+      userId: context.user.id,
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+  if (!interest) {
+    throw new HttpError(404, "Course interest not found.");
+  }
+
+  if (interest.status === CourseInterestStatus.ENROLLED) {
+    throw new HttpError(409, "Enrolled course interest cannot be cancelled.");
+  }
+
+  if (interest.status === CourseInterestStatus.CANCELLED) {
+    return {
+      id: interest.id,
+      status: interest.status,
+    };
+  }
+
+  const updated = await prisma.courseInterest.update({
+    where: { id: interest.id },
+    data: { status: CourseInterestStatus.CANCELLED },
+    select: { id: true, status: true },
+  });
+
+  return updated;
 };
 
 // ---------------------------------------------------------------------------
