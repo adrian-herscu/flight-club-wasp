@@ -450,6 +450,7 @@ export const en = {
     minCapacityLabel: "Min capacity (optional)",
     maxCapacityLabel: "Max capacity (optional)",
     courseHourlyRateLabel: "Course hourly rate (optional override)",
+    courseHourlyRateRequiredLabel: "Course hourly rate (required)",
     createCourseButton: "Create course",
     creatingCourse: "Creating...",
     loadingCatalog: "Loading syllabus catalog...",

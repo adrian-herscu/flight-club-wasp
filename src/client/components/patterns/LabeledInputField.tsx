@@ -13,6 +13,7 @@ type LabeledInputFieldProps = {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 };
 
 const LabeledInputField = ({
@@ -27,6 +28,7 @@ const LabeledInputField = ({
   disabled,
   placeholder,
   className = "space-y-2",
+  required,
 }: LabeledInputFieldProps) => {
   return (
     <div className={className}>
@@ -41,6 +43,7 @@ const LabeledInputField = ({
         maxLength={maxLength}
         disabled={disabled}
         placeholder={placeholder}
+        required={required}
       />
     </div>
   );

@@ -449,6 +449,7 @@ export const he = {
     minCapacityLabel: "קיבולת מינימום (אופציונלי)",
     maxCapacityLabel: "קיבולת מקסימום (אופציונלי)",
     courseHourlyRateLabel: "תעריף שעתי לקורס (דריסה אופציונלית)",
+    courseHourlyRateRequiredLabel: "תעריף שעתי לקורס (נדרש)",
     createCourseButton: "יצור קורס",
     creatingCourse: "יוצר...",
     loadingCatalog: "טוען קטלוג תכניות לימודים...",

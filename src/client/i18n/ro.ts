@@ -449,6 +449,7 @@ export const ro = {
     minCapacityLabel: "Capacitate minimă (opțional)",
     maxCapacityLabel: "Capacitate maximă (opțional)",
     courseHourlyRateLabel: "Tarif orar curs (suprascriere opțională)",
+    courseHourlyRateRequiredLabel: "Tarif orar curs (obligatoriu)",
     createCourseButton: "Creează curs",
     creatingCourse: "Se creează...",
     loadingCatalog: "Se încarcă catalogul planurilor de studiu...",

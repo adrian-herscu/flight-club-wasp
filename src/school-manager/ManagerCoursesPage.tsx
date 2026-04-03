@@ -483,6 +483,15 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       return;
     }
 
+    if (parsedHourlyRate == null && managedSchoolDefaultHourlyRate == null) {
+      toast({
+        title: t("syllabus.missingHourlyRate"),
+        description: t("syllabus.hourlyRateRequired"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreatingCourse(true);
     try {
       await createCourseFromFinalSyllabus({
@@ -736,11 +745,16 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
 
                 <LabeledInputField
                   id="manager-course-hourly-rate"
-                  label={t("syllabus.courseHourlyRateLabel")}
+                  label={
+                    managedSchoolDefaultHourlyRate != null
+                      ? t("syllabus.courseHourlyRateLabel")
+                      : t("syllabus.courseHourlyRateRequiredLabel")
+                  }
                   type="number"
                   min={1}
                   value={newCourseHourlyRate}
                   onChange={setNewCourseHourlyRate}
+                  required={managedSchoolDefaultHourlyRate == null}
                 />
 
                 <Button type="submit" disabled={isCreatingCourse || finalCandidates.length === 0}>
