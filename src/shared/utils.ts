@@ -60,3 +60,23 @@ export function throttleWithTrailingInvocation(
 
   return throttledFn as typeof throttledFn & { cancel: () => void };
 }
+
+/**
+ * Returns the first day of the month that is at least 30 days from today.
+ * Formatted as YYYY-MM-DD for HTML5 date input.
+ */
+export function getDefaultCourseStartDate(): string {
+  const today = new Date();
+  const thirtyDaysLater = new Date(today);
+  thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+
+  let targetDate = new Date(thirtyDaysLater);
+  targetDate.setDate(1);
+  targetDate.setMonth(targetDate.getMonth() + 1);
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+  const day = "01";
+
+  return `${year}-${month}-${day}`;
+}

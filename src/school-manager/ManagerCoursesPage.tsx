@@ -3,6 +3,7 @@ import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
+import { getDefaultCourseStartDate } from "../shared/utils";
 import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
 import LabeledInputField from "../client/components/patterns/LabeledInputField";
@@ -230,6 +231,10 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const [newCourseMinCapacity, setNewCourseMinCapacity] = useState<string>("");
   const [newCourseMaxCapacity, setNewCourseMaxCapacity] = useState<string>("");
   const [newCourseHourlyRate, setNewCourseHourlyRate] = useState<string>("");
+
+  useEffect(() => {
+    setNewCourseStartDate(getDefaultCourseStartDate());
+  }, []);
 
   useEffect(() => {
     if (newCourseHourlyRate.trim() !== "") {
