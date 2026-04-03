@@ -35,6 +35,9 @@
 
 ## Project conventions
 - The product is under active development: do not preserve legacy data states, operations, compatibility shims, or docs unless the user explicitly requests backward compatibility or a staged migration.
+- Default posture is forward-only: delete obsolete branches/flags/queries in the same change that introduces the replacement.
+- Do not introduce URL-based hidden setup contracts for user flows (for example, query-param preselection) unless explicitly requested for a temporary migration.
+- If a temporary compatibility path is explicitly approved, add a removal condition and remove it in the next scoped change.
 - Use TypeScript (`.ts` / `.tsx`) for app code.
 - Keep feature code grouped under `src/{featureName}`.
 - Keep feature query/action implementations in `operations.ts` inside the relevant feature folder.

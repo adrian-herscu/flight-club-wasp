@@ -10,8 +10,10 @@ test.describe("4.3 registration and role requests - school listing", () => {
       expectedRedirectPath: "/registration",
     });
 
-    await page.goto("/registration?role=INSTRUCTOR");
+    await page.goto("/registration");
     await page.waitForLoadState("networkidle");
+    await page.locator("#registration-requested-role").click();
+    await page.getByRole("option", { name: /instructor/i }).first().click();
 
     // School selector should be visible for non-manager role
     const schoolSelectorLabel = page.getByText(/select school/i).first();

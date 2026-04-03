@@ -1,80 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createTestCourseWithManager, logUserIn, createTestStudentUser } from "./utils.js";
-import { randomUUID } from "crypto";
 
 const PENDING_ANON_INTEREST_KEY = "landing.pendingAnonCourseInterest";
-
-async function createGlobalUnscopedCourseFixture(): Promise<{ title: string }> {
-  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
-    import("@prisma/client"),
-    import("dotenv"),
-    import("path"),
-  ]);
-
-  config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
-    override: false,
-  });
-
-  const prisma = new PrismaClient();
-  try {
-    const actor = await prisma.user.findFirst({
-      select: { id: true },
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (!actor) {
-      throw new Error("No user available for creating lifecycle events.");
-    }
-
-    const uniqueName = `GlobalLeakGuard-${Date.now()}-${randomUUID().slice(0, 6)}`;
-
-    const syllabus = await prisma.syllabus.create({
-      data: {
-        name: uniqueName,
-        schoolId: null,
-      },
-    });
-
-    const syllabusVersion = await prisma.syllabusVersion.create({
-      data: {
-        syllabusId: syllabus.id,
-        version: 1,
-        status: "FINAL",
-        lessons: {
-          create: [
-            {
-              position: 1,
-              name: "Global fixture intro",
-              description: "Regression fixture lesson",
-              durationMinutes: 30,
-            },
-          ],
-        },
-      },
-    });
-
-    const course = await prisma.course.create({
-      data: {
-        syllabusVersionId: syllabusVersion.id,
-        schoolId: null,
-        startDate: new Date("2027-01-15T00:00:00.000Z"),
-      },
-    });
-
-    await prisma.courseLifecycleEvent.create({
-      data: {
-        courseId: course.id,
-        changedByUserId: actor.id,
-        status: "REOPENED",
-      },
-    });
-
-    return { title: `${uniqueName} v1` };
-  } finally {
-    await prisma.$disconnect();
-  }
-}
 
 test.describe("4.16 course interest flow", () => {
   test("[4.16][STD-CIN-013][STD-CIN-014] student can cancel interest and later re-express it", async ({ page }) => {
@@ -129,17 +56,6 @@ test.describe("4.16 course interest flow", () => {
     await page.goto("/");
     await targetCourseCard.getByTestId("express-interest-btn").click();
     await expect(targetCourseCard.getByTestId("express-interest-btn")).toContainText(/interested/i);
-  });
-
-  test("[4.16][STD-CIN-005] landing does not show globally-unscoped courses under school cards", async ({ page }) => {
-    const fixture = await createGlobalUnscopedCourseFixture();
-
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await page.getByTestId("filter-course-name").fill(fixture.title);
-
-    await expect(page.getByTestId("landing-course-item").filter({ hasText: fixture.title })).toHaveCount(0);
   });
 
   test("[4.16][STD-CIN-003][STD-CIN-011][STD-CIN-012] first anonymous click redirects to login and resumes as interested after login", async ({ page }) => {

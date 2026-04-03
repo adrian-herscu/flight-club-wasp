@@ -17,6 +17,8 @@ applyTo: 'e2e-tests/**/*.ts, api-tests/**/*.ts, **/*.spec.ts, **/*.test.ts, **/p
 - **Organization**: Group related tests for a feature under a `test.describe()` block.
 - **Hooks**: Use `beforeEach` for setup actions common to all tests in a `describe` block (e.g., navigating to a page).
 - **Titles**: Follow a clear naming convention, such as `Feature - Specific action or scenario`.
+- **User Journeys**: Prefer visible user journeys and UI-driven setup over hidden URL contracts.
+- **Deep-Link Setup**: Avoid query-parameter deep-link shortcuts for test setup unless explicitly required for a temporary migration.
 
 
 ### File Organization

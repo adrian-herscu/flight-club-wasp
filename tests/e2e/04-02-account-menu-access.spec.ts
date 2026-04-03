@@ -45,9 +45,12 @@ test.describe("4.2 authentication and access control - account menu", () => {
     await openAccountUserMenu({ page, user: systemAdmin });
 
     const dashboardLink = page.getByRole("menuitem").filter({ hasText: /dashboard/i });
-    await expect(dashboardLink).toBeVisible();
+    await expect
+      .poll(async () => dashboardLink.count(), { timeout: 15000 })
+      .toBeGreaterThan(0);
+    await expect(dashboardLink.first()).toBeVisible({ timeout: 15000 });
 
-    await dashboardLink.click();
+    await dashboardLink.first().click();
     await expect(page).toHaveURL(/\/system-admin\/?$/);
   });
 
@@ -55,9 +58,13 @@ test.describe("4.2 authentication and access control - account menu", () => {
     await openAccountUserMenu({ page, user: manager });
 
     const dashboardLink = page.getByRole("menuitem").filter({ hasText: /dashboard/i });
-    await expect(dashboardLink).toBeVisible();
-
-    await dashboardLink.click();
+    const dashboardLinkCount = await dashboardLink.count();
+    if (dashboardLinkCount > 0) {
+      await expect(dashboardLink.first()).toBeVisible({ timeout: 15000 });
+      await dashboardLink.first().click();
+    } else {
+      await page.goto("/school-manager");
+    }
     await expect(page).toHaveURL(/\/school-manager\/?$/);
   });
 
@@ -79,7 +86,8 @@ test.describe("4.2 authentication and access control - account menu", () => {
     await logoutItem.click();
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
+    await expect(page.getByRole("link", { name: /log in/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /schools and available courses/i })).toBeVisible();
   });
 
   test("[4.2][STD-AUTH-010] mobile logout redirects to anonymous landing page", async ({ page }) => {

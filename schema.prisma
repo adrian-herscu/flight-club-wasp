@@ -391,8 +391,8 @@ model Course {
   syllabusVersion           SyllabusVersion @relation(fields: [syllabusVersionId], references: [id])
   syllabusVersionId         String
 
-  school                    School?         @relation(fields: [schoolId], references: [id])
-  schoolId                  String?
+  school                    School          @relation(fields: [schoolId], references: [id])
+  schoolId                  String
 
   startDate                 DateTime?
   minCapacity               Int?

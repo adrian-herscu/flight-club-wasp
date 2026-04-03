@@ -31,7 +31,7 @@ export const getLandingSchoolsWithCourses = async (
   _args: unknown,
   context: { user?: { id: string } | null },
 ): Promise<LandingSchoolWithCourses[]> => {
-  const [schools, finalCourses, publishedSyllabusVersions] = await Promise.all([
+  const [schools, finalCourses] = await Promise.all([
     prisma.school.findMany({
       select: {
         id: true,
@@ -70,22 +70,6 @@ export const getLandingSchoolsWithCourses = async (
         },
       },
       orderBy: [{ startDate: "asc" }, { createdAt: "desc" }],
-    }),
-    prisma.syllabusVersion.findMany({
-      where: {
-        status: SyllabusVersionStatus.FINAL,
-      },
-      select: {
-        id: true,
-        version: true,
-        syllabus: {
-          select: {
-            schoolId: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: [{ syllabus: { name: "asc" } }, { version: "desc" }],
     }),
   ]);
 
@@ -141,19 +125,10 @@ export const getLandingSchoolsWithCourses = async (
     }
   }
 
-  const syllabusVersionIdsWithOpenCourseRows = new Set(
-    openFinalCourses.map((course) => course.syllabusVersion.id),
-  );
-
   return schools
     .map((school) => {
-      const openRealCourses = openFinalCourses
-        .filter(
-          (course) =>
-            course.schoolId === school.id ||
-            (course.schoolId === null &&
-              course.syllabusVersion.syllabus.schoolId === school.id),
-        )
+      const courses = openFinalCourses
+        .filter((course) => course.schoolId === school.id)
         .map((course) => ({
           ...(viewerInterestByCourseId.get(course.id)
             ? {
@@ -173,26 +148,6 @@ export const getLandingSchoolsWithCourses = async (
           hourlyRate: course.hourlyRate,
           canExpressInterest: true,
         }));
-
-      const fallbackFinalSyllabusCourses = publishedSyllabusVersions
-        .filter(
-          (syllabusVersion) =>
-            !syllabusVersionIdsWithOpenCourseRows.has(syllabusVersion.id) &&
-            syllabusVersion.syllabus.schoolId === school.id,
-        )
-        .map((syllabusVersion) => ({
-          id: syllabusVersion.id,
-          title: `${syllabusVersion.syllabus.name} v${syllabusVersion.version}`,
-          startDate: null,
-          minCapacity: null,
-          maxCapacity: null,
-          hourlyRate: null,
-          canExpressInterest: false,
-          viewerInterestId: null,
-          viewerInterestStatus: null,
-        }));
-
-      const courses = [...openRealCourses, ...fallbackFinalSyllabusCourses];
 
       return {
         id: school.id,

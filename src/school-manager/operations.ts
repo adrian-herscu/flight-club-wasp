@@ -877,19 +877,7 @@ export const getManagerCoursesForEnrollment = async (
 
   const courses = await prisma.course.findMany({
     where: {
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     include: {
       syllabusVersion: {
@@ -939,19 +927,7 @@ export const getManagerClosedCourses = async (
 
   const courses = await prisma.course.findMany({
     where: {
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     include: {
       syllabusVersion: {
@@ -1100,19 +1076,7 @@ export const getManagerCourseEnrollmentDetails = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     include: {
       enrolledStudents: {
@@ -1173,19 +1137,7 @@ export const enrollStudentInCourse = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     select: {
       id: true,
@@ -1265,19 +1217,7 @@ export const getManagerCourseInstructorDetails = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     include: {
       assignedInstructors: {
@@ -1338,19 +1278,7 @@ export const assignInstructorToCourse = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     select: {
       id: true,
@@ -1500,19 +1428,7 @@ export const closeCourse = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     select: {
       id: true,
@@ -1553,19 +1469,7 @@ export const reopenCourse = async (
   const course = await prisma.course.findFirst({
     where: {
       id: courseId,
-      OR: [
-        {
-          schoolId: school.id,
-        },
-        {
-          schoolId: null,
-          syllabusVersion: {
-            syllabus: {
-              schoolId: school.id,
-            },
-          },
-        },
-      ],
+      schoolId: school.id,
     },
     select: {
       id: true,
@@ -1596,17 +1500,7 @@ export const reopenCourse = async (
 // ---------------------------------------------------------------------------
 
 function buildManagedSchoolCourseFilter(schoolId: string) {
-  return {
-    OR: [
-      { schoolId },
-      {
-        schoolId: null,
-        syllabusVersion: {
-          syllabus: { schoolId },
-        },
-      },
-    ],
-  };
+  return { schoolId };
 }
 
 async function ensureApprovedStudentRegistrationRequestId(

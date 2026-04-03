@@ -8,14 +8,18 @@ import {
   type User,
 } from "./utils.js";
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 test.describe("4.5 school-manager member approval workflow", () => {
   let schoolManagerUser: User;
-  let testSchoolId: string;
+  let testSchoolName: string;
 
   test.beforeAll(async () => {
     const result = await createTestCourseWithManager();
     schoolManagerUser = result.manager;
-    testSchoolId = result.schoolId;
+    testSchoolName = result.schoolName;
   });
 
   const dismissCookieBanner = async (page: Page) => {
@@ -29,7 +33,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
     page,
     requester,
     expectedRedirectPath,
-    schoolId,
+    schoolName,
     role,
     fullName,
     phone,
@@ -37,20 +41,45 @@ test.describe("4.5 school-manager member approval workflow", () => {
     page: Page;
     requester: User;
     expectedRedirectPath: "/" | "/registration";
-    schoolId: string;
+    schoolName: string;
     role: "INSTRUCTOR" | "STUDENT";
     fullName: string;
     phone: string;
   }) => {
+    const roleNameByValue: Record<"INSTRUCTOR" | "STUDENT", RegExp> = {
+      INSTRUCTOR: /instructor/i,
+      STUDENT: /student/i,
+    };
+
     await logUserIn({
       page,
       user: requester,
       expectedRedirectPath,
     });
 
-    await page.goto(`/registration?role=${role}&schoolId=${schoolId}`);
+    await page.goto("/registration");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
+    await page.locator("#registration-requested-role").click();
+    await page.getByRole("option", { name: roleNameByValue[role] }).first().click();
+    await page.locator("#registration-school-select").click();
+    await page.waitForSelector('[role="option"]', { state: "visible" });
+    await page.evaluate((targetSchoolName) => {
+      const options = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="option"]'),
+      ).filter((option) => option.offsetParent !== null);
+
+      const matchingOption = options.find((option) =>
+        option.textContent?.toLowerCase().includes(targetSchoolName.toLowerCase()),
+      );
+
+      if (!matchingOption) {
+        throw new Error(`Could not find school option matching: ${targetSchoolName}`);
+      }
+
+      matchingOption.scrollIntoView({ block: "center" });
+      matchingOption.click();
+    }, schoolName);
     await dismissCookieBanner(page);
     await page.locator("#fullName").fill(fullName);
     await page.locator("#phone").fill(phone);
@@ -189,13 +218,14 @@ test.describe("4.5 school-manager member approval workflow", () => {
   });
 
   test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003] manager can view and approve instructor member requests (UI smoke)", async ({ page }) => {
+    test.slow();
     const requester = await provisionFreshEmailUser();
 
     await submitMemberRequest({
       page,
       requester,
       expectedRedirectPath: "/registration",
-      schoolId: testSchoolId,
+      schoolName: testSchoolName,
       role: "INSTRUCTOR",
       fullName: "Manager Test User",
       phone: "+1 555 0171",
@@ -240,13 +270,14 @@ test.describe("4.5 school-manager member approval workflow", () => {
   });
 
   test("[4.5][STD-MGR-004][STD-MGR-005][STD-MGR-006] manager can view and filter student member requests", async ({ page }) => {
+    test.slow();
     const studentRequester = await provisionFreshEmailUser();
 
     await submitMemberRequest({
       page,
       requester: studentRequester,
       expectedRedirectPath: "/registration",
-      schoolId: testSchoolId,
+      schoolName: testSchoolName,
       role: "STUDENT",
       fullName: "Manager Test Student",
       phone: "+1 555 0172",

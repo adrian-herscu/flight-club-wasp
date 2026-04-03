@@ -1,6 +1,42 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createTestCourseWithManager, logUserIn, provisionFreshEmailUser } from "./utils.js";
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function selectRequestedRole(page: Page, role: "SCHOOL_MANAGER" | "INSTRUCTOR" | "STUDENT") {
+  const roleNameByValue: Record<"SCHOOL_MANAGER" | "INSTRUCTOR" | "STUDENT", RegExp> = {
+    SCHOOL_MANAGER: /school manager/i,
+    INSTRUCTOR: /instructor/i,
+    STUDENT: /student/i,
+  };
+
+  await page.locator("#registration-requested-role").click();
+  await page.getByRole("option", { name: roleNameByValue[role] }).first().click();
+}
+
+async function selectTargetSchool(page: Page, schoolName: string) {
+  await page.locator("#registration-school-select").click();
+  await page.waitForSelector('[role="option"]', { state: "visible" });
+  await page.evaluate((targetSchoolName) => {
+    const options = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="option"]'),
+    ).filter((option) => option.offsetParent !== null);
+
+    const matchingOption = options.find((option) =>
+      option.textContent?.toLowerCase().includes(targetSchoolName.toLowerCase()),
+    );
+
+    if (!matchingOption) {
+      throw new Error(`Could not find school option matching: ${targetSchoolName}`);
+    }
+
+    matchingOption.scrollIntoView({ block: "center" });
+    matchingOption.click();
+  }, schoolName);
+}
+
 async function submitRegistrationForm(page: Page) {
   const submitBtn = page.getByRole("button", { name: /submit|continue|next/i }).last();
   await submitBtn.waitFor({ state: "visible", timeout: 5000 });
@@ -33,7 +69,7 @@ async function expectPendingRequestVisible(
 
 
 test.describe("4.3 registration and role requests", () => {
-  test("[4.3][STD-REG-011][STD-REG-013] school manager request duplicate is blocked deterministically", async ({ page }) => {
+  test("[4.3][STD-REG-001][STD-REG-011][STD-REG-013] school manager request duplicate is blocked deterministically", async ({ page }) => {
     test.slow();
 
     const user = await provisionFreshEmailUser();
@@ -45,8 +81,9 @@ test.describe("4.3 registration and role requests", () => {
 
     const uniqueSchoolName = `E2E Duplicate School ${Date.now()}`;
 
-    await page.goto("/registration?role=SCHOOL_MANAGER");
+    await page.goto("/registration");
     await page.waitForLoadState("networkidle");
+    await selectRequestedRole(page, "SCHOOL_MANAGER");
 
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
@@ -68,11 +105,11 @@ test.describe("4.3 registration and role requests", () => {
   });
 
 
-  test("[4.3][STD-REG-012] approved role cannot be re-requested for the same school", async ({ page }) => {
+  test("[4.3][STD-REG-004][STD-REG-012] approved role cannot be re-requested for the same school", async ({ page }) => {
     test.slow();
 
     // Generate isolated data: fresh requester + fresh manager who owns a fresh school
-    const [requester, { manager, schoolId }] = await Promise.all([
+    const [requester, { manager, schoolName }] = await Promise.all([
       provisionFreshEmailUser(),
       createTestCourseWithManager(),
     ]);
@@ -84,7 +121,9 @@ test.describe("4.3 registration and role requests", () => {
       expectedRedirectPath: "/registration",
     });
 
-    await page.goto(`/registration?role=INSTRUCTOR&schoolId=${schoolId}`);
+    await page.goto("/registration");
+    await selectRequestedRole(page, "INSTRUCTOR");
+    await selectTargetSchool(page, schoolName);
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
     await page.locator("#fullName").fill("Test Requester");
@@ -127,7 +166,9 @@ test.describe("4.3 registration and role requests", () => {
       expectedRedirectPath: "/registration",
     });
 
-    await page.goto(`/registration?role=INSTRUCTOR&schoolId=${schoolId}`);
+    await page.goto("/registration");
+    await selectRequestedRole(page, "INSTRUCTOR");
+    await selectTargetSchool(page, schoolName);
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
     await page.locator("#fullName").fill("Test Requester");

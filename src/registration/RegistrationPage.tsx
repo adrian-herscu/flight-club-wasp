@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -90,19 +89,10 @@ function isValidLogoUrl(value: string): boolean {
 
 export default function RegistrationPage({ user }: { user: AuthUser }) {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
 
   const currentUser = user as AuthUser & { fullName?: string | null; phone?: string | null };
   const initialFullName = typeof currentUser.fullName === "string" ? currentUser.fullName : "";
   const initialPhone = typeof user.phone === "string" ? user.phone : "";
-  const requestedRoleParam = searchParams.get("role");
-  const targetSchoolIdParam = searchParams.get("schoolId") ?? "";
-  const initialRequestedRole: RegistrationRole =
-    requestedRoleParam === "INSTRUCTOR" ||
-    requestedRoleParam === "STUDENT" ||
-    requestedRoleParam === "SCHOOL_MANAGER"
-      ? requestedRoleParam
-      : "SCHOOL_MANAGER";
 
   const { data: existingRequestsData, isLoading, refetch } = useQuery(getMyRegistrationRequests);
   const { data: schoolOptionsData } = useQuery(getRegistrationSchoolOptions);
@@ -116,8 +106,8 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
   const [fullName, setFullName] = useState(initialFullName);
   const [phone, setPhone] = useState(initialPhone);
-  const [requestedRole, setRequestedRole] = useState<RegistrationRole>(initialRequestedRole);
-  const [targetSchoolId, setTargetSchoolId] = useState(targetSchoolIdParam);
+  const [requestedRole, setRequestedRole] = useState<RegistrationRole>("SCHOOL_MANAGER");
+  const [targetSchoolId, setTargetSchoolId] = useState("");
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
   const [requestedWebsiteUrl, setRequestedWebsiteUrl] = useState("");
   const [requestedPhone, setRequestedPhone] = useState("");
