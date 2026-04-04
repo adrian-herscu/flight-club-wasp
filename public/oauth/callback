@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Signing you in…</title>
+    <script>
+      window.addEventListener('load', async () => {
+        try {
+          const response = await fetch('/', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+          });
+
+          if (!response.ok) {
+            throw new Error(`Unable to load app shell: ${response.status}`);
+          }
+
+          const appHtml = await response.text();
+          document.open();
+          document.write(appHtml);
+          document.close();
+        } catch (error) {
+          console.error('OAuth callback bootstrap failed.', error);
+          document.body.innerHTML = `
+            <main style="font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 32rem; padding: 0 1rem; text-align: center;">
+              <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">Unable to finish sign-in</h1>
+              <p style="line-height: 1.5; margin-bottom: 1.5rem;">
+                The app shell could not be loaded for the OAuth callback route.
+              </p>
+              <p>
+                <a href="/" style="color: #2563eb;">Return to the home page</a>
+              </p>
+            </main>
+          `;
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <main style="font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 32rem; padding: 0 1rem; text-align: center;">
+      <p>Completing sign-in…</p>
+    </main>
+  </body>
+</html>
