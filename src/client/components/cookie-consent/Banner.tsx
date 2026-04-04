@@ -5,7 +5,7 @@ import i18next from "../../i18n";
 import { CookieConsentHost } from "../patterns/CookieConsentPatterns";
 import getConfig from "./Config";
 
-const SUPPORTED_LOCALES = new Set(["en", "ro", "he"]);
+const SUPPORTED_LOCALES = new Set(["en", "ro", "he", "ru"]);
 
 function resolveLocale(lng: string): string {
   const base = lng.split("-")[0].toLowerCase();

@@ -631,11 +631,11 @@ export const ensureSidebarOpen = async (page: Page) => {
     .toBe(true);
 };
 
-export type DetectedLanguage = "en" | "he" | "ro" | "unknown";
+export type DetectedLanguage = "en" | "he" | "ro" | "ru" | "unknown";
 
 /**
  * Lightweight language detector for E2E assertions.
- * It is intentionally simple and optimized for English/Hebrew/Romanian UI text.
+ * It is intentionally simple and optimized for English/Hebrew/Romanian/Russian UI text.
  */
 export const detectLanguageFromText = (text: string): DetectedLanguage => {
   const sample = text
@@ -645,11 +645,13 @@ export const detectLanguageFromText = (text: string): DetectedLanguage => {
   if (!sample) return "unknown";
 
   const hebrewChars = (sample.match(/[\u0590-\u05FF]/g) ?? []).length;
+  const cyrillicChars = (sample.match(/[\u0400-\u04FF]/g) ?? []).length;
   const latinChars = (sample.match(/[A-Za-z]/g) ?? []).length;
   const romanianDiacritics = (sample.match(/[ăâîșțĂÂÎȘȚ]/g) ?? []).length;
 
   // Quick dominant-script decision first.
   if (hebrewChars > latinChars * 1.5 && hebrewChars > 10) return "he";
+  if (cyrillicChars > latinChars * 1.5 && cyrillicChars > 10) return "ru";
   if (romanianDiacritics >= 2) return "ro";
   if (latinChars > hebrewChars * 1.5 && latinChars > 10) return "en";
 
@@ -658,6 +660,7 @@ export const detectLanguageFromText = (text: string): DetectedLanguage => {
   const englishHints = ["the", "and", "log in", "password", "email", "forgot"];
   const hebrewHints = ["התחבר", "כניסה", "סיסמה", "דוא", "הרשמה", "שכחת"];
   const romanianHints = ["autentificare", "parolă", "email", "înregistrare", "reseteaz", "cont"];
+  const russianHints = ["вход", "пароль", "почта", "регистрац", "сброс", "аккаунт"];
 
   const enScore = englishHints.reduce(
     (score, token) => score + (lower.includes(token) ? 1 : 0),
@@ -671,10 +674,15 @@ export const detectLanguageFromText = (text: string): DetectedLanguage => {
     (score, token) => score + (lower.includes(token) ? 1 : 0),
     0,
   );
+  const ruScore = russianHints.reduce(
+    (score, token) => score + (lower.includes(token) ? 1 : 0),
+    0,
+  );
 
-  if (heScore > enScore && heScore > roScore) return "he";
-  if (roScore > enScore && roScore > heScore) return "ro";
-  if (enScore > heScore && enScore > roScore) return "en";
+  if (heScore > enScore && heScore > roScore && heScore > ruScore) return "he";
+  if (roScore > enScore && roScore > heScore && roScore > ruScore) return "ro";
+  if (ruScore > enScore && ruScore > heScore && ruScore > roScore) return "ru";
+  if (enScore > heScore && enScore > roScore && enScore > ruScore) return "en";
 
   return "unknown";
 };

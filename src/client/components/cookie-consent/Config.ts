@@ -140,6 +140,22 @@ const getConfig = (locale: string = "en") => {
             sections: [],
           },
         },
+        ru: {
+          consentModal: {
+            title: "Мы используем cookie",
+            description:
+              "Мы используем cookie в основном для аналитики, чтобы улучшить ваш опыт. Принимая, вы соглашаетесь на использование этих cookie. Вы можете управлять предпочтениями или узнать больше о нашей политике cookie.",
+            acceptAllBtn: "Принять все",
+            acceptNecessaryBtn: "Отклонить все",
+            footer: `
+            <a href="<your-url-here>" target="_blank">Политика конфиденциальности</a>
+            <a href="<your-url-here>" target="_blank">Условия использования</a>
+                    `,
+          },
+          preferencesModal: {
+            sections: [],
+          },
+        },
       },
     },
   };

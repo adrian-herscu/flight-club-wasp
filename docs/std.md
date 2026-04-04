@@ -192,7 +192,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
-| STD-I18N-001 | FC-016 | Login page text matches selected language for English, Hebrew, and Romanian. | P1 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
+| STD-I18N-001 | FC-016 | Login page text matches selected language for English, Hebrew, Romanian, and Russian. | P1 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
 | STD-I18N-002 | FC-016 | Language selector updates `lang` and `dir` correctly across switches. | P1 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
 | STD-I18N-003 | FC-016 | Browser locale auto-detection defaults to supported language or English fallback. | P2 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |
 | STD-I18N-004 | FC-016 | Google sign-in affordance stays visible across supported languages. | P2 | Covered | [04-12-i18n-rtl.spec.ts](../../e2e-tests/tests/04-12-i18n-rtl.spec.ts) |

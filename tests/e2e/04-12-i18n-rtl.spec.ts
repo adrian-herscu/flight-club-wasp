@@ -32,6 +32,14 @@ test.describe("4.12 internationalization and RTL", () => {
       await page.locator("h2, label, button[type='submit']").allInnerTexts()
     ).join(" ");
     expect(detectLanguageFromText(romanianAuthText)).toBe("ro");
+
+    await selectLanguage(page, "Русский");
+    await page.waitForFunction(() => document.documentElement.lang === "ru");
+
+    const russianAuthText = (
+      await page.locator("h2, label, button[type='submit']").allInnerTexts()
+    ).join(" ");
+    expect(detectLanguageFromText(russianAuthText)).toBe("ru");
   });
 
   test("[4.12][STD-I18N-004] Google sign-in button remains visible in English, Hebrew, and Romanian", async ({ page }) => {
@@ -69,6 +77,11 @@ test.describe("4.12 internationalization and RTL", () => {
 
     await expect.poll(async () => page.getAttribute("html", "lang")).toBe("ro");
     await expect.poll(async () => page.getAttribute("html", "dir")).toBe("ltr");
+
+    await selectLanguage(page, "Русский");
+
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("ru");
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("ltr");
   });
 
   test("[4.12][STD-I18N-001] primary login affordances are translated", async ({ page }) => {
@@ -91,6 +104,13 @@ test.describe("4.12 internationalization and RTL", () => {
     await expect(page.getByRole("button", { name: "Autentificare" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Înregistrare/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Reseteaz-o/ })).toBeVisible();
+
+    await selectLanguage(page, "Русский");
+    await page.waitForFunction(() => document.documentElement.lang === "ru");
+
+    await expect(page.getByRole("button", { name: "Вход" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Регистрация/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Сбросить/ })).toBeVisible();
   });
 
   test("[4.12][STD-I18N-002] language selector remains stable across multiple switches", async ({ page }) => {
@@ -99,8 +119,10 @@ test.describe("4.12 internationalization and RTL", () => {
     const sequence: Array<[string, string]> = [
       ["עברית", "he"],
       ["Română", "ro"],
+      ["Русский", "ru"],
       ["English", "en"],
       ["Română", "ro"],
+      ["Русский", "ru"],
       ["English", "en"],
     ];
 
@@ -198,6 +220,17 @@ test.describe("4.12 browser language auto-detection (no localStorage)", () => {
       await expect.poll(() => page.getAttribute("html", "lang")).toBe("ro");
       const text = (await page.locator("h2, label, button[type='submit']").allInnerTexts()).join(" ");
       expect(detectLanguageFromText(text)).toBe("ro");
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  test("[4.12][STD-I18N-003] opens in Russian when browser locale is ru", async ({ browser }) => {
+    const { page, ctx } = await openFreshPage(browser, "ru");
+    try {
+      await expect.poll(() => page.getAttribute("html", "lang")).toBe("ru");
+      const text = (await page.locator("h2, label, button[type='submit']").allInnerTexts()).join(" ");
+      expect(detectLanguageFromText(text)).toBe("ru");
     } finally {
       await ctx.close();
     }

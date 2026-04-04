@@ -3,9 +3,10 @@ import { initReactI18next } from "react-i18next";
 import { en } from "./en";
 import { he } from "./he";
 import { ro } from "./ro";
+import { ru } from "./ru";
 
 const rtlLanguages = new Set(["he"]);
-const supportedLanguages = new Set(["en", "he", "ro"]);
+const supportedLanguages = new Set(["en", "he", "ro", "ru"]);
 
 /** Returns the first browser-preferred language that this app supports, or "en". */
 function detectBrowserLanguage(): string {
@@ -28,6 +29,7 @@ i18next
       en: { translation: en },
       he: { translation: he },
       ro: { translation: ro },
+      ru: { translation: ru },
     },
     lng: typeof window !== "undefined"
       ? (localStorage.getItem("locale") || detectBrowserLanguage())
