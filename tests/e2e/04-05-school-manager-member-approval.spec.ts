@@ -218,7 +218,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
   });
 
-  test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003] manager can view and approve instructor member requests (UI smoke)", async ({ page }) => {
+  test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003][STD-MGR-006] manager can view and approve instructor member requests (UI smoke)", async ({ page }) => {
     test.slow();
     const requester = await provisionFreshEmailUser();
 

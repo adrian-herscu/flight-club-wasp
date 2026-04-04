@@ -98,7 +98,7 @@ describe('4.3 registration request guardrails (API)', () => {
     );
   });
 
-  it('[STD-REG-010] student registration via form is rejected — students join via course-interest flow', async () => {
+  it('[STD-REG-005][STD-REG-010] student registration via form is rejected — students join via course-interest flow', async () => {
     const args = {
       fullName: 'API Instructor 01',
       phone: '+1 555 2003',

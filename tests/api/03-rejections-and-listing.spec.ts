@@ -271,7 +271,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
     it('returns 400 for non-school-manager request', async () => {
       const requestId = await createMemberRequest(
         tempCtx.requesterA,
-        'STUDENT',
+        'INSTRUCTOR',
         SEED.schools.cloudbase,
       );
 
@@ -308,7 +308,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
 
   describe('rejectSchoolMemberRequest + getPendingSchoolMemberRequests', () => {
     it('rejects a pending member request and persists reason', async () => {
-      const requestId = await createMemberRequest(tempCtx.requesterA, 'STUDENT', SEED.schools.cloudbase);
+      const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', SEED.schools.cloudbase);
       const reason = 'Missing certification';
 
       await rejectSchoolMemberRequest({ requestId, rejectionReason: reason }, ctx.schoolManager);
@@ -359,7 +359,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
     });
 
     it('returns 409 when member request is not pending', async () => {
-      const requestId = await createMemberRequest(tempCtx.requesterA, 'STUDENT', SEED.schools.cloudbase);
+      const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', SEED.schools.cloudbase);
       await approveSchoolMemberRequest({ requestId }, ctx.schoolManager);
 
       await expectHttpError(
@@ -372,20 +372,20 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
     it('[STD-MGR-010] lists only manager-school member requests with pending/approved status', async () => {
       const pendingCloudbaseId = await createMemberRequest(
         tempCtx.requesterA,
-        'STUDENT',
+        'INSTRUCTOR',
         SEED.schools.cloudbase,
       );
 
       const approvedCloudbaseId = await createMemberRequest(
         tempCtx.requesterB,
-        'STUDENT',
+        'INSTRUCTOR',
         SEED.schools.cloudbase,
       );
       await approveSchoolMemberRequest({ requestId: approvedCloudbaseId }, ctx.schoolManager);
 
       const rejectedCloudbaseId = await createMemberRequest(
         tempCtx.requesterC,
-        'STUDENT',
+        'INSTRUCTOR',
         SEED.schools.cloudbase,
       );
       await rejectSchoolMemberRequest(

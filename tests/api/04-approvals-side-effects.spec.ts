@@ -22,10 +22,6 @@ const TEMP = {
       id: 'api-temp-approve-member-instructor',
       email: 'api.temp.approve.member.instructor@example.test',
     },
-    memberReqStudent: {
-      id: 'api-temp-approve-member-student',
-      email: 'api.temp.approve.member.student@example.test',
-    },
   },
 } as const;
 
@@ -34,9 +30,6 @@ const tempCtx = {
   managerReqB: { user: { id: TEMP.users.managerReqB.id, isSystemAdmin: false as const } },
   memberReqInstructor: {
     user: { id: TEMP.users.memberReqInstructor.id, isSystemAdmin: false as const },
-  },
-  memberReqStudent: {
-    user: { id: TEMP.users.memberReqStudent.id, isSystemAdmin: false as const },
   },
 };
 
@@ -65,7 +58,6 @@ async function safeCleanupForThisSpec(): Promise<void> {
     TEMP.users.managerReqA.id,
     TEMP.users.managerReqB.id,
     TEMP.users.memberReqInstructor.id,
-    TEMP.users.memberReqStudent.id,
     SEED.users.schoolManager01,
     SEED.users.systemAdmin01,
   ];
@@ -313,8 +305,8 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
 
     it('returns 400 for non-school-manager request', async () => {
       const memberRequestId = await createMemberRequest(
-        tempCtx.memberReqStudent,
-        'STUDENT',
+        tempCtx.memberReqInstructor,
+        'INSTRUCTOR',
         SEED.schools.cloudbase,
       );
 
@@ -423,42 +415,6 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       });
       expect(request?.status).toBe('APPROVED');
       expect(request?.reviewerId).toBe(SEED.users.schoolManager01);
-    });
-
-    it('[STD-MGR-007] approves STUDENT request and provisions student profile', async () => {
-      const requestId = await createMemberRequest(
-        tempCtx.memberReqStudent,
-        'STUDENT',
-        SEED.schools.cloudbase,
-      );
-
-      const result = (await approveSchoolMemberRequest(
-        { requestId },
-        ctx.schoolManager,
-      )) as {
-        requestId: string;
-        approvedRole: 'INSTRUCTOR' | 'STUDENT';
-      };
-
-      expect(result.approvedRole).toBe('STUDENT');
-
-      const student = await prisma.student.findUnique({
-        where: { userId: TEMP.users.memberReqStudent.id },
-        select: { id: true },
-      });
-      expect(student?.id).toBeTruthy();
-
-      const role = await prisma.userSchoolRole.findUnique({
-        where: {
-          userId_schoolId_role: {
-            userId: TEMP.users.memberReqStudent.id,
-            schoolId: SEED.schools.cloudbase,
-            role: 'STUDENT',
-          },
-        },
-        select: { role: true },
-      });
-      expect(role?.role).toBe('STUDENT');
     });
 
     it('returns 403 for cross-school approve attempts', async () => {
