@@ -70,6 +70,7 @@ const DefaultLayout: FC<Props> = ({ children, user }) => {
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setMobileSidebarOpen}
           isDesktop={isDesktop}
+          user={user}
         />
         <AdminMainContent reserveSidebarSpace={isDesktop}>
           <Header

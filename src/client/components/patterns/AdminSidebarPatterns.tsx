@@ -8,18 +8,19 @@ export const SidebarRoot = React.forwardRef<
   {
     children: ReactNode;
     sidebarOpen: boolean | string | undefined;
+    isDesktop: boolean;
     className?: string;
     style?: React.CSSProperties;
   }
->(({ children, sidebarOpen, style }, ref) => {
+>(({ children, sidebarOpen, isDesktop, style }, ref) => {
   const isRtl =
     typeof document !== "undefined" && document.documentElement.dir === "rtl";
 
   const defaultSidebarStyle: React.CSSProperties = {
     backgroundColor: "hsl(var(--muted))",
-    position: "absolute",
+    position: "fixed",
     top: 0,
-    zIndex: 9999,
+    zIndex: isDesktop ? 30 : 50,
     display: "flex",
     flexDirection: "column",
     height: "100vh",
@@ -257,3 +258,72 @@ export const SidebarToggleButton = React.forwardRef<
 });
 
 SidebarToggleButton.displayName = "SidebarToggleButton";
+
+/**
+ * Sidebar account identity text
+ */
+export const SidebarAccountIdentityText = ({ children }: { children: ReactNode }) => {
+  const textStyle: React.CSSProperties = {
+    color: "hsl(var(--muted-foreground))",
+    paddingLeft: "1rem",
+    paddingRight: "1rem",
+    paddingBottom: "0.5rem",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+  };
+
+  return <p style={textStyle}>{children}</p>;
+};
+
+/**
+ * Sidebar account controls section
+ */
+export const SidebarAccountControlsSection = ({ children }: { children: ReactNode }) => {
+  const sectionStyle: React.CSSProperties = {
+    marginLeft: "1rem",
+    marginRight: "1rem",
+    marginTop: "0.5rem",
+    borderTop: "1px solid hsl(var(--border))",
+    paddingTop: "1rem",
+  };
+
+  return <div style={sectionStyle}>{children}</div>;
+};
+
+/**
+ * Sidebar account controls vertical stack
+ */
+export const SidebarAccountControlsStack = ({ children }: { children: ReactNode }) => {
+  const stackStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
+  };
+
+  return <div style={stackStyle}>{children}</div>;
+};
+
+export const SidebarMobileBackdrop = ({
+  ariaLabel,
+  onClick,
+}: {
+  ariaLabel: string;
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      aria-label={ariaLabel}
+      onClick={onClick}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 40,
+        backgroundColor: "rgba(0, 0, 0, 0.55)",
+        border: "none",
+        padding: 0,
+        margin: 0,
+        cursor: "pointer",
+      }}
+    />
+  );
+};

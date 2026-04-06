@@ -30,12 +30,15 @@ import {
   NavMobileLoginLink,
   NavMobileLogoLinkFull,
   NavMobileMenuTrigger,
+  NavMobileMenuFloatingToggle,
   NavMobilePanel,
   NavMobileSection,
+  NavMobileUserIdentity,
   NavMobileUserMenu,
   NavRow,
   NavScrollContainer,
   NavSheetPanel,
+  NavSheetTopRow,
   NavSheetTitle,
   NavStickyHeader,
   NavUserWrapper,
@@ -74,6 +77,10 @@ export default function NavBar({
       <NavStickyHeader isScrolled={isScrolled}>
         <NavScrollContainer isScrolled={isScrolled}>
           <NavRow isScrolled={isScrolled}>
+            <NavBarMobileMenu
+              isScrolled={isScrolled}
+              navigationItems={navigationItems}
+            />
             <NavBrandArea>
               <NavBrandLink>
                 <NavLogoImage isScrolled={isScrolled} />
@@ -82,10 +89,6 @@ export default function NavBar({
                 </NavAppNameText>
               </NavBrandLink>
             </NavBrandArea>
-            <NavBarMobileMenu
-              isScrolled={isScrolled}
-              navigationItems={navigationItems}
-            />
             <NavBarDesktopUserDropdown isScrolled={isScrolled} />
           </NavRow>
         </NavScrollContainer>
@@ -131,6 +134,27 @@ function NavBarMobileMenu({
   const { data: user, isLoading: isUserLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isRTL = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+  const currentUser = user as {
+    fullName?: string | null;
+    email?: string | null;
+  } | null;
+
+  const handleSheetInteractOutside = (event: Event) => {
+    const target = event.target as Element | null;
+    if (!target) {
+      return;
+    }
+
+    if (
+      target.closest("[data-radix-popper-content-wrapper]") ||
+      target.closest("[role='listbox']") ||
+      target.closest("[role='option']") ||
+      target.closest("[data-slot='select-content']") ||
+      target.closest("[data-slot='select-item']")
+    ) {
+      event.preventDefault();
+    }
+  };
 
   return (
     <NavMobilePanel>
@@ -139,11 +163,19 @@ function NavBarMobileMenu({
           isScrolled={isScrolled}
           label={t("nav.openMainMenu")}
         />
-        <NavSheetPanel isRTL={isRTL}>
+
+        <NavSheetPanel isRTL={isRTL} onInteractOutside={handleSheetInteractOutside}>
           <SheetHeader>
-            <NavSheetTitle>
-              <NavMobileLogoLinkFull appName={t("nav.appName")} />
-            </NavSheetTitle>
+            <NavSheetTopRow isRTL={isRTL}>
+              <NavMobileMenuFloatingToggle
+                isScrolled={isScrolled}
+                label={t("nav.openMainMenu")}
+                onClick={() => setMobileMenuOpen(false)}
+              />
+              <NavSheetTitle>
+                <NavMobileLogoLinkFull appName={t("nav.appName")} />
+              </NavSheetTitle>
+            </NavSheetTopRow>
           </SheetHeader>
           <NavMobileContent>
             <NavMobileDivider>
@@ -156,6 +188,9 @@ function NavBarMobileMenu({
                   </NavMobileLoginLink>
                 ) : (
                   <NavMobileUserMenu>
+                    <NavMobileUserIdentity>
+                      {currentUser?.fullName ?? currentUser?.email ?? t("common.user")}
+                    </NavMobileUserIdentity>
                     <UserMenuItems
                       user={user}
                       onItemClick={() => setMobileMenuOpen(false)}

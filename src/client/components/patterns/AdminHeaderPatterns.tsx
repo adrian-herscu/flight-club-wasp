@@ -1,19 +1,18 @@
 import React, { ReactNode } from "react";
 
+export const ADMIN_MOBILE_CHROME_HEIGHT = "4.5rem";
+
 /**
  * Header wrapper - sticky top bar with flex layout
  */
 export const HeaderRoot = ({ children }: { children: ReactNode }) => {
   const headerStyle: React.CSSProperties = {
     backgroundColor: "hsl(var(--background))",
-    borderColor: "hsl(var(--border))",
     position: "sticky",
     top: 0,
-    zIndex: 10,
+    zIndex: 20,
     display: "flex",
     width: "100%",
-    borderBottom: "1px solid",
-    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
   };
 
   return <header style={headerStyle}>{children}</header>;
@@ -55,7 +54,6 @@ export const HamburgerButtonWrapper = ({ children }: { children: ReactNode }) =>
  */
 export const HamburgerButton = ({
   onClick,
-  isOpen,
 }: {
   onClick: (e: React.MouseEvent) => void;
   isOpen: boolean | string | undefined;
@@ -64,6 +62,7 @@ export const HamburgerButton = ({
     borderColor: "hsl(var(--border))",
     backgroundColor: "hsl(var(--background))",
     display: "block",
+    position: "relative",
     borderRadius: "0.125rem",
     borderWidth: "1px",
     padding: "0.375rem",
@@ -93,54 +92,20 @@ export const HamburgerButton = ({
 
   const line1Style: React.CSSProperties = {
     ...lineBaseStyle,
-    width: isOpen ? "0" : "100%",
-    opacity: isOpen ? 0 : 1,
+    width: "100%",
+    opacity: 1,
   };
 
   const line2Style: React.CSSProperties = {
     ...lineBaseStyle,
-    width: isOpen ? "0" : "100%",
-    opacity: isOpen ? 0 : 1,
+    width: "100%",
+    opacity: 1,
   };
 
   const line3Style: React.CSSProperties = {
     ...lineBaseStyle,
-    width: isOpen ? "0" : "100%",
-    opacity: isOpen ? 0 : 1,
-  };
-
-  const xWrapperStyle: React.CSSProperties = {
-    position: "absolute",
-    right: 0,
-    height: "100%",
     width: "100%",
-    transform: "rotate(45deg)",
-  };
-
-  const xLine1Style: React.CSSProperties = {
-    backgroundColor: "hsl(var(--foreground))",
-    position: "absolute",
-    left: "0.625rem",
-    top: 0,
-    display: "block",
-    width: "0.125rem",
-    height: isOpen ? "100%" : "0",
-    opacity: isOpen ? 1 : 0,
-    borderRadius: "0.125rem",
-    transition: "all 0.2s ease-in-out 0s",
-  };
-
-  const xLine2Style: React.CSSProperties = {
-    backgroundColor: "hsl(var(--foreground))",
-    position: "absolute",
-    left: 0,
-    top: "0.625rem",
-    display: "block",
-    width: isOpen ? "100%" : "0",
-    height: "0.125rem",
-    opacity: isOpen ? 1 : 0,
-    borderRadius: "0.125rem",
-    transition: "all 0.2s ease-in-out 0s",
+    opacity: 1,
   };
 
   return (
@@ -160,10 +125,6 @@ export const HamburgerButton = ({
           <span style={line1Style}></span>
           <span style={line2Style}></span>
           <span style={line3Style}></span>
-        </span>
-        <span style={xWrapperStyle}>
-          <span style={xLine1Style}></span>
-          <span style={xLine2Style}></span>
         </span>
       </span>
     </button>
@@ -208,4 +169,38 @@ export const HeaderDesktopActionsContainer = ({ children }: { children: ReactNod
   };
 
   return <div style={containerStyle}>{children}</div>;
+};
+
+/**
+ * Mobile menu trigger alignment container
+ */
+export const HeaderMobileMenuContainer = ({ children }: { children: ReactNode }) => {
+  const containerStyle: React.CSSProperties = {
+    display: "flex",
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "space-between",
+  };
+
+  return <div style={containerStyle}>{children}</div>;
+};
+
+export const HeaderMobileSpacer = () => {
+  return <div aria-hidden="true" style={{ height: ADMIN_MOBILE_CHROME_HEIGHT }} />;
+};
+
+export const HeaderMobileFloatingBar = ({ children }: { children: ReactNode }) => {
+  const barStyle: React.CSSProperties = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 60,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "1rem",
+  };
+
+  return <header style={barStyle}>{children}</header>;
 };

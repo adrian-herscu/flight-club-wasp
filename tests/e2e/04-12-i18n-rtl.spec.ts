@@ -162,8 +162,8 @@ test.describe("4.12 internationalization and RTL", () => {
     await page.goto("/school-manager");
     await page.waitForLoadState("networkidle");
 
-  await page.locator("header [role='combobox']").first().click();
-  await page.getByRole("option", { name: "עברית" }).click();
+    await page.locator("header [role='combobox']").first().click();
+    await page.getByRole("option", { name: "עברית" }).click();
     await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
     await expect.poll(async () => page.getAttribute("html", "dir")).toBe("rtl");
 
@@ -184,6 +184,53 @@ test.describe("4.12 internationalization and RTL", () => {
     // (inline-end = left in RTL), away from the sidebar.
     // Allow 5px tolerance for Firefox sub-pixel floating-point geometry differences
     expect(controlsGeometry!.languageLeft).toBeLessThan(controlsGeometry!.headerMidX + 5);
+  });
+
+  test("[4.12][STD-I18N-010] mobile dashboard hamburger and sidebar stay on the RTL start edge", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 960 });
+
+    // Force Hebrew locale before app initialization so the dashboard opens in RTL immediately.
+    await page.addInitScript(() => localStorage.setItem("locale", "he"));
+
+    const { manager } = await createTestCourseWithManager();
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager");
+    await page.waitForLoadState("networkidle");
+
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("rtl");
+
+    const mobileSidebarToggle = page.locator("header button[aria-controls='sidebar']").first();
+    await mobileSidebarToggle.click();
+
+    const rtlGeometry = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      const trigger = document.querySelector("button[aria-controls='sidebar']") as HTMLElement | null;
+      const aside = document.querySelector("aside") as HTMLElement | null;
+      if (!header || !trigger || !aside) return null;
+
+      const headerRect = header.getBoundingClientRect();
+      const triggerRect = trigger.getBoundingClientRect();
+      const asideRect = aside.getBoundingClientRect();
+
+      return {
+        dir: document.documentElement.dir || "ltr",
+        headerMidX: headerRect.left + headerRect.width / 2,
+        triggerCenterX: triggerRect.left + triggerRect.width / 2,
+        sidebarRight: asideRect.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+
+    expect(rtlGeometry).not.toBeNull();
+    expect(rtlGeometry!.dir).toBe("rtl");
+    expect(rtlGeometry!.triggerCenterX).toBeGreaterThan(rtlGeometry!.headerMidX - 20);
+    expect(rtlGeometry!.sidebarRight).toBeGreaterThanOrEqual(rtlGeometry!.viewportWidth - 2);
   });
 });
 

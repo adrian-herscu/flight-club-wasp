@@ -73,9 +73,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser:
-          - chromium
-          - firefox
+        include:
+          - browser: chromium
+            workers: '8'
+          - browser: firefox
+            workers: '3'
 
     services:
       postgres:
@@ -106,8 +108,6 @@ jobs:
         with:
           database-url: postgresql://postgres:postgres@localhost:5432/flight_club_e2e
           sendgrid-api-key: ${{ secrets.SENDGRID_API_KEY }}
-          create-env-server: 'true'
-          create-api-env-test: 'false'
 
       - name: Cache npm packages
         uses: actions/cache@v4
@@ -121,6 +121,7 @@ jobs:
         with:
           mode: regression
           browser: ${{ matrix.browser }}
+          workers: ${{ matrix.workers }}
 
       - name: Upload Playwright report artifact
         if: always()

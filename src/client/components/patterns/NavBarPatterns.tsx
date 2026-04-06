@@ -215,7 +215,38 @@ export function NavMobileMenuTrigger({
   );
 }
 
-export function NavSheetPanel({
+export function NavMobileMenuFloatingToggle({
+  isScrolled,
+  label,
+  onClick,
+}: {
+  isScrolled: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      data-testid="landing-mobile-menu-toggle-open"
+      onClick={onClick}
+      className={cn(
+        "text-muted-foreground hover:text-muted hover:bg-accent inline-flex items-center justify-center rounded-md transition-colors",
+      )}
+    >
+      <span className="sr-only">{label}</span>
+      <Menu
+        className={cn("transition-all duration-300", {
+          "size-8 p-1": !isScrolled,
+          "size-6 p-0.5": isScrolled,
+        })}
+        aria-hidden="true"
+      />
+    </button>
+  );
+}
+
+export function NavSheetTopRow({
   isRTL,
   children,
 }: {
@@ -223,7 +254,28 @@ export function NavSheetPanel({
   children: ReactNode;
 }) {
   return (
-    <SheetContent side={isRTL ? "right" : "left"} className="w-75 sm:w-100">
+    <div className={cn("flex items-center justify-between", isRTL ? "flex-row-reverse" : "flex-row")}>
+      {children}
+    </div>
+  );
+}
+
+export function NavSheetPanel({
+  isRTL,
+  onInteractOutside,
+  children,
+}: {
+  isRTL: boolean;
+  onInteractOutside?: (event: Event) => void;
+  children: ReactNode;
+}) {
+  return (
+    <SheetContent
+      side={isRTL ? "right" : "left"}
+      className="w-75 sm:w-100"
+      showCloseButton={false}
+      onInteractOutside={onInteractOutside}
+    >
       {children}
     </SheetContent>
   );
@@ -278,6 +330,10 @@ export function NavMobileLoginIcon() {
 
 export function NavMobileUserMenu({ children }: { children: ReactNode }) {
   return <ul className="space-y-2">{children}</ul>;
+}
+
+export function NavMobileUserIdentity({ children }: { children: ReactNode }) {
+  return <div className="text-muted-foreground px-3 pb-3 text-sm font-medium">{children}</div>;
 }
 
 export function NavMobileIconStack({ children }: { children: ReactNode }) {

@@ -311,7 +311,7 @@ test.describe("4.11 role-based navigation", () => {
     await expect(page.locator("header a[href*='messages']")).toHaveCount(0);
   });
 
-  test("[4.11][STD-NAV-011] narrow dashboard keeps a 3-line menu button and right-aligned controls", async ({ page }) => {
+  test("[4.11][STD-NAV-011] narrow dashboard keeps a single start-edge menu trigger and moves account controls into the sidebar", async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 960 });
 
     const { manager } = await createTestCourseWithManager();
@@ -340,20 +340,168 @@ test.describe("4.11 role-based navigation", () => {
     const messageButton = page.locator("header a[href*='messages']");
     await expect(messageButton).toHaveCount(0);
 
+    const headerComboboxes = page.locator("header [role='combobox']");
+    await expect(headerComboboxes).toHaveCount(0);
+
+    const headerUserTrigger = page.locator("header button:has(svg.lucide-user)");
+    await expect(headerUserTrigger).toHaveCount(0);
+
     const controlsGeometry = await page.evaluate(() => {
       const header = document.querySelector("header");
-      const languageTrigger = document.querySelector("header [role='combobox']") as HTMLElement | null;
-      if (!header || !languageTrigger) return null;
+      const trigger = document.querySelector("header button[aria-controls='sidebar']") as HTMLElement | null;
+      if (!header || !trigger) return null;
       const headerRect = header.getBoundingClientRect();
-      const languageRect = languageTrigger.getBoundingClientRect();
+      const triggerRect = trigger.getBoundingClientRect();
       return {
+        dir: document.documentElement.dir || "ltr",
         headerMidX: headerRect.left + headerRect.width / 2,
-        languageLeft: languageRect.left,
+        triggerCenterX: triggerRect.left + triggerRect.width / 2,
       };
     });
 
     expect(controlsGeometry).not.toBeNull();
-    expect(controlsGeometry!.languageLeft).toBeGreaterThan(controlsGeometry!.headerMidX - 40);
+    if (controlsGeometry!.dir === "rtl") {
+      expect(controlsGeometry!.triggerCenterX).toBeGreaterThan(controlsGeometry!.headerMidX - 20);
+    } else {
+      expect(controlsGeometry!.triggerCenterX).toBeLessThan(controlsGeometry!.headerMidX + 20);
+    }
+
+    await headerToggle.click();
+
+    const sidebar = page.locator("aside");
+    await expect(sidebar).toBeVisible();
+
+    const openLineWidths = await page.evaluate(() => {
+      const button = document.querySelector("header button[aria-controls='sidebar']") as HTMLButtonElement | null;
+      const menuLineWrapper = button?.querySelector("span > span") as HTMLSpanElement | null;
+      if (!menuLineWrapper) return [] as number[];
+      return Array.from(menuLineWrapper.children).map((line) => line.getBoundingClientRect().width);
+    });
+
+    expect(openLineWidths.length).toBe(3);
+    expect(openLineWidths.every((width) => width >= 8)).toBe(true);
+
+    const openGeometry = await page.evaluate(() => {
+      const aside = document.querySelector("aside") as HTMLElement | null;
+      if (!aside) return null;
+
+      const asideRect = aside.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+
+      return {
+        dir: document.documentElement.dir || "ltr",
+        viewportWidth,
+        sidebarLeft: asideRect.left,
+        sidebarRight: asideRect.right,
+      };
+    });
+
+    expect(openGeometry).not.toBeNull();
+    if (openGeometry!.dir === "rtl") {
+      expect(openGeometry!.sidebarRight).toBeGreaterThanOrEqual(openGeometry!.viewportWidth - 2);
+    } else {
+      expect(openGeometry!.sidebarLeft).toBeLessThanOrEqual(2);
+    }
+
+    const allSidebarToggles = page.locator("button[aria-controls='sidebar']");
+    await expect(allSidebarToggles).toHaveCount(1);
+
+    await expect(sidebar.getByRole("combobox").first()).toBeVisible();
+    await expect(sidebar.locator("input[type='checkbox']").first()).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /account settings/i })).toBeVisible();
+  });
+
+  test("[4.11][STD-NAV-012] opened mobile sidebar keeps the header toggle on the same edge and allows language selection", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 960 });
+
+    const { manager } = await createTestCourseWithManager();
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/school-manager/school");
+    await page.waitForLoadState("networkidle");
+
+    const headerToggle = page.locator("header button[aria-controls='sidebar']").first();
+    await expect(headerToggle).toBeVisible();
+    await headerToggle.click();
+
+    const sidebar = page.locator("aside");
+    await expect(sidebar).toBeVisible();
+
+    const sidebarToggle = sidebar.locator("button[aria-controls='sidebar']");
+    await expect(sidebarToggle).toHaveCount(0);
+
+    await expect(headerToggle).toBeVisible();
+
+    const languageSelect = sidebar.locator("[role='combobox']").first();
+    await languageSelect.click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(sidebar).toBeVisible();
+  });
+
+  test("[4.11][STD-NAV-013] mobile landing menu stays on LTR start edge with no duplicate close button and keeps sheet open during language change", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 960 });
+
+    const { manager } = await createTestCourseWithManager();
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
+
+    await page.addInitScript(() => {
+      window.localStorage.setItem("i18nextLng", "en");
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("ltr");
+
+    const mobileTrigger = page.locator("button:has(svg.lucide-menu)").first();
+    await expect(mobileTrigger).toBeVisible();
+    await mobileTrigger.click();
+
+    const sheet = page.locator("[data-slot='sheet-content']").first();
+    await expect(sheet).toBeVisible();
+
+    const ltrGeometry = await page.evaluate(() => {
+      const trigger = document.querySelector("button:has(svg.lucide-menu)") as HTMLElement | null;
+      const panel = document.querySelector("[data-slot='sheet-content']") as HTMLElement | null;
+      if (!trigger || !panel) {
+        return null;
+      }
+
+      const triggerRect = trigger.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+
+      return {
+        dir: document.documentElement.dir || "ltr",
+        viewportWidth: window.innerWidth,
+        triggerCenterX: triggerRect.left + triggerRect.width / 2,
+        viewportMidX: window.innerWidth / 2,
+        panelLeft: panelRect.left,
+      };
+    });
+
+    expect(ltrGeometry).not.toBeNull();
+    expect(ltrGeometry!.dir).toBe("ltr");
+    expect(ltrGeometry!.triggerCenterX).toBeLessThan(ltrGeometry!.viewportMidX + 20);
+    expect(ltrGeometry!.panelLeft).toBeLessThanOrEqual(2);
+
+    // We keep a single close affordance (the hamburger toggle), not an extra Sheet X button.
+    await expect(page.locator("[data-slot='sheet-content'] [data-slot='sheet-close']")).toHaveCount(0);
+
+    const languageSelect = sheet.locator("[role='combobox']").first();
+    await languageSelect.click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await page.getByRole("option", { name: "עברית" }).click();
+
+    await expect(sheet).toBeVisible();
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("rtl");
   });
 
   test("[4.11][STD-NAV-007] authenticated plain user does not see admin/manager sidebar links", async ({ page }) => {

@@ -5,19 +5,24 @@ import {
   LayoutDashboard,
   School,
   Sheet,
-  X,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
+import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
+import DarkModeSwitcher from "../../client/components/DarkModeSwitcher";
+import { LanguageSelector } from "../../client/components/LanguageSelector";
 import {
   SchoolContextBadgeBox,
   SchoolContextBadgeContainer,
   SchoolLabel,
   SchoolNameText,
   SidebarLogoImage,
-  SidebarToggleButton,
+  SidebarAccountControlsSection,
+  SidebarAccountControlsStack,
+  SidebarAccountIdentityText,
+  SidebarMobileBackdrop,
 } from "../../client/components/patterns/AdminSidebarPatterns";
 import { useManagedSchoolSelection } from "../../school-manager/useManagedSchoolSelection";
 import {
@@ -29,6 +34,7 @@ import {
   NavItem,
 } from "../../client/components/patterns/AdminSidebarPatterns";
 import { getRoleKeyFromPath } from "../../shared/roles";
+import { UserMenuItems } from "../../user/UserMenuItems";
 
 const { getMyManagedSchool, useQuery } = operations as any;
 
@@ -39,8 +45,9 @@ type ManagedSchoolSummary = {
 
 interface SidebarProps {
   sidebarOpen: boolean;
-  setSidebarOpen: (arg: boolean) => void;
+  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isDesktop: boolean;
+  user: AuthUser;
 }
 
 const SchoolContextBadge = () => {
@@ -163,15 +170,12 @@ const SIDEBAR_NAV: { [role: string]: SidebarEntry[] } = {
   ],
 };
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop }: SidebarProps) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop, user }: SidebarProps) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { pathname } = location;
 
   const roleFromPath = getRoleKeyFromPath(pathname);
-
-  const trigger = useRef(null as HTMLButtonElement | null);
-  const sidebar = useRef(null as HTMLElement | null);
 
   const storedSidebarExpanded = localStorage.getItem("sidebar-expanded");
   const [sidebarExpanded, setSidebarExpanded] = useState(
@@ -210,24 +214,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop }: SidebarProps) => {
   });
 
   useEffect(() => {
-    const clickHandler = ({ target }: MouseEvent) => {
-      if (isDesktop) return;
-
-      const targetNode = target as Node | null;
-      if (!sidebar.current || !trigger.current) return;
-      if (
-        !sidebarOpen ||
-        sidebar.current.contains(targetNode) ||
-        trigger.current.contains(targetNode)
-      )
-        return;
-      setSidebarOpen(false);
-    };
-    document.addEventListener("click", clickHandler);
-    return () => document.removeEventListener("click", clickHandler);
-  }, [isDesktop, sidebarOpen, setSidebarOpen]);
-
-  useEffect(() => {
     const keyHandler = ({ keyCode }: KeyboardEvent) => {
       if (isDesktop) return;
       if (!sidebarOpen || keyCode !== 27) return;
@@ -247,39 +233,28 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop }: SidebarProps) => {
   }, [sidebarExpanded]);
 
   const navItems = roleFromPath ? (SIDEBAR_NAV[roleFromPath] ?? []) : [];
+  const currentUser = user as AuthUser & {
+    fullName?: string | null;
+    email?: string | null;
+  };
 
   return (
-    <SidebarRoot
-      ref={sidebar}
-      style={{
-        backgroundColor: "hsl(var(--muted))",
-        position: "absolute",
-        top: 0,
-        zIndex: 9999,
-        display: "flex",
-        height: "100vh",
-        width: "18.125rem",
-        flexDirection: "column",
-        overflowY: "hidden",
-        transition: "all 0.3s ease-in-out",
-        borderColor: "hsl(var(--border))",
-      }}
-      sidebarOpen={sidebarOpen}
-    >
+    <>
+      {!isDesktop && sidebarOpen && (
+        <SidebarMobileBackdrop
+          ariaLabel={t("common.close")}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <SidebarRoot
+        isDesktop={isDesktop}
+        sidebarOpen={sidebarOpen}
+      >
       <SidebarHeader>
-        <NavLink to="/">
+        <NavLink to="/" style={!isDesktop ? { marginInlineStart: "auto" } : undefined}>
           <SidebarLogoImage src="/favicon.svg" alt="Flight Club" />
         </NavLink>
-        {!isDesktop && (
-          <SidebarToggleButton
-            ref={trigger}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            controls="sidebar"
-            expanded={sidebarOpen}
-          >
-            <X />
-          </SidebarToggleButton>
-        )}
       </SidebarHeader>
 
       {roleFromPath === "SCHOOL_MANAGER" && <SchoolContextBadge />}
@@ -317,9 +292,35 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop }: SidebarProps) => {
                 );
               })}
           </NavMenuSection>
+
+          {!isDesktop && (
+            <>
+              <NavMenuSection title={t("common.user")}
+              >
+                <NavItem>
+                  <SidebarAccountIdentityText>
+                    {currentUser.fullName ?? currentUser.email ?? t("common.user")}
+                  </SidebarAccountIdentityText>
+                </NavItem>
+                <UserMenuItems
+                  user={user}
+                  includeDashboard={false}
+                  onItemClick={() => setSidebarOpen(false)}
+                />
+              </NavMenuSection>
+
+              <SidebarAccountControlsSection>
+                <SidebarAccountControlsStack>
+                  <LanguageSelector />
+                  <DarkModeSwitcher />
+                </SidebarAccountControlsStack>
+              </SidebarAccountControlsSection>
+            </>
+          )}
         </SidebarNav>
       </SidebarContent>
-    </SidebarRoot>
+      </SidebarRoot>
+    </>
   );
 };
 

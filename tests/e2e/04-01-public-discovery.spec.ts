@@ -90,7 +90,7 @@ test.describe("4.1 public discovery", () => {
     await expect(page.getByTestId("landing-school-card")).toHaveCount(0, { timeout: 5000 });
   });
 
-  test("[4.1][STD-NAV-012] narrow landing menu opens from the left and exposes theme/language controls", async ({ page }) => {
+  test("[4.1][STD-NAV-012] narrow landing menu opens from the hamburger side and exposes theme/language controls", async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 960 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -98,6 +98,10 @@ test.describe("4.1 public discovery", () => {
     const menuTrigger = page.getByRole("button", { name: /open main menu/i });
     await expect(menuTrigger).toBeVisible();
     await menuTrigger.click();
+
+    // Keep the landing hamburger visible and usable as a close toggle while sheet is open.
+    const openStateToggle = page.getByTestId("landing-mobile-menu-toggle-open");
+    await expect(openStateToggle).toBeVisible();
 
     const sheetGeometry = await page.evaluate(() => {
       const dialog = document.querySelector("[data-slot='sheet-content']") as HTMLElement | null;
@@ -112,6 +116,37 @@ test.describe("4.1 public discovery", () => {
 
     await expect(page.locator("[data-slot='sheet-content'] [role='combobox']").first()).toBeVisible();
     await expect(page.locator("[data-slot='sheet-content'] input[type='checkbox']").first()).toBeVisible();
+
+    const topBarGeometry = await page.evaluate(() => {
+      const toggle = document.querySelector("[data-testid='landing-mobile-menu-toggle-open']") as HTMLElement | null;
+      const sheet = document.querySelector("[data-slot='sheet-content']") as HTMLElement | null;
+      if (!toggle || !sheet) {
+        return null;
+      }
+
+      const logo = sheet.querySelector("img[alt='Flight Club']") as HTMLElement | null;
+      if (!logo) {
+        return null;
+      }
+
+      const toggleRect = toggle.getBoundingClientRect();
+      const logoRect = logo.getBoundingClientRect();
+
+      const overlaps = !(
+        toggleRect.right <= logoRect.left ||
+        toggleRect.left >= logoRect.right ||
+        toggleRect.bottom <= logoRect.top ||
+        toggleRect.top >= logoRect.bottom
+      );
+
+      return { overlaps };
+    });
+
+    expect(topBarGeometry).not.toBeNull();
+    expect(topBarGeometry!.overlaps).toBe(false);
+
+    await openStateToggle.click();
+    await expect(page.locator("[data-slot='sheet-content']")).toHaveCount(0);
   });
 
   test.skip("[template-relic] get started link", async ({ page }) => {
