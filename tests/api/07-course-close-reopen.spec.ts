@@ -218,6 +218,19 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     expect(closedCoursesAfterReopen.some((course) => course.courseId === created.courseId)).toBe(false);
   });
 
+  it('lists seeded Cloudbase instructors for assignment and excludes outside-school instructors', async () => {
+    const instructors = await getManagerInstructorsForAssignment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    const instructorUserIds = instructors.map((instructor) => instructor.userId);
+
+    expect(instructorUserIds).toContain(SEED.users.instructor01);
+    expect(instructorUserIds).toContain(SEED.users.instructor02);
+    expect(instructorUserIds).not.toContain(OUTSIDER_INSTRUCTOR_USER_ID);
+  });
+
   it('[STD-CRS-007] enrollment and assignment are blocked for closed courses', async () => {
     const created = await createCourseFromFinalSyllabus(
       {

@@ -307,6 +307,22 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
   });
 
   describe('rejectSchoolMemberRequest + getPendingSchoolMemberRequests', () => {
+    it('includes seeded approved Cloudbase instructor/student requests for all seeded member users', async () => {
+      const rows = (await getPendingSchoolMemberRequests({}, ctx.schoolManager)) as Array<{
+        id: string;
+        status: string;
+      }>;
+
+      const approvedIds = rows
+        .filter((row) => row.status === 'APPROVED')
+        .map((row) => row.id);
+
+      expect(approvedIds).toContain('seed-request-instructor-01-cloudbase');
+      expect(approvedIds).toContain('seed-request-instructor-02-cloudbase');
+      expect(approvedIds).toContain('seed-request-student-01-cloudbase');
+      expect(approvedIds).toContain('seed-request-student-02-cloudbase');
+    });
+
     it('rejects a pending member request and persists reason', async () => {
       const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', SEED.schools.cloudbase);
       const reason = 'Missing certification';
