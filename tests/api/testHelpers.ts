@@ -28,6 +28,12 @@ export const SEED = {
   schools: {
     cloudbase: 'seed-school-cloudbase-paragliding',
   },
+  registrationRequests: {
+    instructorCloudbase01: 'seed-request-instructor-01-cloudbase',
+    instructorCloudbase02: 'seed-request-instructor-02-cloudbase',
+    studentCloudbase01:    'seed-request-student-01-cloudbase',
+    studentCloudbase02:    'seed-request-student-02-cloudbase',
+  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -63,13 +69,21 @@ export const ctx = {
 // Safe invariants:
 //   - Seeded Users are never deleted.
 //   - The seeded school (cloudbase) and its UserSchoolRole are preserved.
+//   - Seeded member RegistrationRequests (and their decisions) are preserved.
 //   - Everything else written by tests is removed.
 // ---------------------------------------------------------------------------
 
+const SEEDED_REGISTRATION_REQUEST_IDS = Object.values(SEED.registrationRequests);
+
 export async function cleanTestData(): Promise<void> {
   // Decisions reference Requests — delete decisions first.
-  await prisma.registrationRequestDecision.deleteMany({});
-  await prisma.registrationRequest.deleteMany({});
+  // Preserve decisions that belong to seeded registration requests.
+  await prisma.registrationRequestDecision.deleteMany({
+    where: { requestId: { notIn: SEEDED_REGISTRATION_REQUEST_IDS } },
+  });
+  await prisma.registrationRequest.deleteMany({
+    where: { id: { notIn: SEEDED_REGISTRATION_REQUEST_IDS } },
+  });
 
   // Accounts and UserSchoolRoles for non-seed schools created by tests.
   await prisma.userSchoolRole.deleteMany({

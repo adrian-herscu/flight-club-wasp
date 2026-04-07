@@ -6,6 +6,8 @@ import {
 } from '../../src/registration/operations.js';
 import { SEED, ctx } from './testHelpers.js';
 
+const SEEDED_REQUEST_IDS = Object.values(SEED.registrationRequests);
+
 type HttpErrorShape = {
   statusCode: number;
   message: string;
@@ -19,12 +21,13 @@ async function clearRequesterRequests(requesterId: string): Promise<void> {
     where: {
       request: {
         requesterId,
+        id: { notIn: SEEDED_REQUEST_IDS },
       },
     },
   });
 
   await prisma.registrationRequest.deleteMany({
-    where: { requesterId },
+    where: { requesterId, id: { notIn: SEEDED_REQUEST_IDS } },
   });
 }
 

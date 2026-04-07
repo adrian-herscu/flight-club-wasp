@@ -1165,6 +1165,7 @@ export const enrollStudentInCourse = async (
     },
     select: {
       id: true,
+      userId: true,
     },
   });
 
@@ -1173,11 +1174,30 @@ export const enrollStudentInCourse = async (
   }
 
   try {
-    await prisma.enrolledStudent.create({
-      data: {
-        courseId,
-        studentId,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.enrolledStudent.create({
+        data: {
+          courseId,
+          studentId,
+        },
+      });
+
+      await tx.courseInterest.upsert({
+        where: {
+          courseId_userId: {
+            courseId,
+            userId: student.userId,
+          },
+        },
+        update: {
+          status: CourseInterestStatus.ENROLLED,
+        },
+        create: {
+          courseId,
+          userId: student.userId,
+          status: CourseInterestStatus.ENROLLED,
+        },
+      });
     });
   } catch (error: unknown) {
     if (

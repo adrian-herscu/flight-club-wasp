@@ -106,6 +106,7 @@ The project should continue to evolve within the existing Wasp application struc
 
   - School managers must be able to review instructor and student requests in distinct flows.
   - The manager students route must present student-course pairs sourced from course interests and support enrollment approval from that queue.
+  - Manager-visible approved student entries must be backed by `CourseInterest.status = ENROLLED` for the same course and user.
   - Managers must be able to filter request views by status, including pending and approved.
   - Approval must grant the correct school role and create required supporting records.
   - Rejection must update request state and preserve decision history.
@@ -135,6 +136,7 @@ The project should continue to evolve within the existing Wasp application struc
 
   - School managers must be able to assign instructors to courses.
   - School managers must be able to enroll students in courses.
+  - Enrollment writes must keep course-interest lifecycle state synchronized (`ENROLLED`) so Courses and Students manager views remain consistent.
   - The system must block invalid or duplicate assignments and enrollments.
   - The system should surface understandable errors when database-level constraints reject an action, such as schedule conflicts or invalid syllabus usage.
 

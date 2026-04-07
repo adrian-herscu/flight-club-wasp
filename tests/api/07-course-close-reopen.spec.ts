@@ -10,6 +10,7 @@ import {
   getManagerCourseInstructorDetails,
   getManagerCoursesForEnrollment,
   getManagerInstructorsForAssignment,
+  getManagerStudentCoursePairs,
   getManagerStudentsForEnrollment,
   reopenCourse,
 } from '../../src/school-manager/operations.js';
@@ -331,6 +332,58 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
       statusCode: 409,
       message: 'Student is already enrolled in this course.',
     });
+  });
+
+  it('[STD-MGR-003][REGRESSION] direct enrollment appears in students approved pairs for the same course', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-09T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const students = await getManagerStudentsForEnrollment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    if (!students.length) {
+      throw new Error('Expected seeded students in manager scope.');
+    }
+
+    const student = students[0]!;
+
+    await enrollStudentInCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+        studentId: student.studentId,
+      },
+      ctx.schoolManager,
+    );
+
+    const courses = await getManagerCoursesForEnrollment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+    const createdCourse = courses.find((course) => course.courseId === created.courseId);
+
+    expect(createdCourse?.enrolledCount).toBeGreaterThanOrEqual(1);
+
+    const pairs = await getManagerStudentCoursePairs(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+      },
+      ctx.schoolManager,
+    );
+
+    expect(
+      pairs.some(
+        (pair) => pair.student.id === student.userId && pair.status === 'ENROLLED',
+      ),
+    ).toBe(true);
   });
 
   it('[STD-ASN-002][STD-ASN-003] manager can assign instructor and duplicate assignment is blocked', async () => {
