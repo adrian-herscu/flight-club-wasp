@@ -219,15 +219,18 @@ export function NavMobileMenuFloatingToggle({
   isScrolled,
   label,
   onClick,
+  ariaControls,
 }: {
   isScrolled: boolean;
   label: string;
   onClick: () => void;
+  ariaControls?: string;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
+      aria-controls={ariaControls}
       data-testid="landing-mobile-menu-toggle-open"
       onClick={onClick}
       className={cn(

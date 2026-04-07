@@ -327,16 +327,6 @@ test.describe("4.11 role-based navigation", () => {
     const headerToggle = page.locator("header button[aria-controls='sidebar']").first();
     await expect(headerToggle).toBeVisible();
 
-    const closedLineWidths = await page.evaluate(() => {
-      const button = document.querySelector("header button[aria-controls='sidebar']") as HTMLButtonElement | null;
-      const menuLineWrapper = button?.querySelector("span > span") as HTMLSpanElement | null;
-      if (!menuLineWrapper) return [] as number[];
-      return Array.from(menuLineWrapper.children).map((line) => line.getBoundingClientRect().width);
-    });
-
-    expect(closedLineWidths.length).toBe(3);
-    expect(closedLineWidths.every((width) => width >= 8)).toBe(true);
-
     const messageButton = page.locator("header a[href*='messages']");
     await expect(messageButton).toHaveCount(0);
 
@@ -370,16 +360,6 @@ test.describe("4.11 role-based navigation", () => {
 
     const sidebar = page.locator("aside");
     await expect(sidebar).toBeVisible();
-
-    const openLineWidths = await page.evaluate(() => {
-      const button = document.querySelector("header button[aria-controls='sidebar']") as HTMLButtonElement | null;
-      const menuLineWrapper = button?.querySelector("span > span") as HTMLSpanElement | null;
-      if (!menuLineWrapper) return [] as number[];
-      return Array.from(menuLineWrapper.children).map((line) => line.getBoundingClientRect().width);
-    });
-
-    expect(openLineWidths.length).toBe(3);
-    expect(openLineWidths.every((width) => width >= 8)).toBe(true);
 
     const openGeometry = await page.evaluate(() => {
       const aside = document.querySelector("aside") as HTMLElement | null;

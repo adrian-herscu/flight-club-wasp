@@ -1,19 +1,24 @@
 import { type AuthUser } from "wasp/auth";
 import { type Dispatch, type SetStateAction } from "react";
+import { useTranslation } from "react-i18next";
 import DarkModeSwitcher from "../../client/components/DarkModeSwitcher";
 import { LanguageSelector } from "../../client/components/LanguageSelector";
 import {
   HeaderRoot,
   HeaderContent,
-  HamburgerButtonWrapper,
-  HamburgerButton,
   HeaderActions,
   HeaderDesktopActionsContainer,
-  HeaderMobileFloatingBar,
-  HeaderMobileSpacer,
 } from "../../client/components/patterns/AdminHeaderPatterns";
-import { NavLink } from "react-router";
-import { SidebarLogoImage } from "../../client/components/patterns/AdminSidebarPatterns";
+import {
+  NavStickyHeader,
+  NavScrollContainer,
+  NavRow,
+  NavBrandArea,
+  NavBrandLink,
+  NavLogoImage,
+  NavAppNameText,
+  NavMobileMenuFloatingToggle,
+} from "../../client/components/patterns/NavBarPatterns";
 import { UserDropdown } from "../../user/UserDropdown";
 
 const Header = (props: {
@@ -22,6 +27,8 @@ const Header = (props: {
   isDesktop: boolean;
   user: AuthUser;
 }) => {
+  const { t } = useTranslation();
+
   // Actions cluster — shared between desktop and mobile
   const actions = (
     <HeaderActions>
@@ -33,20 +40,26 @@ const Header = (props: {
 
   if (!props.isDesktop) {
     return (
-      <>
-        <HeaderMobileSpacer />
-        <HeaderMobileFloatingBar>
-          <HamburgerButtonWrapper>
-            <HamburgerButton
+      <NavStickyHeader isScrolled={false}>
+        <NavScrollContainer isScrolled={false}>
+          <NavRow isScrolled={false}>
+            <NavMobileMenuFloatingToggle
+              isScrolled={false}
+              label={t("nav.openMainMenu")}
+              ariaControls="sidebar"
               onClick={() => props.setSidebarOpen((prev) => !prev)}
-              isOpen={props.sidebarOpen}
             />
-          </HamburgerButtonWrapper>
-          <NavLink to="/" aria-label="Flight Club home">
-            <SidebarLogoImage src="/favicon.svg" alt="Flight Club" />
-          </NavLink>
-        </HeaderMobileFloatingBar>
-      </>
+            <NavBrandArea>
+              <NavBrandLink>
+                <NavLogoImage isScrolled={false} />
+                <NavAppNameText isScrolled={false}>
+                  {t("nav.appName")}
+                </NavAppNameText>
+              </NavBrandLink>
+            </NavBrandArea>
+          </NavRow>
+        </NavScrollContainer>
+      </NavStickyHeader>
     );
   }
 
