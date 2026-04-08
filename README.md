@@ -23,15 +23,15 @@ Flight Club lets flight schools, instructors, and students find each other and m
 
 ## Repository layout
 
-| Directory | Purpose |
-|-----------|---------|
-| `src/` | Application code grouped by feature (TypeScript, React, Wasp operations) |
-| `tests/api/` | Vitest API and operation-level test suite |
-| `tests/e2e/` | Playwright end-to-end test suite |
-| `docs/` | Product, data design, and software test documentation |
-| `migrations/` | Prisma migration history |
-| `queries/` | SQL workflow reference queries |
-| `scripts/` | Local development and automation helpers |
+| Directory     | Purpose                                                                  |
+| ------------- | ------------------------------------------------------------------------ |
+| `src/`        | Application code grouped by feature (TypeScript, React, Wasp operations) |
+| `tests/api/`  | Vitest API and operation-level test suite                                |
+| `tests/e2e/`  | Playwright end-to-end test suite                                         |
+| `docs/`       | Product, data design, and software test documentation                    |
+| `migrations/` | Prisma migration history                                                 |
+| `queries/`    | SQL workflow reference queries                                           |
+| `scripts/`    | Local development and automation helpers                                 |
 
 ## Quick start
 
@@ -58,34 +58,23 @@ docker run --name flight-club-postgres \
 docker start flight-club-postgres
 ```
 
-To remove it and start fresh later:
+Create .env.server with local development defaults:
 
 ```bash
-docker rm -f flight-club-postgres
+cat > .env.server << 'EOF'
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/flight_club_wasp
+GOOGLE_CLIENT_ID=local-dev-disabled-google-oauth.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=local-dev-disabled-google-oauth-secret
+EOF
 ```
 
+Start/restart the app, and keep it running:
+
 ```bash
-# 1. Copy environment files
-cp .env.server.example .env.server
-
-# 2. Configure DATABASE_URL in .env.server
-#    Example:
-#    DATABASE_URL=postgres://postgres:postgres@localhost:5432/flight_club_wasp
-
-# 3. Reset the db, start/restart the app, and keep it running
 npm run wasp:restart
 ```
 
 The app will be available at `http://localhost:3000`.
-
-### Environment files
-
-Copy and fill in the required values before starting:
-
-```bash
-cp .env.server.example .env.server
-cp .env.client.example .env.client
-```
 
 ### Running tests
 
