@@ -8,13 +8,12 @@ import {
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-
-type RequestContext = {
-  user?: {
-    id: string;
-    isSystemAdmin?: boolean | null;
-  } | null;
-};
+import {
+  type RequestContext,
+  ensureAuthenticatedUser,
+  ensureSystemAdmin,
+  getOptionalSchoolIdFromArgs,
+} from "../server/guards";
 
 function schoolRequestRoleToSchoolRole(role: RegistrationRequestRole): SchoolRole {
   switch (role) {
@@ -25,14 +24,6 @@ function schoolRequestRoleToSchoolRole(role: RegistrationRequestRole): SchoolRol
     case RegistrationRequestRole.STUDENT:
       return SchoolRole.STUDENT;
   }
-}
-
-function ensureAuthenticatedUser(context: RequestContext) {
-  if (!context.user) {
-    throw new HttpError(401, "Only authenticated users can access this resource.");
-  }
-
-  return context.user;
 }
 
 function normalizeWebsiteUrl(value: string): string {
@@ -103,30 +94,6 @@ function isValidOptionalLogoUrl(value: string | undefined): boolean {
   } catch {
     return false;
   }
-}
-
-function ensureSystemAdmin(context: RequestContext) {
-  const user = ensureAuthenticatedUser(context);
-
-  if (!user.isSystemAdmin) {
-    throw new HttpError(403, "Only system admins can access this resource.");
-  }
-
-  return user;
-}
-
-function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
-  if (!rawArgs || typeof rawArgs !== "object") {
-    return undefined;
-  }
-
-  const rawSchoolId = (rawArgs as { schoolId?: unknown }).schoolId;
-  if (typeof rawSchoolId !== "string") {
-    return undefined;
-  }
-
-  const trimmedSchoolId = rawSchoolId.trim();
-  return trimmedSchoolId.length > 0 ? trimmedSchoolId : undefined;
 }
 
 async function ensureSchoolManagerAndGetSchool(context: RequestContext, rawArgs?: unknown) {
