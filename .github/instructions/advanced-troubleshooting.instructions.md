@@ -15,6 +15,8 @@ applyTo: "main.wasp,src/**/*.{ts,tsx},schema.prisma"
 ## Default debug flow
 - This file owns the repo-wide Wasp restart policy; keep E2E-specific startup/reuse procedure in `.github/skills/e2e-playwright-maintenance/SKILL.md`.
 - After `main.wasp` or `schema.prisma` changes, or when runtime behavior looks stale, restart the dev server using `npm run wasp:restart`; generated Wasp/Vite modules can stay stale. Logs are written to `out/wasp-dev.log`.
+- Before running `npm run wasp:restart`, explicitly confirm with the user because this repo script runs `npm run wasp:db:reset` and resets/reseeds local data.
+- For diagnostics-only mismatches (for example Problems panel reports an export error but Wasp compile succeeds), run `npm run wasp:build` first and treat editor diagnostics as stale until build fails.
 - Reuse a healthy already-running dev server for local E2E work instead of restarting by default; restart only when health checks fail or failures look bizarre enough to suggest stale generated state.
 - For broken operations, verify declaration import path and entity list in `main.wasp`.
 - If the page title loads but the app UI is blank or navbar/login/theme-switcher are missing, check the browser console for `does not provide an export named ...` errors caused by declaration import/export mismatches.

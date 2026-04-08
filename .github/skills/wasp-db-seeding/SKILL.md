@@ -52,6 +52,10 @@ Use this skill when adding or updating database seeds for this Wasp app, especia
    - Seed both “allowed” and “rejected” scenarios for operation-level tests.
    - Keep fixtures minimal and explain intent in comments.
 
+7. **Honor role-source integrity triggers for member roles**
+   - For `INSTRUCTOR` / `STUDENT` `UserSchoolRole` rows, first create an `APPROVED` `RegistrationRequest` and matching `RegistrationRequestDecision`.
+   - Set `sourceRegistrationRequestId` (and when available `grantedByUserId`) on `UserSchoolRole` so inserts satisfy DB trigger-enforced provenance.
+
 ## Generic reproducibility rules
 - Prefer deterministic IDs over random UUIDs in seed migrations.
 - Prefer stable synthetic emails/usernames and fixed timestamps when possible.

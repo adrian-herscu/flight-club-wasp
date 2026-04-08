@@ -14,6 +14,7 @@ applyTo: "main.wasp,schema.prisma,src/**/*.{ts,tsx},src/**/*.css"
 - In `main.wasp`, ensure declaration imports align with component exports; mismatches can cause runtime blank pages.
 - Use relative imports for non-Wasp source imports inside `.ts/.tsx`.
 - Ensure the root app component renders `<Outlet />` for nested routes.
+- Keep dashboard destination resolution in a single server query (`getMyDashboardPath`) and use it consistently across account-menu renderers (for example `UserMenuItems` and `UserDropdown`); do not duplicate role-to-path logic in UI components.
 - Prefer single-path implementations: do not keep old and new behavior branches in parallel unless explicitly requested.
 - Remove dead code, compatibility shims, and legacy route/query-param shortcuts in the same feature/fix PR.
 - The execution gate in `.github/copilot-instructions.md` (`## Execution gate (plan first)`) is mandatory for all state-changing implementation actions.
