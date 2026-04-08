@@ -38,10 +38,31 @@ Flight Club lets flight schools, instructors, and students find each other and m
 ### Prerequisites
 
 - [Wasp CLI](https://wasp.sh/docs/quick-start) ≥ 0.21
-- Node.js 18+
+- [Node.js](https://nodejs.org/en/download) 18+
 - Docker/Podman (for the local PostgreSQL database)
 
 ### Running locally
+
+If you don't already have a local PostgreSQL instance, create and start one with Docker:
+
+```bash
+# Create a PostgreSQL container (first time only)
+docker run --name flight-club-postgres \
+	-e POSTGRES_USER=postgres \
+	-e POSTGRES_PASSWORD=postgres \
+	-e POSTGRES_DB=flight_club_wasp \
+	-p 5432:5432 \
+	-d postgres:16
+
+# On later runs, start the existing container
+docker start flight-club-postgres
+```
+
+To remove it and start fresh later:
+
+```bash
+docker rm -f flight-club-postgres
+```
 
 ```bash
 # 1. Copy environment files
@@ -51,17 +72,11 @@ cp .env.server.example .env.server
 #    Example:
 #    DATABASE_URL=postgres://postgres:postgres@localhost:5432/flight_club_wasp
 
-# 3. Apply migrations (first run, or after schema changes)
-wasp db migrate-dev
-
-# 4. Start the app (keep it running)
-wasp start
+# 3. Reset the db, start/restart the app, and keep it running
+npm run wasp:restart
 ```
 
 The app will be available at `http://localhost:3000`.
-
-If you prefer using a Wasp-managed local database, start it separately with `wasp start db`
-before running migrations.
 
 ### Environment files
 
