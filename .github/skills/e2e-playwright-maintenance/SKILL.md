@@ -1,5 +1,5 @@
 ---
-name: tests/e2e-playwright-maintenance
+name: e2e-playwright-maintenance
 description: Local Playwright maintenance workflow for this repository. Use when running, fixing, or stabilizing tests under tests/e2e, validating Playwright config, debugging local app startup issues, or investigating flaky browser-based regressions.
 ---
 
