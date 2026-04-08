@@ -1,4 +1,4 @@
-import { type Prisma, type SubscriptionStatus } from "@prisma/client";
+import { SchoolRole, type Prisma, type SubscriptionStatus } from "@prisma/client";
 import { type User } from "wasp/entities";
 import { HttpError, prisma } from "wasp/server";
 import {
@@ -209,4 +209,39 @@ export const updateMyUserProfile: UpdateMyUserProfile<
       ...(phone !== undefined && { phone }),
     },
   });
+};
+
+export const getMyDashboardPath = async (
+  _args: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<"/system-admin" | "/school-manager" | "/instructor" | "/student" | null> => {
+  if (!context.user) {
+    return null;
+  }
+
+  if (context.user.isSystemAdmin) {
+    return "/system-admin";
+  }
+
+  const activeRoles = await prisma.userSchoolRole.findMany({
+    where: {
+      userId: context.user.id,
+      revokedAt: null,
+    },
+    select: { role: true },
+    distinct: ["role"],
+  });
+
+  const roles = new Set(activeRoles.map((entry) => entry.role));
+  if (roles.has(SchoolRole.SCHOOL_MANAGER)) {
+    return "/school-manager";
+  }
+  if (roles.has(SchoolRole.INSTRUCTOR)) {
+    return "/instructor";
+  }
+  if (roles.has(SchoolRole.STUDENT)) {
+    return "/student";
+  }
+
+  return null;
 };

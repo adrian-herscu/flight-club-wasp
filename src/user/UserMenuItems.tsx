@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { logout } from "wasp/client/auth";
 import * as operations from "wasp/client/operations";
 import { type User } from "wasp/entities";
+import { type DashboardPath } from "../shared/roles";
 import {
   MenuListItemButton,
   MenuListItemLink,
@@ -19,14 +20,9 @@ export const UserMenuItems = ({
   includeDashboard?: boolean;
 }) => {
   const { t } = useTranslation();
-  const { getMyManagedSchool, useQuery } = operations as any;
-  const { data: managedSchoolsData } = useQuery(getMyManagedSchool, undefined, { enabled: Boolean(user) });
-  const managedSchools = (managedSchoolsData as Array<{ id: string }> | undefined) ?? [];
-  const dashboardPath = user?.isSystemAdmin
-    ? "/system-admin"
-    : managedSchools.length > 0
-      ? "/school-manager"
-      : null;
+  const { getMyDashboardPath, useQuery } = operations as any;
+  const { data: dashboardPathData } = useQuery(getMyDashboardPath, undefined, { enabled: Boolean(user) });
+  const dashboardPath = (dashboardPathData as DashboardPath | null | undefined) ?? null;
   const menuItems = getMenuItemsForUser(user ?? null, dashboardPath).filter((item) => {
     if (includeDashboard) return true;
     return item.nameKey !== "user.dashboard";

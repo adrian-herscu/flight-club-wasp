@@ -193,6 +193,11 @@ action updateMyUserProfile {
   fn: import { updateMyUserProfile } from "@src/user/operations",
   entities: [User]
 }
+
+query getMyDashboardPath {
+  fn: import { getMyDashboardPath } from "@src/user/operations",
+  entities: [User, UserSchoolRole]
+}
 //#endregion
 
 //#region School Manager
@@ -358,6 +363,19 @@ query getMyInterests {
 //#endregion
 
 //#region Admin Dashboard
+//#region Instructor Portal
+query getInstructorSchools {
+  fn: import { getInstructorSchools } from "@src/portal/instructor/operations",
+  entities: [User, School, UserSchoolRole]
+}
+
+query getInstructorAssignedCourses {
+  fn: import { getInstructorAssignedCourses } from "@src/portal/instructor/operations",
+  entities: [User, School, UserSchoolRole, Instructor, Course, SyllabusVersion, Syllabus, AssignedInstructor, CourseLifecycleEvent]
+}
+//#endregion
+
+//#region Admin Dashboard
 page SystemAdminDashboardPage {
   authRequired: true,
   component: import AdminDashboard from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
@@ -375,6 +393,12 @@ page InstructorDashboardPage {
   component: import InstructorDashboardPage from "@src/portal/instructor/DashboardPage"
 }
 route InstructorRoute { path: "/instructor", to: InstructorDashboardPage }
+
+page InstructorCoursesPage {
+  authRequired: true,
+  component: import InstructorCoursesPage from "@src/portal/instructor/InstructorCoursesPage"
+}
+route InstructorCoursesRoute { path: "/instructor/courses", to: InstructorCoursesPage }
 
 page StudentDashboardPage {
   authRequired: true,

@@ -615,6 +615,10 @@ export const en = {
     managerSchoolPage: "My School",
   },
 
+  instructor: {
+    noAssignedCourses: "No courses are assigned to you in this school.",
+  },
+
   student: {
     myInterestsTitle: "My Course Interests",
     noInterestsYet: "You haven't expressed interest in any courses yet. Browse courses on the home page to get started.",

@@ -7,7 +7,7 @@ export type User = {
   password?: string;
 };
 
-const DEFAULT_PASSWORD = "password123";
+const DEFAULT_PASSWORD = "12345678";
 
 export const logUserIn = async ({
   page,

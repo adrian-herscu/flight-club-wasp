@@ -614,6 +614,10 @@ export const he = {
     managerSchoolPage: "בית הספר שלי",
   },
 
+  instructor: {
+    noAssignedCourses: "אין קורסים משויכים אליך בבית ספר זה.",
+  },
+
   student: {
     myInterestsTitle: "העניינים שלי בקורסים",
     noInterestsYet: "עדיין לא הבעת עניין בקורסים. עיין בקורסים בדף הבית כדי להתחיל.",

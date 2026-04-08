@@ -613,6 +613,10 @@ export const ro = {
     managerSchoolPage: "Școala mea",
   },
 
+  instructor: {
+    noAssignedCourses: "Nu există cursuri atribuite ție în această școală.",
+  },
+
   student: {
     myInterestsTitle: "Interesele mele pentru cursuri",
     noInterestsYet: "Nu ai exprimat interes pentru niciun curs încă. Navighează pe pagina principală pentru a începe.",

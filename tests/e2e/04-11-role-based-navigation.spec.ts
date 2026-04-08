@@ -152,7 +152,7 @@ const roleScenarios: RoleScenario[] = [
   {
     // Any authenticated user can visit /instructor — the page has no role guard.
     // The sidebar shows INSTRUCTOR nav items based on the URL path alone.
-    testName: "[4.11][STD-NAV-005] instructor sees only instructor-appropriate sidebar links",
+    testName: "[4.11][STD-NAV-005][STD-NAV-005A] instructor sees only instructor-appropriate sidebar links",
     provisionUser: () => provisionFreshEmailUser(),
     dashboardRoot: "/instructor",
     visibilityRules: [
@@ -161,7 +161,7 @@ const roleScenarios: RoleScenario[] = [
       { name: "Schools", visible: false },
       { name: "Instructors", visible: false },
       { name: "Students", visible: false },
-      { name: "Courses", visible: false },
+      { name: "Courses", visible: true },
       { name: "Syllabuses", visible: false },
     ],
     navSteps: [
@@ -170,6 +170,13 @@ const roleScenarios: RoleScenario[] = [
         expectedUrl: /\/instructor\/?$/,
         additionalAssertions: async (page) => {
           await expect(page.getByTestId("instructor-dashboard-placeholder")).toBeVisible();
+        },
+      },
+      {
+        linkName: "Courses",
+        expectedUrl: /\/instructor\/courses\/?$/,
+        additionalAssertions: async (page) => {
+          await expect(page.getByTestId("instructor-courses-page")).toBeVisible();
         },
       },
     ],

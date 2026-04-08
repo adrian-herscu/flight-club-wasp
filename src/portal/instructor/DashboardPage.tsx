@@ -6,7 +6,7 @@ const InstructorDashboardPage = ({ user }: { user: AuthUser }) => {
   return (
     <DefaultLayout user={user}>
       <CenteredPlaceholder testId="instructor-dashboard-placeholder">
-        Instructor Dashboard
+        Under construction
       </CenteredPlaceholder>
     </DefaultLayout>
   );

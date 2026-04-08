@@ -651,6 +651,10 @@ export const ru = {
     managerSchoolPage: "Моя школа",
   },
 
+  instructor: {
+    noAssignedCourses: "Курсов, назначенных вам в этой школе, нет.",
+  },
+
   student: {
     myInterestsTitle: "Мои интересы по курсам",
     noInterestsYet:
