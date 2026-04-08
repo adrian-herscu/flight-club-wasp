@@ -620,6 +620,7 @@ export const ro = {
   student: {
     myInterestsTitle: "Interesele mele pentru cursuri",
     noInterestsYet: "Nu ai exprimat interes pentru niciun curs încă. Navighează pe pagina principală pentru a începe.",
+    noEnrolledCourses: "Nu ești înscris încă la niciun curs din această școală.",
     statusLabel: "Status",
     statusInterested: "Interesat",
     statusEnrolled: "Înscris",

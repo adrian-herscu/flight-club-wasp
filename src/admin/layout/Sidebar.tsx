@@ -26,6 +26,7 @@ import {
 } from "../../client/components/patterns/AdminSidebarPatterns";
 import { useManagedSchoolSelection } from "../../school-manager/useManagedSchoolSelection";
 import { useInstructorSchoolSelection } from "../../portal/instructor/useInstructorSchoolSelection";
+import { useStudentSchoolSelection } from "../../portal/student/useStudentSchoolSelection";
 import {
   SidebarRoot,
   SidebarHeader,
@@ -41,7 +42,7 @@ import {
 } from "../../shared/navigation/dashboardNavigation";
 import { UserMenuItems } from "../../user/UserMenuItems";
 
-const { getMyManagedSchool, getInstructorSchools, useQuery } = operations as any;
+const { getMyManagedSchool, getInstructorSchools, getStudentSchools, useQuery } = operations as any;
 
 type ManagedSchoolSummary = {
   id: string;
@@ -49,6 +50,11 @@ type ManagedSchoolSummary = {
 };
 
 type InstructorSchoolSummary = {
+  id: string;
+  name: string;
+};
+
+type StudentSchoolSummary = {
   id: string;
   name: string;
 };
@@ -133,6 +139,71 @@ const InstructorSchoolContextBadge = () => {
   const schools = (data as InstructorSchoolSummary[] | undefined) ?? [];
   const { selectedSchool, selectedSchoolId, setSelectedSchoolId } =
     useInstructorSchoolSelection(schools);
+  const currentSchoolName = selectedSchool?.name;
+
+  const handleSchoolSelectorKeyDown = (event: React.KeyboardEvent<HTMLSelectElement>) => {
+    if (schools.length < 2) {
+      return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+    event.preventDefault();
+    const currentIndex = schools.findIndex((school) => school.id === selectedSchoolId);
+    const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex = (safeCurrentIndex + delta + schools.length) % schools.length;
+    setSelectedSchoolId(schools[nextIndex].id);
+  };
+
+  if (!isLoading && !currentSchoolName) {
+    return null;
+  }
+
+  return (
+    <SchoolContextBadgeContainer>
+      <SchoolContextBadgeBox>
+        <SchoolLabel>{t("admin.mySchool")}</SchoolLabel>
+        {isLoading ? (
+          <SchoolNameText>{t("admin.loading")}</SchoolNameText>
+        ) : schools.length > 1 ? (
+          <select
+            aria-label={t("school.selectManagedSchool")}
+            value={selectedSchoolId ?? ""}
+            onChange={(event) => setSelectedSchoolId(event.target.value)}
+            onKeyDown={handleSchoolSelectorKeyDown}
+            style={{
+              marginTop: "0.25rem",
+              height: "2rem",
+              width: "100%",
+              borderRadius: "0.375rem",
+              border: "1px solid hsl(var(--border))",
+              backgroundColor: "hsl(var(--background))",
+              paddingLeft: "0.5rem",
+              paddingRight: "0.5rem",
+              fontSize: "0.75rem",
+            }}
+          >
+            {schools.map((school) => (
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <SchoolNameText>{currentSchoolName}</SchoolNameText>
+        )}
+      </SchoolContextBadgeBox>
+    </SchoolContextBadgeContainer>
+  );
+};
+
+const StudentSchoolContextBadge = () => {
+  const { t } = useTranslation();
+  const { data, isLoading } = useQuery(getStudentSchools);
+  const schools = (data as StudentSchoolSummary[] | undefined) ?? [];
+  const { selectedSchool, selectedSchoolId, setSelectedSchoolId } =
+    useStudentSchoolSelection(schools);
   const currentSchoolName = selectedSchool?.name;
 
   const handleSchoolSelectorKeyDown = (event: React.KeyboardEvent<HTMLSelectElement>) => {
@@ -291,6 +362,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop, user }: SidebarProps)
 
       {roleFromPath === "SCHOOL_MANAGER" && <SchoolContextBadge />}
   {roleFromPath === "INSTRUCTOR" && <InstructorSchoolContextBadge />}
+      {roleFromPath === "STUDENT" && <StudentSchoolContextBadge />}
 
       <SidebarContent>
         <SidebarNav>

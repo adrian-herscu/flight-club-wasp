@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import {
   createTestCourseWithManager,
   createTestSystemAdmin,
@@ -7,6 +8,108 @@ import {
   provisionFreshEmailUser,
   type User,
 } from "./utils.js";
+
+const createStudentNavigationFixture = async (): Promise<User> => {
+  const [firstCourse, secondCourse, student] = await Promise.all([
+    createTestCourseWithManager(),
+    createTestCourseWithManager(),
+    provisionFreshEmailUser(),
+  ]);
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: student.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new Error(`Student user not found after provisioning: ${student.email}`);
+    }
+
+    const schools = await prisma.school.findMany({
+      where: { id: { in: [firstCourse.schoolId, secondCourse.schoolId] } },
+      select: { id: true, adminId: true, currency: true },
+    });
+
+    const schoolById = new Map(schools.map((school) => [school.id, school]));
+
+    const studentProfile = await prisma.student.create({
+      data: { userId: user.id },
+      select: { id: true },
+    });
+
+    for (const courseFixture of [firstCourse, secondCourse]) {
+      const school = schoolById.get(courseFixture.schoolId);
+      if (!school?.adminId) {
+        throw new Error(`School fixture not found for course school: ${courseFixture.schoolId}`);
+      }
+
+      const requestId = `e2e-request-student-${randomUUID()}`;
+      await prisma.registrationRequest.create({
+        data: {
+          id: requestId,
+          requesterId: user.id,
+          requestedRole: "STUDENT",
+          status: "APPROVED",
+          targetSchoolId: school.id,
+          reviewerId: school.adminId,
+          reviewedAt: new Date(),
+        },
+      });
+
+      await prisma.registrationRequestDecision.create({
+        data: {
+          id: `e2e-request-decision-student-${randomUUID()}`,
+          decisionType: "APPROVED",
+          requestId,
+          reviewerId: school.adminId,
+        },
+      });
+
+      await prisma.userSchoolRole.create({
+        data: {
+          userId: user.id,
+          schoolId: school.id,
+          role: "STUDENT",
+          sourceRegistrationRequestId: requestId,
+          grantedByUserId: school.adminId,
+        },
+      });
+
+      await prisma.account.create({
+        data: {
+          userId: user.id,
+          schoolId: school.id,
+          currency: school.currency,
+        },
+      });
+
+      await prisma.enrolledStudent.create({
+        data: {
+          courseId: courseFixture.courseId,
+          studentId: studentProfile.id,
+        },
+      });
+    }
+
+    return student;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
 
 const expectSidebarOnScreen = async (page: Page) => {
   await ensureSidebarOpen(page);
@@ -182,9 +285,8 @@ const roleScenarios: RoleScenario[] = [
     ],
   },
   {
-    // Any authenticated user can visit /student — the page has no role guard.
-    testName: "[4.11][STD-NAV-006] student sees only student-appropriate sidebar links",
-    provisionUser: () => provisionFreshEmailUser(),
+    testName: "[4.11][STD-NAV-006][STD-NAV-006A] student sees only student-appropriate sidebar links",
+    provisionUser: () => createStudentNavigationFixture(),
     dashboardRoot: "/student",
     visibilityRules: [
       { name: "Dashboard", visible: true },
@@ -192,7 +294,7 @@ const roleScenarios: RoleScenario[] = [
       { name: "Schools", visible: false },
       { name: "Instructors", visible: false },
       { name: "Students", visible: false },
-      { name: "Courses", visible: false },
+      { name: "Courses", visible: true },
       { name: "Syllabuses", visible: false },
     ],
     navSteps: [
@@ -201,6 +303,15 @@ const roleScenarios: RoleScenario[] = [
         expectedUrl: /\/student\/?$/,
         additionalAssertions: async (page) => {
           await expect(page.getByTestId("student-dashboard-placeholder")).toBeVisible();
+          await expect(page.getByText(/under construction/i)).toBeVisible();
+        },
+      },
+      {
+        linkName: "Courses",
+        expectedUrl: /\/student\/courses\/?$/,
+        additionalAssertions: async (page) => {
+          await expect(page.getByTestId("student-courses-page")).toBeVisible();
+          await expect(page.getByRole("combobox", { name: /select school/i })).toBeVisible();
         },
       },
     ],

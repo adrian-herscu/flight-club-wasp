@@ -80,6 +80,78 @@ const createTestInstructorForSchool = async (schoolId: string): Promise<User> =>
   }
 };
 
+const createTestStudentForSchool = async (schoolId: string): Promise<User> => {
+  const student = await provisionFreshEmailUser();
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+  try {
+    const [user, school] = await Promise.all([
+      prisma.user.findUnique({
+        where: { email: student.email },
+        select: { id: true },
+      }),
+      prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { adminId: true },
+      }),
+    ]);
+
+    if (!user) {
+      throw new Error(`Student user not found after provisioning: ${student.email}`);
+    }
+
+    if (!school?.adminId) {
+      throw new Error(`School not found while provisioning student role: ${schoolId}`);
+    }
+
+    const requestId = `e2e-request-student-${randomUUID()}`;
+    await prisma.registrationRequest.create({
+      data: {
+        id: requestId,
+        requesterId: user.id,
+        requestedRole: "STUDENT",
+        status: "APPROVED",
+        targetSchoolId: schoolId,
+        reviewerId: school.adminId,
+        reviewedAt: new Date(),
+      },
+    });
+
+    await prisma.registrationRequestDecision.create({
+      data: {
+        id: `e2e-request-decision-student-${randomUUID()}`,
+        decisionType: "APPROVED",
+        requestId,
+        reviewerId: school.adminId,
+      },
+    });
+
+    await prisma.userSchoolRole.create({
+      data: {
+        userId: user.id,
+        schoolId,
+        role: "STUDENT",
+        sourceRegistrationRequestId: requestId,
+        grantedByUserId: school.adminId,
+      },
+    });
+
+    return student;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
 const openAccountUserMenu = async ({
   page,
   user,
@@ -111,6 +183,7 @@ test.describe("4.2 authentication and access control - account menu", () => {
   let systemAdmin: User;
   let manager: User;
   let instructor: User;
+  let student: User;
 
   test.beforeAll(async () => {
     const [adminResult, courseResult] = await Promise.all([
@@ -120,6 +193,7 @@ test.describe("4.2 authentication and access control - account menu", () => {
     systemAdmin = adminResult;
     manager = courseResult.manager;
     instructor = await createTestInstructorForSchool(courseResult.schoolId);
+    student = await createTestStudentForSchool(courseResult.schoolId);
   });
 
   test("[4.11][STD-NAV-008] system admin user menu shows Dashboard link that navigates to /system-admin", async ({ page }) => {
@@ -160,6 +234,19 @@ test.describe("4.2 authentication and access control - account menu", () => {
 
     await dashboardLink.first().click();
     await expect(page).toHaveURL(/\/instructor\/?$/);
+  });
+
+  test("[4.11][STD-NAV-008] student user menu shows Dashboard link that navigates to /student", async ({ page }) => {
+    await openAccountUserMenu({ page, user: student });
+
+    const dashboardLink = page.getByRole("menuitem").filter({ hasText: /dashboard/i });
+    await expect
+      .poll(async () => dashboardLink.count(), { timeout: 15000 })
+      .toBeGreaterThan(0);
+    await expect(dashboardLink.first()).toBeVisible({ timeout: 15000 });
+
+    await dashboardLink.first().click();
+    await expect(page).toHaveURL(/\/student\/?$/);
   });
 
   test("[4.2][STD-AUTH-005] registered users can open Request Roles from user menu", async ({ page }) => {

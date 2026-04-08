@@ -659,6 +659,7 @@ export const ru = {
     myInterestsTitle: "Мои интересы по курсам",
     noInterestsYet:
       "Вы ещё не выразили интерес ни к одному курсу. Просмотрите курсы на главной странице, чтобы начать.",
+    noEnrolledCourses: "Вы пока не зачислены ни на один курс в этой школе.",
     statusLabel: "Статус",
     statusInterested: "Интересует",
     statusEnrolled: "Зачислен",

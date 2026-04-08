@@ -70,7 +70,7 @@ The project should continue to evolve within the existing Wasp application struc
 - **School manager**: Can access manager dashboards, school profile management, instructor and student approval queues, syllabus catalog/details, course creation, instructor assignment, and student enrollment.
 - **Instructor**: Can access instructor-specific capabilities when implemented and must not access manager-only or admin-only workflows.
 - **Instructor**: Can view their assigned courses per school via the instructor portal (Dashboard placeholder + Courses page with school-context selector) and must not access manager-only or admin-only workflows.
-- **Student**: Can access student-specific capabilities when implemented and must not access manager-only or admin-only workflows.
+- **Student**: Can view enrolled courses per school via the student portal (Dashboard placeholder + Courses page with school-context selector) and must not access manager-only or admin-only workflows.
 
 ## 4. Functional requirements
 

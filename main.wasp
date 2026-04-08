@@ -360,6 +360,16 @@ query getMyInterests {
   fn: import { getMyInterests } from "@src/portal/student/operations",
   entities: [User, Course, CourseInterest, Syllabus, SyllabusVersion, School]
 }
+
+query getStudentSchools {
+  fn: import { getStudentSchools } from "@src/portal/student/operations",
+  entities: [User, School, UserSchoolRole]
+}
+
+query getStudentEnrolledCourses {
+  fn: import { getStudentEnrolledCourses } from "@src/portal/student/operations",
+  entities: [User, School, UserSchoolRole, Student, Course, EnrolledStudent, SyllabusVersion, Syllabus]
+}
 //#endregion
 
 //#region Admin Dashboard
@@ -405,6 +415,12 @@ page StudentDashboardPage {
   component: import StudentDashboardPage from "@src/portal/student/DashboardPage"
 }
 route StudentRoute { path: "/student", to: StudentDashboardPage }
+
+page StudentCoursesPage {
+  authRequired: true,
+  component: import StudentCoursesPage from "@src/portal/student/StudentCoursesPage"
+}
+route StudentCoursesRoute { path: "/student/courses", to: StudentCoursesPage }
 
 page SystemAdminUsersPage {
   authRequired: true,

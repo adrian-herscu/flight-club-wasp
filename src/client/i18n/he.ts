@@ -621,6 +621,7 @@ export const he = {
   student: {
     myInterestsTitle: "העניינים שלי בקורסים",
     noInterestsYet: "עדיין לא הבעת עניין בקורסים. עיין בקורסים בדף הבית כדי להתחיל.",
+    noEnrolledCourses: "עדיין אינך רשום לאף קורס בבית ספר זה.",
     statusLabel: "סטטוס",
     statusInterested: "מעוניין",
     statusEnrolled: "רשום",

@@ -72,7 +72,15 @@ export const DASHBOARD_NAV_ITEMS_BY_ROLE: Record<DashboardRoleKey, readonly Dash
       matchPrefix: "/instructor/courses",
     },
   ],
-  STUDENT: [{ nameKey: "admin.dashboard", to: "/student", iconKey: "dashboard" }],
+  STUDENT: [
+    { nameKey: "admin.dashboard", to: "/student", iconKey: "dashboard" },
+    {
+      nameKey: "admin.courses",
+      to: "/student/courses",
+      iconKey: "courses",
+      matchPrefix: "/student/courses",
+    },
+  ],
 };
 
 export function getDashboardPathForRole(role?: DashboardRoleKey | null): DashboardPath | null {

@@ -622,6 +622,7 @@ export const en = {
   student: {
     myInterestsTitle: "My Course Interests",
     noInterestsYet: "You haven't expressed interest in any courses yet. Browse courses on the home page to get started.",
+    noEnrolledCourses: "You are not enrolled in any courses in this school yet.",
     statusLabel: "Status",
     statusInterested: "Interested",
     statusEnrolled: "Enrolled",
