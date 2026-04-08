@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
   assignInstructorToCourse,
@@ -13,206 +13,69 @@ import {
   getManagerStudentsForEnrollment,
   reopenCourse,
 } from '../../src/school-manager/operations.js';
-import { updateMyManagedSchool } from '../../src/school-manager/updateSchoolOperations.js';
 import { prisma } from './wasp-server-stub.js';
-import { ctx, SEED } from './testHelpers.js';
+import {
+  createIsolatedSchoolManager,
+  createTestStudent,
+  createTestInstructor,
+  type IsolatedSchoolManager,
+  type TestStudent,
+  type TestInstructor,
+} from './testHelpers.js';
 
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
-const OUTSIDER_SCHOOL_ID = 'seed-school-outsider-scope';
-const OUTSIDER_STUDENT_USER_ID = 'seed-user-outsider-student';
-const OUTSIDER_STUDENT_ID = 'seed-student-outsider-scope';
-const OUTSIDER_INSTRUCTOR_USER_ID = 'seed-user-outsider-instructor';
-const OUTSIDER_INSTRUCTOR_ID = 'seed-instructor-outsider-scope';
 
-describe('4.8 course close/reopen lifecycle (API)', () => {
-  beforeEach(async () => {
-    const school = await prisma.school.findUnique({
-      where: { id: SEED.schools.cloudbase },
-      select: {
-        id: true,
-        name: true,
-        websiteUrl: true,
-        phone: true,
-        logoUrl: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        stateProvince: true,
-        postalCode: true,
-        currency: true,
-      },
-    });
+// ---------------------------------------------------------------------------
+// Isolated test state — manager with seeded student/instructor + outsider data
+// ---------------------------------------------------------------------------
 
-    if (!school) {
-      throw new Error('Seed school not found.');
-    }
+let mgr: IsolatedSchoolManager;
+let student: TestStudent;
+let instructor: TestInstructor;
+let outsideMgr: IsolatedSchoolManager;
+let outsideStudent: TestStudent;
+let outsideInstructor: TestInstructor;
 
-    await updateMyManagedSchool(
-      {
-        schoolId: school.id,
-        name: school.name,
-        websiteUrl: school.websiteUrl ?? '',
-        phone: school.phone ?? '',
-        logoUrl: school.logoUrl ?? '',
-        addressLine1: school.addressLine1,
-        addressLine2: school.addressLine2 ?? '',
-        city: school.city,
-        stateProvince: school.stateProvince ?? '',
-        postalCode: school.postalCode,
-        defaultHourlyRate: 150,
-      },
-      ctx.schoolManager,
-    );
+beforeAll(async () => {
+  mgr = await createIsolatedSchoolManager();
 
-    await prisma.account.upsert({
-      where: {
-        userId_schoolId: {
-          userId: SEED.users.student01,
-          schoolId: school.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: SEED.users.student01,
-        schoolId: school.id,
-        currency: school.currency,
-      },
-    });
-
-    await prisma.account.upsert({
-      where: {
-        userId_schoolId: {
-          userId: SEED.users.instructor01,
-          schoolId: school.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: SEED.users.instructor01,
-        schoolId: school.id,
-        currency: school.currency,
-      },
-    });
-
-    await prisma.school.upsert({
-      where: { id: OUTSIDER_SCHOOL_ID },
-      update: {
-        name: 'Outsider Scope School',
-        addressLine1: '9 Boundary Lane',
-        city: 'Outscope City',
-        postalCode: '99999',
-        country: 'US',
-        currency: 'USD',
-        adminId: SEED.users.systemAdmin01,
-      },
-      create: {
-        id: OUTSIDER_SCHOOL_ID,
-        name: 'Outsider Scope School',
-        addressLine1: '9 Boundary Lane',
-        city: 'Outscope City',
-        postalCode: '99999',
-        country: 'US',
-        currency: 'USD',
-        adminId: SEED.users.systemAdmin01,
-      },
-    });
-
-    await prisma.user.upsert({
-      where: { id: OUTSIDER_STUDENT_USER_ID },
-      update: {
-        email: 'seed+outsider_student@example.test',
-        fullName: 'Outsider Student',
-      },
-      create: {
-        id: OUTSIDER_STUDENT_USER_ID,
-        email: 'seed+outsider_student@example.test',
-        fullName: 'Outsider Student',
-      },
-    });
-
-    await prisma.student.upsert({
-      where: { userId: OUTSIDER_STUDENT_USER_ID },
-      update: {},
-      create: {
-        id: OUTSIDER_STUDENT_ID,
-        userId: OUTSIDER_STUDENT_USER_ID,
-      },
-    });
-
-    await prisma.account.upsert({
-      where: {
-        userId_schoolId: {
-          userId: OUTSIDER_STUDENT_USER_ID,
-          schoolId: OUTSIDER_SCHOOL_ID,
-        },
-      },
-      update: {},
-      create: {
-        userId: OUTSIDER_STUDENT_USER_ID,
-        schoolId: OUTSIDER_SCHOOL_ID,
-        currency: 'USD',
-      },
-    });
-
-    await prisma.user.upsert({
-      where: { id: OUTSIDER_INSTRUCTOR_USER_ID },
-      update: {
-        email: 'seed+outsider_instructor@example.test',
-        fullName: 'Outsider Instructor',
-      },
-      create: {
-        id: OUTSIDER_INSTRUCTOR_USER_ID,
-        email: 'seed+outsider_instructor@example.test',
-        fullName: 'Outsider Instructor',
-      },
-    });
-
-    await prisma.instructor.upsert({
-      where: { userId: OUTSIDER_INSTRUCTOR_USER_ID },
-      update: {},
-      create: {
-        id: OUTSIDER_INSTRUCTOR_ID,
-        userId: OUTSIDER_INSTRUCTOR_USER_ID,
-      },
-    });
-
-    await prisma.account.upsert({
-      where: {
-        userId_schoolId: {
-          userId: OUTSIDER_INSTRUCTOR_USER_ID,
-          schoolId: OUTSIDER_SCHOOL_ID,
-        },
-      },
-      update: {},
-      create: {
-        userId: OUTSIDER_INSTRUCTOR_USER_ID,
-        schoolId: OUTSIDER_SCHOOL_ID,
-        currency: 'USD',
-      },
-    });
+  // Set a default hourly rate so course creation works without specifying it per-call
+  await prisma.school.update({
+    where: { id: mgr.school.id },
+    data: { defaultHourlyRate: 150 },
   });
 
+  student = await createTestStudent(mgr.school.id, mgr.school.currency);
+  instructor = await createTestInstructor(mgr.school.id, mgr.school.currency);
+
+  // Outsider school — students/instructors here are outside the manager's scope
+  outsideMgr = await createIsolatedSchoolManager();
+  outsideStudent = await createTestStudent(outsideMgr.school.id, outsideMgr.school.currency);
+  outsideInstructor = await createTestInstructor(outsideMgr.school.id, outsideMgr.school.currency);
+});
+
+describe('4.8 course close/reopen lifecycle (API)', () => {
   it('[STD-CRS-006] manager can close and reopen a course', async () => {
     const created = await createCourseFromFinalSyllabus(
       {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         startDate: new Date('2026-06-01T00:00:00.000Z').toISOString(),
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
-    await closeCourse({ courseId: created.courseId }, ctx.schoolManager);
+    await closeCourse({ courseId: created.courseId }, mgr.user.ctx);
 
-    const openCoursesAfterClose = await getManagerCoursesForEnrollment({}, ctx.schoolManager);
-    const closedCoursesAfterClose = await getManagerClosedCourses({}, ctx.schoolManager);
+    const openCoursesAfterClose = await getManagerCoursesForEnrollment({}, mgr.user.ctx);
+    const closedCoursesAfterClose = await getManagerClosedCourses({}, mgr.user.ctx);
 
     expect(openCoursesAfterClose.some((course) => course.courseId === created.courseId)).toBe(false);
     expect(closedCoursesAfterClose.some((course) => course.courseId === created.courseId)).toBe(true);
 
-    await reopenCourse({ courseId: created.courseId }, ctx.schoolManager);
+    await reopenCourse({ courseId: created.courseId }, mgr.user.ctx);
 
-    const openCoursesAfterReopen = await getManagerCoursesForEnrollment({}, ctx.schoolManager);
-    const closedCoursesAfterReopen = await getManagerClosedCourses({}, ctx.schoolManager);
+    const openCoursesAfterReopen = await getManagerCoursesForEnrollment({}, mgr.user.ctx);
+    const closedCoursesAfterReopen = await getManagerClosedCourses({}, mgr.user.ctx);
 
     expect(openCoursesAfterReopen.some((course) => course.courseId === created.courseId)).toBe(true);
     expect(closedCoursesAfterReopen.some((course) => course.courseId === created.courseId)).toBe(false);
@@ -224,25 +87,18 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         startDate: new Date('2026-06-02T00:00:00.000Z').toISOString(),
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
-    const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-    const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-
-    if (!students.length || !instructors.length) {
-      throw new Error('Expected seeded students and instructors in manager scope.');
-    }
-
-    await closeCourse({ courseId: created.courseId }, ctx.schoolManager);
+    await closeCourse({ courseId: created.courseId }, mgr.user.ctx);
 
     await expect(
       enrollStudentInCourse(
         {
           courseId: created.courseId,
-          studentId: students[0]?.studentId,
+          studentId: student.studentId,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 409,
@@ -253,9 +109,9 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
       assignInstructorToCourse(
         {
           courseId: created.courseId,
-          instructorId: instructors[0]?.instructorId,
+          instructorId: instructor.instructorId,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 409,
@@ -269,50 +125,39 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         startDate: new Date('2026-06-03T00:00:00.000Z').toISOString(),
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
-
-    const students = await getManagerStudentsForEnrollment(
-      { schoolId: SEED.schools.cloudbase },
-      ctx.schoolManager,
-    );
-
-    if (!students.length) {
-      throw new Error('Expected seeded students in manager scope.');
-    }
-
-    const studentId = students[0]!.studentId;
 
     await enrollStudentInCourse(
       {
-        schoolId: SEED.schools.cloudbase,
+        schoolId: mgr.school.id,
         courseId: created.courseId,
-        studentId,
+        studentId: student.studentId,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     const details = await getManagerCourseEnrollmentDetails(
       {
-        schoolId: SEED.schools.cloudbase,
+        schoolId: mgr.school.id,
         courseId: created.courseId,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     expect(details).not.toBeNull();
     expect(details?.courseId).toBe(created.courseId);
     expect(details?.enrolledCount).toBeGreaterThanOrEqual(1);
-    expect(details?.enrolledStudents.some((student) => student.studentId === studentId)).toBe(true);
+    expect(details?.enrolledStudents.some((s) => s.studentId === student.studentId)).toBe(true);
 
     await expect(
       enrollStudentInCourse(
         {
-          schoolId: SEED.schools.cloudbase,
+          schoolId: mgr.school.id,
           courseId: created.courseId,
-          studentId,
+          studentId: student.studentId,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 409,
@@ -326,50 +171,39 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         startDate: new Date('2026-06-04T00:00:00.000Z').toISOString(),
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
-
-    const instructors = await getManagerInstructorsForAssignment(
-      { schoolId: SEED.schools.cloudbase },
-      ctx.schoolManager,
-    );
-
-    if (!instructors.length) {
-      throw new Error('Expected seeded instructors in manager scope.');
-    }
-
-    const instructorId = instructors[0]!.instructorId;
 
     await assignInstructorToCourse(
       {
-        schoolId: SEED.schools.cloudbase,
+        schoolId: mgr.school.id,
         courseId: created.courseId,
-        instructorId,
+        instructorId: instructor.instructorId,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     const details = await getManagerCourseInstructorDetails(
       {
-        schoolId: SEED.schools.cloudbase,
+        schoolId: mgr.school.id,
         courseId: created.courseId,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     expect(details).not.toBeNull();
     expect(details?.courseId).toBe(created.courseId);
     expect(details?.assignedCount).toBeGreaterThanOrEqual(1);
-    expect(details?.assignedInstructors.some((instructor) => instructor.instructorId === instructorId)).toBe(true);
+    expect(details?.assignedInstructors.some((i) => i.instructorId === instructor.instructorId)).toBe(true);
 
     await expect(
       assignInstructorToCourse(
         {
-          schoolId: SEED.schools.cloudbase,
+          schoolId: mgr.school.id,
           courseId: created.courseId,
-          instructorId,
+          instructorId: instructor.instructorId,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 409,
@@ -383,17 +217,17 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         startDate: new Date('2026-06-05T00:00:00.000Z').toISOString(),
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     await expect(
       enrollStudentInCourse(
         {
-          schoolId: SEED.schools.cloudbase,
+          schoolId: mgr.school.id,
           courseId: created.courseId,
-          studentId: OUTSIDER_STUDENT_ID,
+          studentId: outsideStudent.studentId,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 404,
@@ -403,15 +237,33 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     await expect(
       assignInstructorToCourse(
         {
-          schoolId: SEED.schools.cloudbase,
+          schoolId: mgr.school.id,
           courseId: created.courseId,
-          instructorId: OUTSIDER_INSTRUCTOR_ID,
+          instructorId: outsideInstructor.instructorId,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 404,
       message: 'Instructor not found in your school scope.',
     });
+  });
+
+  it('[STD-ENR-001] getManagerStudentsForEnrollment returns students in school scope', async () => {
+    const students = await getManagerStudentsForEnrollment(
+      { schoolId: mgr.school.id },
+      mgr.user.ctx,
+    );
+    expect(students.some((s) => s.studentId === student.studentId)).toBe(true);
+    expect(students.some((s) => s.studentId === outsideStudent.studentId)).toBe(false);
+  });
+
+  it('[STD-ASN-001] getManagerInstructorsForAssignment returns instructors in school scope', async () => {
+    const instructors = await getManagerInstructorsForAssignment(
+      { schoolId: mgr.school.id },
+      mgr.user.ctx,
+    );
+    expect(instructors.some((i) => i.instructorId === instructor.instructorId)).toBe(true);
+    expect(instructors.some((i) => i.instructorId === outsideInstructor.instructorId)).toBe(false);
   });
 });

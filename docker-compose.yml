@@ -1,0 +1,10 @@
+services:
+
+  flight-club-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flight_club_wasp
+    ports:
+      - "5432:5432"

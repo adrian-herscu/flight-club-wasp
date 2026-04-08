@@ -16,3 +16,4 @@ build.log
 .wasp/**
 node_modules/**
 out/**
+/.idea/

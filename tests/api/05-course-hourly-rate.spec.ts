@@ -1,138 +1,48 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
   createDraftSyllabusFromTemplate,
   createCourseFromFinalSyllabus,
   getManagerCoursesForEnrollment,
 } from '../../src/school-manager/operations.js';
-import { updateMyManagedSchool } from '../../src/school-manager/updateSchoolOperations.js';
 import { prisma } from './wasp-server-stub.js';
-import { ctx, SEED } from './testHelpers.js';
+import {
+  createIsolatedSchoolManager,
+  addIsolatedSchoolToManager,
+  type IsolatedSchoolManager,
+  type TestSchool,
+} from './testHelpers.js';
 
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
-const SECONDARY_MANAGER_SCHOOL_ID = 'seed-school-cloudbase-annex';
+
+// ---------------------------------------------------------------------------
+// Isolated test state — one manager with two schools
+// ---------------------------------------------------------------------------
+
+let mgr: IsolatedSchoolManager;
+let secondarySchool: TestSchool;
+
+beforeAll(async () => {
+  mgr = await createIsolatedSchoolManager();
+  secondarySchool = await addIsolatedSchoolToManager(mgr.user.id);
+  // Both schools start with defaultHourlyRate = null (DB default)
+});
 
 describe('4.8 course hourly-rate baseline (API)', () => {
-  beforeEach(async () => {
-    const school = await prisma.school.findUnique({
-      where: { id: SEED.schools.cloudbase },
-      select: {
-        id: true,
-        name: true,
-        websiteUrl: true,
-        phone: true,
-        logoUrl: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        stateProvince: true,
-        postalCode: true,
-      },
-    });
-
-    if (!school) {
-      throw new Error('Seed school not found.');
-    }
-
-    await updateMyManagedSchool(
-      {
-        schoolId: school.id,
-        name: school.name,
-        websiteUrl: school.websiteUrl ?? '',
-        phone: school.phone ?? '',
-        logoUrl: school.logoUrl ?? '',
-        addressLine1: school.addressLine1,
-        addressLine2: school.addressLine2 ?? '',
-        city: school.city,
-        stateProvince: school.stateProvince ?? '',
-        postalCode: school.postalCode,
-        defaultHourlyRate: null,
-      },
-      ctx.schoolManager,
-    );
-
-    const secondarySchool = await prisma.school.findUnique({
-      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
-      select: {
-        id: true,
-        name: true,
-        websiteUrl: true,
-        phone: true,
-        logoUrl: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        stateProvince: true,
-        postalCode: true,
-      },
-    });
-
-    if (!secondarySchool) {
-      throw new Error('Secondary test school not found.');
-    }
-
-    await updateMyManagedSchool(
-      {
-        schoolId: secondarySchool.id,
-        name: secondarySchool.name,
-        websiteUrl: secondarySchool.websiteUrl ?? '',
-        phone: secondarySchool.phone ?? '',
-        logoUrl: secondarySchool.logoUrl ?? '',
-        addressLine1: secondarySchool.addressLine1,
-        addressLine2: secondarySchool.addressLine2 ?? '',
-        city: secondarySchool.city,
-        stateProvince: secondarySchool.stateProvince ?? '',
-        postalCode: secondarySchool.postalCode,
-        defaultHourlyRate: null,
-      },
-      ctx.schoolManager,
-    );
-  });
-
   it('[STD-CRS-003] updates only the selected managed school when schoolId is provided', async () => {
-    const secondarySchool = await prisma.school.findUnique({
-      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
-      select: {
-        id: true,
-        name: true,
-        websiteUrl: true,
-        phone: true,
-        logoUrl: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        stateProvince: true,
-        postalCode: true,
-      },
-    });
+    // Reset both to null before this test
+    await prisma.school.update({ where: { id: mgr.school.id }, data: { defaultHourlyRate: null } });
+    await prisma.school.update({ where: { id: secondarySchool.id }, data: { defaultHourlyRate: null } });
 
-    if (!secondarySchool) {
-      throw new Error('Secondary test school not found.');
-    }
-
-    await updateMyManagedSchool(
-      {
-        schoolId: secondarySchool.id,
-        name: secondarySchool.name,
-        websiteUrl: secondarySchool.websiteUrl ?? '',
-        phone: secondarySchool.phone ?? '',
-        logoUrl: secondarySchool.logoUrl ?? '',
-        addressLine1: secondarySchool.addressLine1,
-        addressLine2: secondarySchool.addressLine2 ?? '',
-        city: secondarySchool.city,
-        stateProvince: secondarySchool.stateProvince ?? '',
-        postalCode: secondarySchool.postalCode,
-        defaultHourlyRate: 333,
-      },
-      ctx.schoolManager,
-    );
+    // Set rate only on secondary school
+    await prisma.school.update({ where: { id: secondarySchool.id }, data: { defaultHourlyRate: 333 } });
 
     const primary = await prisma.school.findUnique({
-      where: { id: SEED.schools.cloudbase },
+      where: { id: mgr.school.id },
       select: { defaultHourlyRate: true },
     });
     const secondary = await prisma.school.findUnique({
-      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
+      where: { id: secondarySchool.id },
       select: { defaultHourlyRate: true },
     });
 
@@ -141,42 +51,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
   });
 
   it('[STD-CRS-001][STD-CRS-003] uses school default hourly rate when course hourly rate is omitted', async () => {
-    const school = await prisma.school.findUnique({
-      where: { id: SEED.schools.cloudbase },
-      select: {
-        id: true,
-        name: true,
-        websiteUrl: true,
-        phone: true,
-        logoUrl: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        stateProvince: true,
-        postalCode: true,
-      },
-    });
-
-    if (!school) {
-      throw new Error('Seed school not found.');
-    }
-
-    await updateMyManagedSchool(
-      {
-        schoolId: school.id,
-        name: school.name,
-        websiteUrl: school.websiteUrl ?? '',
-        phone: school.phone ?? '',
-        logoUrl: school.logoUrl ?? '',
-        addressLine1: school.addressLine1,
-        addressLine2: school.addressLine2 ?? '',
-        city: school.city,
-        stateProvince: school.stateProvince ?? '',
-        postalCode: school.postalCode,
-        defaultHourlyRate: 120,
-      },
-      ctx.schoolManager,
-    );
+    await prisma.school.update({ where: { id: mgr.school.id }, data: { defaultHourlyRate: 120 } });
 
     const created = await createCourseFromFinalSyllabus(
       {
@@ -185,7 +60,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
         minCapacity: 5,
         maxCapacity: 12,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     const course = await prisma.course.findUnique({
@@ -198,6 +73,8 @@ describe('4.8 course hourly-rate baseline (API)', () => {
   });
 
   it('[STD-CRS-003] rejects creation when neither school default nor course hourly rate is provided', async () => {
+    await prisma.school.update({ where: { id: mgr.school.id }, data: { defaultHourlyRate: null } });
+
     await expect(
       createCourseFromFinalSyllabus(
         {
@@ -206,7 +83,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
           minCapacity: 5,
           maxCapacity: 12,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 400,
@@ -224,10 +101,10 @@ describe('4.8 course hourly-rate baseline (API)', () => {
         maxCapacity: 10,
         hourlyRate: 140,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
-    const courses = await getManagerCoursesForEnrollment({}, ctx.schoolManager);
+    const courses = await getManagerCoursesForEnrollment({}, mgr.user.ctx);
 
     expect(courses.some((course) => course.courseId === created.courseId)).toBe(true);
   });
@@ -238,7 +115,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
         templateVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         name: `Draft for non-final rejection ${Date.now()}`,
       },
-      ctx.schoolManager,
+      mgr.user.ctx,
     );
 
     await expect(
@@ -250,7 +127,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
           maxCapacity: 10,
           hourlyRate: 140,
         },
-        ctx.schoolManager,
+        mgr.user.ctx,
       ),
     ).rejects.toMatchObject({
       statusCode: 404,

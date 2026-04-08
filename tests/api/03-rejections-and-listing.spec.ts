@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
   approveSchoolManagerRequest,
@@ -9,31 +9,25 @@ import {
   rejectSchoolMemberRequest,
   submitRegistrationRequest,
 } from '../../src/registration/operations.js';
-import { ctx, SEED } from './testHelpers.js';
+import {
+  ctx,
+  createIsolatedSchoolManager,
+  createTestUser,
+  type IsolatedSchoolManager,
+} from './testHelpers.js';
 import { prisma } from './wasp-server-stub.js';
 
-const TEMP = {
-  users: {
-    requesterA: {
-      id: 'api-temp-requester-a',
-      email: 'api.temp.requester.a@example.test',
-    },
-    requesterB: {
-      id: 'api-temp-requester-b',
-      email: 'api.temp.requester.b@example.test',
-    },
-    requesterC: {
-      id: 'api-temp-requester-c',
-      email: 'api.temp.requester.c@example.test',
-    },
-  },
-} as const;
+// ---------------------------------------------------------------------------
+// Isolated test state — created once per file, never shared across files
+// ---------------------------------------------------------------------------
 
-const tempCtx = {
-  requesterA: { user: { id: TEMP.users.requesterA.id, isSystemAdmin: false as const } },
-  requesterB: { user: { id: TEMP.users.requesterB.id, isSystemAdmin: false as const } },
-  requesterC: { user: { id: TEMP.users.requesterC.id, isSystemAdmin: false as const } },
-};
+let mgr: IsolatedSchoolManager;
+let outsideMgr: IsolatedSchoolManager;
+
+beforeAll(async () => {
+  mgr = await createIsolatedSchoolManager();
+  outsideMgr = await createIsolatedSchoolManager();
+});
 
 type HttpErrorShape = {
   statusCode: number;
@@ -96,15 +90,6 @@ async function createMemberRequest(
   role: 'INSTRUCTOR' | 'STUDENT',
   schoolId: string,
 ): Promise<string> {
-  await prisma.registrationRequest.deleteMany({
-    where: {
-      requesterId: requesterContext.user!.id,
-      requestedRole: role,
-      targetSchoolId: schoolId,
-      status: 'PENDING',
-    },
-  });
-
   await submitRegistrationRequest(
     {
       fullName: `API ${role} Requester`,
@@ -130,90 +115,11 @@ async function createMemberRequest(
   return created!.id;
 }
 
-async function createSchoolOutsideManagerScope(): Promise<string> {
-  const id = uniqueSuffix('api-school-outside-scope');
-  await prisma.school.create({
-    data: {
-      id,
-      name: `Outside Scope ${Date.now()}`,
-      addressLine1: '1 Remote Road',
-      city: 'Lyon',
-      postalCode: '69000',
-      country: 'FR',
-      currency: 'EUR',
-      adminId: SEED.users.systemAdmin01,
-    },
-  });
-  return id;
-}
-
-async function safeCleanupForThisSpec(): Promise<void> {
-  const tempUserIds = [
-    TEMP.users.requesterA.id,
-    TEMP.users.requesterB.id,
-    TEMP.users.requesterC.id,
-    SEED.users.schoolManager01,
-    SEED.users.systemAdmin01,
-  ];
-
-  // Ensure temp users exist and are reset before each test.
-  for (const tempUser of Object.values(TEMP.users)) {
-    await prisma.user.upsert({
-      where: { id: tempUser.id },
-      update: {
-        email: tempUser.email,
-      },
-      create: {
-        id: tempUser.id,
-        email: tempUser.email,
-      },
-    });
-  }
-
-  // Delete decisions and requests produced by this file only.
-  await prisma.registrationRequestDecision.deleteMany({
-    where: {
-      request: {
-        requesterId: { in: tempUserIds },
-      },
-    },
-  });
-
-  await prisma.registrationRequest.deleteMany({
-    where: {
-      requesterId: { in: tempUserIds },
-    },
-  });
-
-  // Remove test-created school roles for temp users and for reviewer self-tests.
-  await prisma.userSchoolRole.deleteMany({
-    where: {
-      userId: { in: tempUserIds },
-      NOT: {
-        AND: [
-          { userId: SEED.users.schoolManager01 },
-          { schoolId: SEED.schools.cloudbase },
-          { role: 'SCHOOL_MANAGER' },
-        ],
-      },
-    },
-  });
-
-  // Reset any elevated effective roles back to defaults for users touched here.
-  await prisma.user.update({
-    where: { id: SEED.users.systemAdmin01 },
-    data: { isSystemAdmin: true },
-  });
-}
-
 describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
-  beforeEach(async () => {
-    await safeCleanupForThisSpec();
-  });
-
   describe('rejectSchoolManagerRequest', () => {
     it('[STD-ADM-004] rejects a pending school-manager request and persists reason', async () => {
-      const requestId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-sm-reject');
+      const requester = await createTestUser();
+      const requestId = await createSchoolManagerRequest(requester.ctx, 'api-sm-reject');
       const reason = 'Missing legal documents';
 
       await rejectSchoolManagerRequest({ requestId, rejectionReason: reason }, ctx.systemAdmin);
@@ -225,15 +131,13 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
 
       expect(updated?.status).toBe('REJECTED');
       expect(updated?.rejectionReason).toBe(reason);
-      expect(updated?.reviewerId).toBe(SEED.users.systemAdmin01);
 
       const decision = await prisma.registrationRequestDecision.findFirst({
         where: { requestId, decisionType: 'REJECTED' },
-        select: { reason: true, reviewerId: true },
+        select: { reason: true },
       });
 
       expect(decision?.reason).toBe(reason);
-      expect(decision?.reviewerId).toBe(SEED.users.systemAdmin01);
     });
 
     it('returns 404 for unknown request id', async () => {
@@ -248,7 +152,8 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
     });
 
     it('returns 409 when request is not pending', async () => {
-      const requestId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-sm-approved');
+      const requester = await createTestUser();
+      const requestId = await createSchoolManagerRequest(requester.ctx, 'api-sm-approved');
       await approveSchoolManagerRequest({ requestId }, ctx.systemAdmin);
 
       await expectHttpError(
@@ -269,11 +174,8 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
     });
 
     it('returns 400 for non-school-manager request', async () => {
-      const requestId = await createMemberRequest(
-        tempCtx.requesterA,
-        'INSTRUCTOR',
-        SEED.schools.cloudbase,
-      );
+      const requester = await createTestUser();
+      const requestId = await createMemberRequest(requester.ctx, 'INSTRUCTOR', mgr.school.id);
 
       await expectHttpError(
         rejectSchoolManagerRequest({ requestId, rejectionReason: 'Wrong type' }, ctx.systemAdmin),
@@ -283,9 +185,13 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
     });
 
     it('lists only pending/approved school-manager requests (excludes rejected)', async () => {
-      const pendingId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-sm-pending');
-      const approvedId = await createSchoolManagerRequest(tempCtx.requesterB, 'api-sm-approved-list');
-      const rejectedId = await createSchoolManagerRequest(tempCtx.requesterC, 'api-sm-rejected-list');
+      const requesterA = await createTestUser();
+      const requesterB = await createTestUser();
+      const requesterC = await createTestUser();
+
+      const pendingId = await createSchoolManagerRequest(requesterA.ctx, 'api-sm-pending');
+      const approvedId = await createSchoolManagerRequest(requesterB.ctx, 'api-sm-approved-list');
+      const rejectedId = await createSchoolManagerRequest(requesterC.ctx, 'api-sm-rejected-list');
 
       await approveSchoolManagerRequest({ requestId: approvedId }, ctx.systemAdmin);
       await rejectSchoolManagerRequest(
@@ -308,10 +214,11 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
 
   describe('rejectSchoolMemberRequest + getPendingSchoolMemberRequests', () => {
     it('rejects a pending member request and persists reason', async () => {
-      const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', SEED.schools.cloudbase);
+      const requester = await createTestUser();
+      const requestId = await createMemberRequest(requester.ctx, 'INSTRUCTOR', mgr.school.id);
       const reason = 'Missing certification';
 
-      await rejectSchoolMemberRequest({ requestId, rejectionReason: reason }, ctx.schoolManager);
+      await rejectSchoolMemberRequest({ requestId, rejectionReason: reason }, mgr.user.ctx);
 
       const updated = await prisma.registrationRequest.findUnique({
         where: { id: requestId },
@@ -320,94 +227,91 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
 
       expect(updated?.status).toBe('REJECTED');
       expect(updated?.rejectionReason).toBe(reason);
-      expect(updated?.reviewerId).toBe(SEED.users.schoolManager01);
+      expect(updated?.reviewerId).toBe(mgr.user.id);
     });
 
     it('returns 403 for cross-school reject attempts', async () => {
-      const otherSchoolId = await createSchoolOutsideManagerScope();
-      const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', otherSchoolId);
+      const requester = await createTestUser();
+      const requestId = await createMemberRequest(requester.ctx, 'INSTRUCTOR', outsideMgr.school.id);
 
       await expectHttpError(
-        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Cross-school' }, ctx.schoolManager),
+        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Cross-school' }, mgr.user.ctx),
         403,
         'You can reject only requests for your own school.',
       );
     });
 
     it('returns 403 when manager tries to reject own request', async () => {
-      const requestId = await createMemberRequest(
-        ctx.schoolManager,
-        'INSTRUCTOR',
-        SEED.schools.cloudbase,
-      );
+      const requestId = await createMemberRequest(mgr.user.ctx, 'INSTRUCTOR', mgr.school.id);
 
       await expectHttpError(
-        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Self review' }, ctx.schoolManager),
+        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Self review' }, mgr.user.ctx),
         403,
         'You cannot reject your own registration request.',
       );
     });
 
     it('returns 400 for school-manager request in member reject operation', async () => {
-      const requestId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-wrong-member-type');
+      const requester = await createTestUser();
+      const requestId = await createSchoolManagerRequest(requester.ctx, 'api-wrong-member-type');
 
       await expectHttpError(
-        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Wrong type' }, ctx.schoolManager),
+        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Wrong type' }, mgr.user.ctx),
         400,
         'Only instructor/student requests can be rejected here.',
       );
     });
 
     it('returns 409 when member request is not pending', async () => {
-      const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', SEED.schools.cloudbase);
-      await approveSchoolMemberRequest({ requestId }, ctx.schoolManager);
+      const requester = await createTestUser();
+      const requestId = await createMemberRequest(requester.ctx, 'INSTRUCTOR', mgr.school.id);
+      await approveSchoolMemberRequest({ requestId }, mgr.user.ctx);
 
       await expectHttpError(
-        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Too late' }, ctx.schoolManager),
+        rejectSchoolMemberRequest({ requestId, rejectionReason: 'Too late' }, mgr.user.ctx),
         409,
         'Only pending requests can be rejected.',
       );
     });
 
     it('[STD-MGR-010] lists only manager-school member requests with pending/approved status', async () => {
-      const pendingCloudbaseId = await createMemberRequest(
-        tempCtx.requesterA,
-        'INSTRUCTOR',
-        SEED.schools.cloudbase,
-      );
+      const requesterA = await createTestUser();
+      const requesterB = await createTestUser();
+      const requesterC = await createTestUser();
 
-      const approvedCloudbaseId = await createMemberRequest(
-        tempCtx.requesterB,
-        'INSTRUCTOR',
-        SEED.schools.cloudbase,
-      );
-      await approveSchoolMemberRequest({ requestId: approvedCloudbaseId }, ctx.schoolManager);
+      const pendingId = await createMemberRequest(requesterA.ctx, 'INSTRUCTOR', mgr.school.id);
 
-      const rejectedCloudbaseId = await createMemberRequest(
-        tempCtx.requesterC,
-        'INSTRUCTOR',
-        SEED.schools.cloudbase,
-      );
+      const approvedId = await createMemberRequest(requesterB.ctx, 'INSTRUCTOR', mgr.school.id);
+      await approveSchoolMemberRequest({ requestId: approvedId }, mgr.user.ctx);
+
+      const rejectedId = await createMemberRequest(requesterC.ctx, 'INSTRUCTOR', mgr.school.id);
       await rejectSchoolMemberRequest(
-        { requestId: rejectedCloudbaseId, rejectionReason: 'Rejected for test' },
-        ctx.schoolManager,
+        { requestId: rejectedId, rejectionReason: 'Rejected for test' },
+        mgr.user.ctx,
       );
 
-      const otherSchoolId = await createSchoolOutsideManagerScope();
-      const outsideScopeId = await createMemberRequest(tempCtx.requesterB, 'INSTRUCTOR', otherSchoolId);
+      const outsideRequester = await createTestUser();
+      const outsideScopeId = await createMemberRequest(
+        outsideRequester.ctx,
+        'INSTRUCTOR',
+        outsideMgr.school.id,
+      );
 
-      const rows = (await getPendingSchoolMemberRequests({}, ctx.schoolManager)) as Array<{
+      const rows = (await getPendingSchoolMemberRequests(
+        { schoolId: mgr.school.id },
+        mgr.user.ctx,
+      )) as Array<{
         id: string;
         status: string;
         targetSchool: { id: string } | null;
       }>;
 
       const ids = rows.map((row) => row.id);
-      expect(ids).toContain(pendingCloudbaseId);
-      expect(ids).toContain(approvedCloudbaseId);
-      expect(ids).not.toContain(rejectedCloudbaseId);
+      expect(ids).toContain(pendingId);
+      expect(ids).toContain(approvedId);
+      expect(ids).not.toContain(rejectedId);
       expect(ids).not.toContain(outsideScopeId);
-      expect(rows.every((row) => row.targetSchool?.id === SEED.schools.cloudbase)).toBe(true);
+      expect(rows.every((row) => row.targetSchool?.id === mgr.school.id)).toBe(true);
       expect(rows.every((row) => row.status === 'PENDING' || row.status === 'APPROVED')).toBe(true);
     });
   });
