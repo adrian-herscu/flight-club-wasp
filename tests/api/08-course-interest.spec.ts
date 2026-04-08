@@ -223,7 +223,7 @@ describe('8 course interest flow (API)', () => {
       await expectHttpError(
         getManagerCourseInterests({ courseId: null }, ctx.unauthenticated),
         401,
-        'Only authenticated users can access manager features.',
+        'Only authenticated users can access this resource.',
       );
     });
   });

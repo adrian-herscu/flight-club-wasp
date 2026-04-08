@@ -397,7 +397,7 @@ export const getManagerSyllabusCatalog = withSyllabusOperator(async (
           : item.schoolId === school?.id),
     ),
   };
-};
+});
 
 export const getSyllabusVersionDetails = withSyllabusOperator(
   async (rawArgs, ctx): Promise<SyllabusVersionDetails> => {
@@ -479,7 +479,7 @@ export const getSyllabusVersionDetails = withSyllabusOperator(
       durationMinutes: lesson.durationMinutes,
     })),
   };
-};
+});
 
 export const createDraftSyllabusFromScratch = withSyllabusOperator(
   async (rawArgs, ctx): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
@@ -523,7 +523,7 @@ export const createDraftSyllabusFromScratch = withSyllabusOperator(
   });
 
   return created;
-};
+});
 
 export const createDraftSyllabusFromTemplate = withSyllabusOperator(
   async (rawArgs, ctx): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
@@ -594,7 +594,7 @@ export const createDraftSyllabusFromTemplate = withSyllabusOperator(
   });
 
   return created;
-};
+});
 
 export const saveDraftSyllabusRevision = withSyllabusOperator(
   async (rawArgs, ctx): Promise<{ syllabusVersionId: string; version: number }> => {
@@ -664,7 +664,7 @@ export const saveDraftSyllabusRevision = withSyllabusOperator(
   });
 
   return created;
-};
+});
 
 export const publishDraftSyllabusVersion = withSyllabusOperator(
   async (rawArgs, ctx): Promise<{ syllabusVersionId: string; version: number }> => {
@@ -740,7 +740,7 @@ export const publishDraftSyllabusVersion = withSyllabusOperator(
   });
 
   return created;
-};
+});
 
 export const getManagerCoursesForEnrollment = withSyllabusOperator(
   async (rawArgs, ctx): Promise<ManagerCourseListItem[]> => {
@@ -784,7 +784,7 @@ export const getManagerCoursesForEnrollment = withSyllabusOperator(
       hourlyRate: course.hourlyRate,
       enrolledCount: course._count.enrolledStudents,
     }));
-};
+});
 
 export const getManagerClosedCourses = withSyllabusOperator(
   async (rawArgs, ctx): Promise<ManagerCourseListItem[]> => {
@@ -828,7 +828,7 @@ export const getManagerClosedCourses = withSyllabusOperator(
       hourlyRate: course.hourlyRate,
       enrolledCount: course._count.enrolledStudents,
     }));
-};
+});
 
 export const getManagerStudentsForEnrollment = withSyllabusOperator(
   async (rawArgs, ctx): Promise<ManagerStudentListItem[]> => {
@@ -867,7 +867,7 @@ export const getManagerStudentsForEnrollment = withSyllabusOperator(
     email: student.user.email,
     phone: student.user.phone,
   }));
-};
+});
 
 export const getManagerInstructorsForAssignment = withSyllabusOperator(
   async (rawArgs, ctx): Promise<ManagerInstructorListItem[]> => {
@@ -906,7 +906,7 @@ export const getManagerInstructorsForAssignment = withSyllabusOperator(
     email: instructor.user.email,
     phone: instructor.user.phone,
   }));
-};
+});
 
 export const getManagerCourseEnrollmentDetails = withSyllabusOperator(
   async (rawArgs, ctx): Promise<ManagerCourseEnrollmentDetails> => {
@@ -968,7 +968,7 @@ export const getManagerCourseEnrollmentDetails = withSyllabusOperator(
     enrolledCount: enrolledStudents.length,
     enrolledStudents,
   };
-};
+});
 
 export const enrollStudentInCourse = withSchoolManager(
   async (rawArgs, ctx): Promise<{ courseId: string; studentId: string }> => {
@@ -1037,7 +1037,7 @@ export const enrollStudentInCourse = withSchoolManager(
     courseId,
     studentId,
   };
-};
+});
 
 export const getManagerCourseInstructorDetails = withSyllabusOperator(
   async (rawArgs, ctx): Promise<ManagerCourseInstructorDetails> => {
@@ -1099,7 +1099,7 @@ export const getManagerCourseInstructorDetails = withSyllabusOperator(
     assignedCount: assignedInstructors.length,
     assignedInstructors,
   };
-};
+});
 
 export const assignInstructorToCourse = withSchoolManager(
   async (rawArgs, ctx): Promise<{ courseId: string; instructorId: string }> => {
@@ -1171,7 +1171,7 @@ export const assignInstructorToCourse = withSchoolManager(
     courseId,
     instructorId,
   };
-};
+});
 
 export const createCourseFromFinalSyllabus = withSchoolManager(
   async (rawArgs, ctx): Promise<{ courseId: string }> => {
@@ -1241,7 +1241,7 @@ export const createCourseFromFinalSyllabus = withSchoolManager(
   return {
     courseId: created.id,
   };
-};
+});
 
 export const closeCourse = withSchoolManager(
   async (rawArgs, ctx): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
@@ -1278,7 +1278,7 @@ export const closeCourse = withSchoolManager(
   });
 
   return { courseId: course.id, status: CourseLifecycleStatus.CLOSED };
-};
+});
 
 export const reopenCourse = withSchoolManager(
   async (rawArgs, ctx): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
@@ -1315,7 +1315,7 @@ export const reopenCourse = withSchoolManager(
   });
 
   return { courseId: course.id, status: CourseLifecycleStatus.REOPENED };
-};
+});
 
 // ---------------------------------------------------------------------------
 // Course Interest (manager-side)
@@ -1481,7 +1481,7 @@ export const getManagerStudentCoursePairs = withSchoolManager(
       startDate: interest.course.startDate,
     },
   }));
-};
+});
 
 /**
  * Approves enrollment from a CourseInterest row. Ensures manager school scope,
@@ -1625,7 +1625,7 @@ export const approveStudentEnrollmentFromInterest = withSchoolManager(
       status: updatedInterest.status,
     };
   });
-};
+});
 
 /**
  * Returns CourseInterest records for the manager's school, filtered by an
@@ -1698,7 +1698,7 @@ export const getManagerCourseInterests = withSchoolManager(
       startDate: interest.course.startDate,
     },
   }));
-};
+});
 
 
 export const cancelCourseInterestForManager = withSchoolManager(
@@ -1740,4 +1740,4 @@ export const cancelCourseInterestForManager = withSchoolManager(
   });
 
   return updated;
-};
+});

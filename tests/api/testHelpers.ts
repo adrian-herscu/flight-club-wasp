@@ -186,12 +186,27 @@ export async function createTestStudent(schoolId: string, currency: string): Pro
     data: { userId, schoolId, currency },
   });
 
+  // The DB trigger requires sourceRegistrationRequestId for STUDENT roles.
+  const { id: requestId } = await prisma.registrationRequest.create({
+    data: {
+      requesterId: userId,
+      requestedRole: 'STUDENT',
+      targetSchoolId: schoolId,
+      approvedSchoolId: schoolId,
+      status: 'APPROVED',
+      reviewerId: SEED.users.systemAdmin01,
+      reviewedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
   await prisma.userSchoolRole.create({
     data: {
       userId,
       schoolId,
       role: SchoolRole.STUDENT,
       grantedByUserId: SEED.users.systemAdmin01,
+      sourceRegistrationRequestId: requestId,
     },
   });
 
@@ -290,4 +305,32 @@ export async function addIsolatedSchoolToManager(userId: string): Promise<TestSc
   });
 
   return { id: schoolId, name: `Test School ${suffix}`, currency };
+}
+
+/**
+ * Deletes transient users created by test helpers (e.g. createTempUser in test files)
+ * whose emails start with known test prefixes, along with all their dependent rows.
+ * Call in beforeEach to isolate tests that share seeded school/course state.
+ */
+export async function cleanTestData(): Promise<void> {
+  // Find temp users by email prefix (each test creates a unique user, so we
+  // only need to clean their transactional data — Student rows cannot be
+  // deleted due to a DB trigger, and User rows are harmless to leave).
+  const tempUsers = await prisma.user.findMany({
+    where: { email: { startsWith: 'api-temp-course-interest-student' } },
+    select: { id: true },
+  });
+  const tempUserIds = tempUsers.map((u) => u.id);
+  if (tempUserIds.length === 0) return;
+
+  const students = await prisma.student.findMany({
+    where: { userId: { in: tempUserIds } },
+    select: { id: true },
+  });
+  const studentIds = students.map((s) => s.id);
+  if (studentIds.length > 0) {
+    await prisma.enrolledStudent.deleteMany({ where: { studentId: { in: studentIds } } });
+  }
+
+  await prisma.courseInterest.deleteMany({ where: { userId: { in: tempUserIds } } });
 }
