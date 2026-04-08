@@ -35,6 +35,10 @@ import {
   NavItem,
 } from "../../client/components/patterns/AdminSidebarPatterns";
 import { getRoleKeyFromPath } from "../../shared/roles";
+import {
+  DASHBOARD_NAV_ITEMS_BY_ROLE,
+  type DashboardNavIconKey,
+} from "../../shared/navigation/dashboardNavigation";
 import { UserMenuItems } from "../../user/UserMenuItems";
 
 const { getMyManagedSchool, getInstructorSchools, useQuery } = operations as any;
@@ -188,63 +192,14 @@ const InstructorSchoolContextBadge = () => {
   );
 };
 
-type SidebarEntry = {
-  nameKey: string;
-  to: string;
-  icon: React.ComponentType<{ style?: React.CSSProperties }>;
-  matchPrefix?: string;
-};
-
-const SIDEBAR_NAV: { [role: string]: SidebarEntry[] } = {
-  SYSTEM_ADMIN: [
-    { nameKey: "admin.dashboard", to: "/system-admin", icon: LayoutDashboard },
-    { nameKey: "admin.users", to: "/system-admin/users", icon: Sheet },
-    { nameKey: "admin.schools", to: "/system-admin/school-requests", icon: ClipboardList },
-    {
-      nameKey: "admin.syllabuses",
-      to: "/system-admin/syllabuses?section=catalog",
-      icon: GraduationCap,
-      matchPrefix: "/system-admin/syllabuses",
-    },
-  ],
-  SCHOOL_MANAGER: [
-    { nameKey: "admin.dashboard", to: "/school-manager", icon: LayoutDashboard },
-    {
-      nameKey: "admin.filterInstructors",
-      to: "/school-manager/member-requests/instructors",
-      icon: ClipboardList,
-    },
-    {
-      nameKey: "admin.filterStudents",
-      to: "/school-manager/member-requests/students",
-      icon: ClipboardList,
-    },
-    { nameKey: "admin.schools", to: "/school-manager/school", icon: School },
-    {
-      nameKey: "admin.courses",
-      to: "/school-manager/courses",
-      icon: BookOpen,
-      matchPrefix: "/school-manager/courses",
-    },
-    {
-      nameKey: "admin.syllabuses",
-      to: "/school-manager/syllabuses?section=catalog",
-      icon: GraduationCap,
-      matchPrefix: "/school-manager/syllabuses",
-    },
-  ],
-  INSTRUCTOR: [
-    { nameKey: "admin.dashboard", to: "/instructor", icon: LayoutDashboard },
-    {
-      nameKey: "admin.courses",
-      to: "/instructor/courses",
-      icon: BookOpen,
-      matchPrefix: "/instructor/courses",
-    },
-  ],
-  STUDENT: [
-    { nameKey: "admin.dashboard", to: "/student", icon: LayoutDashboard },
-  ],
+const DASHBOARD_NAV_ICON_MAP: Record<DashboardNavIconKey, React.ComponentType<{ style?: React.CSSProperties }>> = {
+  dashboard: LayoutDashboard,
+  users: Sheet,
+  schools: School,
+  courses: BookOpen,
+  syllabuses: GraduationCap,
+  instructorRequests: ClipboardList,
+  studentRequests: ClipboardList,
 };
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop, user }: SidebarProps) => {
@@ -309,7 +264,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop, user }: SidebarProps)
     }
   }, [sidebarExpanded]);
 
-  const navItems = roleFromPath ? (SIDEBAR_NAV[roleFromPath] ?? []) : [];
+  const navItems = roleFromPath ? (DASHBOARD_NAV_ITEMS_BY_ROLE[roleFromPath] ?? []) : [];
   const currentUser = user as AuthUser & {
     fullName?: string | null;
     email?: string | null;
@@ -346,7 +301,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop, user }: SidebarProps)
             }
           >
               {navItems.map((item) => {
-                const Icon = item.icon;
+                const Icon = DASHBOARD_NAV_ICON_MAP[item.iconKey];
                 return (
                   <NavItem key={item.to}>
                     <NavLink

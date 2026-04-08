@@ -346,6 +346,66 @@ export const createTestCourseWithManager = async (): Promise<{
   }
 };
 
+/**
+ * Creates a course fixture that is guaranteed to expose instructor contacts on landing.
+ */
+export const createTestCourseWithAssignedInstructor = async (): Promise<{
+  manager: User;
+  instructor: User;
+  schoolId: string;
+  courseId: string;
+}> => {
+  const baseFixture = await createTestCourseWithManager();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const instructor = await provisionFreshEmailUser();
+    const instructorUser = await prisma.user.findUnique({
+      where: { email: instructor.email },
+      select: { id: true },
+    });
+
+    if (!instructorUser) {
+      throw new Error(`Instructor user not found: ${instructor.email}`);
+    }
+
+    const instructorProfile = await prisma.instructor.create({
+      data: {
+        userId: instructorUser.id,
+      },
+      select: { id: true },
+    });
+
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId: baseFixture.courseId,
+        instructorId: instructorProfile.id,
+      },
+    });
+
+    return {
+      manager: baseFixture.manager,
+      instructor,
+      schoolId: baseFixture.schoolId,
+      courseId: baseFixture.courseId,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
 const getNextYearLastTwoDigits = () => {
   const nextYear = new Date().getFullYear() + 1;
   return nextYear.toString().slice(-2);

@@ -1,5 +1,9 @@
 import { Cookie, expect, test } from "@playwright/test";
-import { logUserIn, provisionFreshEmailUser } from "./utils.js";
+import {
+  createTestCourseWithAssignedInstructor,
+  logUserIn,
+  provisionFreshEmailUser,
+} from "./utils.js";
 
 test.describe("4.1 public discovery", () => {
   test.beforeEach(async ({ page }) => {
@@ -29,10 +33,10 @@ test.describe("4.1 public discovery", () => {
   });
 
   test("[4.1][STD-PUB-003B] logged in users can see schools and courses on landing", async ({ page }) => {
-    const user = await provisionFreshEmailUser();
+    const { manager } = await createTestCourseWithAssignedInstructor();
     await logUserIn({
       page,
-      user,
+      user: manager,
       expectedRedirectPath: "/",
     });
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();

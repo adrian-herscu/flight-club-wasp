@@ -16,6 +16,7 @@
     "wasp:start": "wasp start",
     "wasp:start:bg": "node scripts/start-wasp-bg.mjs",
     "wasp:restart": "npm run wasp:kill && npm run wasp:clean && npm run wasp:lint && npm run wasp:db:reset && npm run wasp:start:bg",
+    "scaffold:dashboard-page": "node scripts/scaffold-dashboard-page.mjs",
 
     "test": "vitest run",
     "test:watch": "vitest",

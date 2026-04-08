@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import { logout } from "wasp/client/auth";
 import * as operations from "wasp/client/operations";
 import { type User as UserEntity } from "wasp/entities";
-import { type DashboardPath } from "../shared/roles";
+import { type DashboardPath } from "../shared/navigation/dashboardNavigation";
 import {
   DropdownItemContent,
   SrOnlyText,

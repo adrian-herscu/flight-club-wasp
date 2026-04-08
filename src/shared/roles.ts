@@ -1,6 +1,14 @@
 import type { SchoolRole } from "@prisma/client";
+import {
+  DASHBOARD_ROOT_PATH_BY_ROLE,
+  getDashboardRoleFromPath,
+  getDashboardPathForRole,
+  isDashboardRoutePath,
+  type DashboardPath,
+  type DashboardRoleKey,
+} from "./navigation/dashboardNavigation";
 
-export type DashboardPath = "/system-admin" | "/school-manager" | "/instructor" | "/student";
+export type { DashboardPath, DashboardRoleKey };
 
 type UserLike = {
   isSystemAdmin?: boolean | null;
@@ -29,11 +37,11 @@ export function isSystemAdmin(user?: UserLike | null): boolean {
 export function getDashboardPathForSchoolRole(role?: SchoolRole | null): DashboardPath | null {
   switch (role) {
     case "SCHOOL_MANAGER":
-      return "/school-manager";
+      return getDashboardPathForRole("SCHOOL_MANAGER");
     case "INSTRUCTOR":
-      return "/instructor";
+      return getDashboardPathForRole("INSTRUCTOR");
     case "STUDENT":
-      return "/student";
+      return getDashboardPathForRole("STUDENT");
     default:
       return null;
   }
@@ -45,7 +53,7 @@ export function getDashboardPathForSchoolRole(role?: SchoolRole | null): Dashboa
  */
 export function getDashboardPathForUser(user?: UserLike | null): DashboardPath | null {
   if (!user) return null;
-  if (user.isSystemAdmin) return "/system-admin";
+  if (user.isSystemAdmin) return DASHBOARD_ROOT_PATH_BY_ROLE.SYSTEM_ADMIN;
   return null;
 }
 
@@ -53,22 +61,13 @@ export function getDashboardPathForUser(user?: UserLike | null): DashboardPath |
  * Returns true when the current pathname is inside any role dashboard area.
  */
 export function isDashboardPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/system-admin") ||
-    pathname.startsWith("/school-manager") ||
-    pathname.startsWith("/instructor") ||
-    pathname.startsWith("/student")
-  );
+  return isDashboardRoutePath(pathname);
 }
 
 /**
  * Infers the dashboard role key from the current pathname.
  * Used by the Sidebar to select the correct navigation items.
  */
-export function getRoleKeyFromPath(pathname: string): string | null {
-  if (pathname.startsWith("/system-admin")) return "SYSTEM_ADMIN";
-  if (pathname.startsWith("/school-manager")) return "SCHOOL_MANAGER";
-  if (pathname.startsWith("/instructor")) return "INSTRUCTOR";
-  if (pathname.startsWith("/student")) return "STUDENT";
-  return null;
+export function getRoleKeyFromPath(pathname: string): DashboardRoleKey | null {
+  return getDashboardRoleFromPath(pathname);
 }

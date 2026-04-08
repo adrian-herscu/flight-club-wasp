@@ -1,5 +1,6 @@
 import { LayoutDashboard, Settings, UserPlus } from "lucide-react";
 import { routes } from "wasp/client/router";
+import { type DashboardPath } from "../shared/navigation/dashboardNavigation";
 import { getDashboardPathForUser } from "../shared/roles";
 
 type AppRouteTo = (typeof routes)[keyof typeof routes]["to"];
@@ -10,8 +11,6 @@ export type UserMenuItem = {
   icon: typeof LayoutDashboard;
   isAuthRequired: boolean;
 };
-
-type DashboardPath = "/system-admin" | "/school-manager" | "/instructor" | "/student";
 
 type UserLike = {
   isSystemAdmin?: boolean | null;

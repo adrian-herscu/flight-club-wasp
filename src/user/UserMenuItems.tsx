@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { logout } from "wasp/client/auth";
 import * as operations from "wasp/client/operations";
 import { type User } from "wasp/entities";
-import { type DashboardPath } from "../shared/roles";
+import { type DashboardPath } from "../shared/navigation/dashboardNavigation";
 import {
   MenuListItemButton,
   MenuListItemLink,
