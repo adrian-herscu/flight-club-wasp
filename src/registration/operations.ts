@@ -291,7 +291,7 @@ export const getMyRegistrationRequests = withAuthenticated(async (_args, ctx) =>
     },
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
-};
+});
 
 export const getRegistrationSchoolOptions = async (
   _args: unknown,
@@ -482,7 +482,7 @@ export const submitRegistrationRequest = withAuthenticated(async (rawArgs, ctx) 
 
     throw error;
   }
-};
+});
 
 export const getPendingSchoolManagerRequests = withSystemAdmin(
   async (_args, _ctx): Promise<RegistrationRequestListItem[]> => {
@@ -704,7 +704,7 @@ export const approveSchoolManagerRequest = withSystemAdmin(async (rawArgs, ctx) 
 
     throw error;
   }
-};
+});
 
 export const rejectSchoolManagerRequest = withSystemAdmin(async (rawArgs, ctx) => {
   const reviewer = ctx.user;
@@ -763,7 +763,7 @@ export const rejectSchoolManagerRequest = withSystemAdmin(async (rawArgs, ctx) =
       },
     });
   });
-};
+});
 
 export const approveSchoolMemberRequest = withSchoolManager(async (rawArgs, ctx) => {
   const reviewer = ctx.user;
@@ -898,7 +898,7 @@ export const approveSchoolMemberRequest = withSchoolManager(async (rawArgs, ctx)
       approvedRole: request.requestedRole,
     };
   });
-};
+});
 
 export const rejectSchoolMemberRequest = withSchoolManager(async (rawArgs, ctx) => {
   const reviewer = ctx.user;
@@ -966,4 +966,4 @@ export const rejectSchoolMemberRequest = withSchoolManager(async (rawArgs, ctx) 
       },
     });
   });
-};
+});

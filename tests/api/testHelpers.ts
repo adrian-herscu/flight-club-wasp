@@ -227,12 +227,27 @@ export async function createTestInstructor(schoolId: string, currency: string): 
     data: { userId, schoolId, currency },
   });
 
+  // The DB trigger requires sourceRegistrationRequestId for INSTRUCTOR roles.
+  const { id: requestId } = await prisma.registrationRequest.create({
+    data: {
+      requesterId: userId,
+      requestedRole: 'INSTRUCTOR',
+      targetSchoolId: schoolId,
+      approvedSchoolId: schoolId,
+      status: 'APPROVED',
+      reviewerId: SEED.users.systemAdmin01,
+      reviewedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
   await prisma.userSchoolRole.create({
     data: {
       userId,
       schoolId,
       role: SchoolRole.INSTRUCTOR,
       grantedByUserId: SEED.users.systemAdmin01,
+      sourceRegistrationRequestId: requestId,
     },
   });
 
