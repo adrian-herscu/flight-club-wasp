@@ -78,6 +78,8 @@ The project should continue to evolve within the existing Wasp application struc
   - The platform must display a public landing page with schools and visible courses.
   - Users must be able to filter schools by country and location and filter courses by name.
   - School cards should support logos and school website visibility when available.
+  - For authenticated users, landing school cards must show contact details for school managers (email and phone when available).
+  - For authenticated users, landing course items must show contact details for assigned instructors (email and phone when available).
   - The landing page must work for both anonymous and authenticated users.
 
 - **Authentication and account access** (Priority: High)
@@ -191,7 +193,7 @@ The project should continue to evolve within the existing Wasp application struc
 - Instructor assignment must handle schedule conflict rejections gracefully.
 - Manager-only routes must not appear for unauthorized roles.
 - RTL layout and translated labels must remain usable for navigation-heavy manager pages.
-- Optional school data, such as website URL, phone, and logo, must not break the public or registration experience when absent.
+- Optional school metadata, such as website URL and logo, must not break the public or registration experience when absent.
 
 ### 5.4 UI/UX highlights
 

@@ -44,7 +44,6 @@ type SchoolRequestItem = {
     phone: string | null;
   };
   requestedSchoolName: string | null;
-  requestedPhone: string | null;
   requestedLogoUrl: string | null;
   requestedAddressLine1: string | null;
   requestedAddressLine2: string | null;
@@ -57,7 +56,6 @@ type SchoolRequestItem = {
     id: string;
     name: string;
     websiteUrl: string | null;
-    phone: string | null;
     logoUrl: string | null;
     addressLine1: string;
     addressLine2: string | null;
@@ -238,7 +236,6 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                   <SchoolRequestsSnapshot
                     label={t("admin.requestedSchoolSnapshot")}
                     schoolName={request.requestedSchoolName ?? "-"}
-                    phone={request.requestedPhone}
                     logoUrl={request.requestedLogoUrl}
                     logoAlt="logo"
                     summaryAddress={[
@@ -323,11 +320,6 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                         .filter(Boolean)
                         .join(", ") || "-"}
                     </SchoolRequestsDetailsRow>
-                    {request.approvedSchool?.phone && (
-                      <SchoolRequestsDetailsRow label="Phone">
-                        {request.approvedSchool.phone}
-                      </SchoolRequestsDetailsRow>
-                    )}
                     {request.approvedSchool?.logoUrl && (
                       <SchoolRequestsDetailsLogoRow
                         label="Logo"

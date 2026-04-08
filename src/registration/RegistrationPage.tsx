@@ -44,7 +44,6 @@ type SchoolOption = {
   city: string;
   country: string;
   websiteUrl: string | null;
-  phone: string | null;
   logoUrl: string | null;
 };
 
@@ -110,7 +109,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const [targetSchoolId, setTargetSchoolId] = useState("");
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
   const [requestedWebsiteUrl, setRequestedWebsiteUrl] = useState("");
-  const [requestedPhone, setRequestedPhone] = useState("");
   const [requestedLogoUrl, setRequestedLogoUrl] = useState("");
   const [requestedAddressLine1, setRequestedAddressLine1] = useState("");
   const [requestedAddressLine2, setRequestedAddressLine2] = useState("");
@@ -141,7 +139,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
     setRequestedSchoolName(latestPendingManagerRequest.requestedSchoolName ?? "");
     setRequestedWebsiteUrl(latestPendingManagerRequest.requestedWebsiteUrl ?? "");
-    setRequestedPhone(latestPendingManagerRequest.requestedPhone ?? "");
     setRequestedLogoUrl(latestPendingManagerRequest.requestedLogoUrl ?? "");
     setRequestedAddressLine1(latestPendingManagerRequest.requestedAddressLine1 ?? "");
     setRequestedAddressLine2(latestPendingManagerRequest.requestedAddressLine2 ?? "");
@@ -238,7 +235,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
         requestedSchoolName: isManagerRequest ? requestedSchoolName.trim() : undefined,
         requestedWebsiteUrl:
           isManagerRequest ? requestedWebsiteUrl.trim() || undefined : undefined,
-        requestedPhone: isManagerRequest ? requestedPhone.trim() || undefined : undefined,
         requestedLogoUrl: isManagerRequest ? requestedLogoUrl.trim() || undefined : undefined,
         requestedAddressLine1: isManagerRequest ? requestedAddressLine1.trim() : undefined,
         requestedAddressLine2: isManagerRequest ? requestedAddressLine2.trim() || undefined : undefined,
@@ -365,14 +361,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                 value={requestedWebsiteUrl}
                 onChange={setRequestedWebsiteUrl}
                 placeholder="https://example.com"
-              />
-              <LabeledInputField
-                id="requestedSchoolPhone"
-                label={t("registration.schoolPhone")}
-                type="tel"
-                value={requestedPhone}
-                onChange={setRequestedPhone}
-                placeholder="+1 555 0100"
               />
               <LabeledInputField
                 id="requestedLogoUrl"

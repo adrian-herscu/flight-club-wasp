@@ -23,12 +23,10 @@ test.describe("4.14 school manager school profile editing", () => {
 
     const uniqueSuffix = Date.now().toString().slice(-6);
     const updatedName = `School-Edited-${uniqueSuffix}`;
-    const updatedPhone = `+1 555 ${uniqueSuffix}`;
     const updatedCity = `Test-City-${uniqueSuffix}`;
 
     await test.step("Edit school profile fields and save", async () => {
       await page.getByLabel("Name").fill(updatedName);
-      await page.getByLabel("Phone (optional)").fill(updatedPhone);
       await page.getByLabel("City").fill(updatedCity);
       await page.getByLabel("Default hourly rate").fill("135");
 
@@ -41,7 +39,6 @@ test.describe("4.14 school manager school profile editing", () => {
       await page.waitForLoadState("networkidle");
 
       await expect(page.getByLabel("Name")).toHaveValue(updatedName);
-      await expect(page.getByLabel("Phone (optional)")).toHaveValue(updatedPhone);
       await expect(page.getByLabel("City")).toHaveValue(updatedCity);
       await expect(page.getByLabel("Default hourly rate")).toHaveValue("135");
     });

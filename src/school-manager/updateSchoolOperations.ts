@@ -57,7 +57,6 @@ function normalizeOptionalLogoUrl(value: string | undefined): string | null {
 const updateManagedSchoolSchema = z.object({
   name: z.string().trim().min(2),
   websiteUrl: z.string().trim().max(2048).optional(),
-  phone: z.string().trim().max(50).optional(),
   logoUrl: z.string().trim().max(2048).optional(),
   addressLine1: z.string().trim().min(2),
   addressLine2: z.string().trim().optional(),
@@ -147,7 +146,6 @@ export const updateMyManagedSchool = async (
   const {
     name,
     websiteUrl,
-    phone,
     logoUrl,
     addressLine1,
     addressLine2,
@@ -169,7 +167,6 @@ export const updateMyManagedSchool = async (
       data: {
         name,
         websiteUrl: normalizedWebsiteUrl,
-        phone: phone?.trim() || null,
         logoUrl: normalizedLogoUrl,
         addressLine1,
         addressLine2: addressLine2 || null,

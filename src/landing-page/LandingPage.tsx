@@ -5,6 +5,12 @@ import { useAuth } from "wasp/client/auth";
 import { useTranslation } from "react-i18next";
 import {
   LandingCountryFilter,
+  LandingContactItem,
+  LandingContactList,
+  LandingContactMeta,
+  LandingContactName,
+  LandingCourseContactSection,
+  LandingContactSectionTitle,
   LandingCountryOption,
   LandingHiddenCountryOption,
   LandingCourseActionsRow,
@@ -23,6 +29,7 @@ import {
   LandingResultsSection,
   LandingSchoolCard,
   LandingSchoolHeaderRow,
+  LandingSchoolContactSection,
   LandingSchoolIdentityRow,
   LandingSchoolLocation,
   LandingSchoolLogo,
@@ -48,9 +55,17 @@ type LandingCourse = {
   startDate: string | null;
   minCapacity: number | null;
   maxCapacity: number | null;
+  instructorContacts: LandingContact[];
   canExpressInterest: boolean;
   viewerInterestId: string | null;
   viewerInterestStatus: LandingCourseInterestStatus | null;
+};
+
+type LandingContact = {
+  userId: string;
+  displayName: string;
+  email: string;
+  phone: string | null;
 };
 
 type LandingSchool = {
@@ -60,6 +75,7 @@ type LandingSchool = {
   logoUrl: string | null;
   city: string;
   country: string;
+  managerContacts: LandingContact[];
   courses: LandingCourse[];
 };
 
@@ -418,6 +434,21 @@ export default function LandingPage() {
                   )}
                 </LandingSchoolHeaderRow>
 
+                {user && school.managerContacts.length > 0 && (
+                  <LandingSchoolContactSection testId="landing-school-manager-contacts">
+                    <LandingContactSectionTitle>{t("landing.schoolManagerContacts")}</LandingContactSectionTitle>
+                    <LandingContactList>
+                      {school.managerContacts.map((contact) => (
+                        <LandingContactItem key={contact.userId} testId="landing-school-manager-contact-item">
+                          <LandingContactName>{contact.displayName}</LandingContactName>
+                          <LandingContactMeta>{contact.email}</LandingContactMeta>
+                          {contact.phone ? <LandingContactMeta>{contact.phone}</LandingContactMeta> : null}
+                        </LandingContactItem>
+                      ))}
+                    </LandingContactList>
+                  </LandingSchoolContactSection>
+                )}
+
                 <LandingCourseList>
                   {school.courses.map((course) => (
                     <LandingCourseItem key={course.id}>
@@ -429,6 +460,23 @@ export default function LandingPage() {
                         <LandingCourseMeta>
                           {t("landing.capacityLabel")} {course.minCapacity ?? "?"} - {course.maxCapacity ?? "?"}
                         </LandingCourseMeta>
+                      )}
+                      {user && course.instructorContacts.length > 0 && (
+                        <LandingCourseContactSection testId="landing-course-instructor-contacts">
+                          <LandingContactSectionTitle>{t("landing.assignedInstructorContacts")}</LandingContactSectionTitle>
+                          <LandingContactList>
+                            {course.instructorContacts.map((contact) => (
+                              <LandingContactItem
+                                key={`${course.id}-${contact.userId}`}
+                                testId="landing-course-instructor-contact-item"
+                              >
+                                <LandingContactName>{contact.displayName}</LandingContactName>
+                                <LandingContactMeta>{contact.email}</LandingContactMeta>
+                                {contact.phone ? <LandingContactMeta>{contact.phone}</LandingContactMeta> : null}
+                              </LandingContactItem>
+                            ))}
+                          </LandingContactList>
+                        </LandingCourseContactSection>
                       )}
                       <LandingCourseActionsRow>
                         {user && interestStateByCourseId.get(course.id)?.status === "ENROLLED" ? (

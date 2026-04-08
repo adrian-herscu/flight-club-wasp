@@ -88,7 +88,6 @@ export const ru = {
     next: "Далее",
     schoolName: "Название школы",
     websiteUrl: "URL сайта (необязательно)",
-    schoolPhone: "Телефон школы (необязательно)",
     logoUrl: "URL логотипа школы (необязательно)",
     invalidLogoUrl: "Некорректный URL логотипа",
     invalidLogoUrlError:
@@ -506,7 +505,6 @@ export const ru = {
     mySchool: "Моя школа",
     schoolName: "Название школы",
     schoolEmail: "Email школы",
-    schoolPhone: "Телефон школы",
     address: "Адрес",
     city: "Город",
     state: "Регион",
@@ -524,7 +522,6 @@ export const ru = {
     balance: "Баланс (в минимальных единицах)",
     name: "Название",
     websiteUrl: "URL сайта (необязательно)",
-    phone: "Телефон (необязательно)",
     logoUrl: "URL логотипа (необязательно)",
     invalidLogoUrl: "Некорректный URL логотипа",
     invalidLogoUrlError:
@@ -680,6 +677,8 @@ export const ru = {
     noSchoolsOrCoursesYet: "Пока нет доступных школ или курсов.",
     noSchoolsMatchFilters: "Нет школ или курсов, соответствующих фильтрам.",
     logoPlaceholderLabel: "Плейсхолдер логотипа школы {{schoolName}}",
+    schoolManagerContacts: "Менеджеры школы",
+    assignedInstructorContacts: "Назначенные инструкторы",
     website: "Сайт",
     startsLabel: "Начало:",
     capacityLabel: "Вместимость:",

@@ -25,7 +25,6 @@ test.describe("4.4 admin approval workflow", () => {
     await page.locator("#phone").fill("+1 555 0160");
     await page.locator("#requestedSchoolName").fill(uniqueSchoolName);
     await page.locator("#requestedWebsiteUrl").fill("https://e2e-school.example.test");
-    await page.locator("#requestedSchoolPhone").fill("+43 512 000000");
     await page.locator("#requestedLogoUrl").fill("https://e2e-school.example.test/logo.png");
     await page.locator("#requestedAddressLine1").fill("10 Alpine Way");
     await page.locator("#requestedCity").fill("Innsbruck");

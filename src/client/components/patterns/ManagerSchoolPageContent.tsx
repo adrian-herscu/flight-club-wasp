@@ -10,7 +10,6 @@ export type ManagedSchool = {
   id: string;
   name: string;
   websiteUrl: string | null;
-  phone: string | null;
   logoUrl: string | null;
   addressLine1: string;
   addressLine2: string | null;
@@ -30,7 +29,6 @@ export type ManagedSchool = {
 export type ManagedSchoolDraft = {
   name: string;
   websiteUrl: string;
-  phone: string;
   logoUrl: string;
   addressLine1: string;
   addressLine2: string;
@@ -188,12 +186,6 @@ const ManagerSchoolPageContent = ({
                       value={draft.name}
                       onChange={(value) => updateSchoolDraft(school, "name", value)}
                     />
-                    <LabeledInputField
-                      id={`school-phone-${school.id}`}
-                      label={t("school.phone")}
-                      value={draft.phone}
-                      onChange={(value) => updateSchoolDraft(school, "phone", value)}
-                    />
                   </TwoColumnFields>
 
                   <TwoColumnFields>
@@ -286,7 +278,6 @@ const ManagerSchoolPageContent = ({
                   {school.websiteUrl ? (
                     <WebsiteSummaryLink href={normalizeWebsiteUrl(school.websiteUrl)} text={school.websiteUrl} />
                   ) : null}
-                  {school.phone ? <SummaryText>{school.phone}</SummaryText> : null}
                   {school.logoUrl ? <SchoolLogoPreview src={school.logoUrl} alt={school.name} /> : null}
                   <SummaryText>{school.addressLine1}</SummaryText>
                   {school.addressLine2 ? <SummaryText>{school.addressLine2}</SummaryText> : null}

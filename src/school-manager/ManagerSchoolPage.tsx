@@ -42,7 +42,6 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
     return {
       name: school.name,
       websiteUrl: school.websiteUrl ?? "",
-      phone: school.phone ?? "",
       logoUrl: school.logoUrl ?? "",
       addressLine1: school.addressLine1,
       addressLine2: school.addressLine2 ?? "",
@@ -92,7 +91,6 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
         schoolId: school.id,
         name: draft.name,
         websiteUrl: draft.websiteUrl,
-        phone: draft.phone,
         logoUrl: draft.logoUrl,
         addressLine1: draft.addressLine1,
         addressLine2: draft.addressLine2,

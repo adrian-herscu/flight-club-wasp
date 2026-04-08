@@ -179,7 +179,6 @@ const submitRegistrationRequestSchema = z
     targetSchoolId: z.string().min(1).optional(),
     requestedSchoolName: z.string().trim().min(2).optional(),
     requestedWebsiteUrl: z.string().trim().max(2048).optional(),
-    requestedPhone: z.string().trim().max(50).optional(),
     requestedLogoUrl: z.string().trim().max(2048).optional(),
     requestedAddressLine1: z.string().trim().min(2).optional(),
     requestedAddressLine2: z.string().trim().optional(),
@@ -307,7 +306,6 @@ type RegistrationRequestListItem = {
   } | null;
   requestedSchoolName: string | null;
   requestedWebsiteUrl: string | null;
-  requestedPhone: string | null;
   requestedLogoUrl: string | null;
   requestedAddressLine1: string | null;
   requestedAddressLine2: string | null;
@@ -321,7 +319,6 @@ type RegistrationRequestListItem = {
     id: string;
     name: string;
     websiteUrl: string | null;
-    phone: string | null;
     logoUrl: string | null;
     addressLine1: string;
     addressLine2: string | null;
@@ -383,7 +380,6 @@ export const getRegistrationSchoolOptions = async (
       city: true,
       country: true,
       websiteUrl: true,
-      phone: true,
       logoUrl: true,
     },
     orderBy: [{ name: "asc" }, { createdAt: "asc" }],
@@ -434,11 +430,6 @@ export const submitRegistrationRequest = async (
   const requestedCountry =
     normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
       ? args.requestedCountry?.trim().toUpperCase() ?? null
-      : null;
-
-  const requestedPhone =
-    normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
-      ? args.requestedPhone?.trim() ?? null
       : null;
 
   const requestedLogoUrl =
@@ -520,7 +511,6 @@ export const submitRegistrationRequest = async (
       normalizedRequestedRole === RegistrationRequestRole.SCHOOL_MANAGER
         ? args.requestedCurrency?.trim().toUpperCase() ?? null
         : null,
-    requestedPhone,
     requestedLogoUrl,
   } satisfies Prisma.RegistrationRequestUncheckedCreateInput;
 
@@ -599,7 +589,6 @@ export const getPendingSchoolManagerRequests = async (
           id: true,
           name: true,
           websiteUrl: true,
-          phone: true,
           logoUrl: true,
           addressLine1: true,
           addressLine2: true,
@@ -705,7 +694,6 @@ export const approveSchoolManagerRequest = async (
         data: {
           name: requestedSchoolName,
           websiteUrl: request.requestedWebsiteUrl,
-          phone: request.requestedPhone ?? null,
           logoUrl: request.requestedLogoUrl ?? null,
           addressLine1: requestedAddressLine1,
           addressLine2: request.requestedAddressLine2,

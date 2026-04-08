@@ -112,7 +112,6 @@ export const SchoolRequestsSnapshot = ({
   label,
   logoAlt,
   logoUrl,
-  phone,
   schoolName,
   summaryAddress,
 }: {
@@ -121,7 +120,6 @@ export const SchoolRequestsSnapshot = ({
   label: ReactNode;
   logoAlt: string;
   logoUrl: string | null;
-  phone: ReactNode;
   schoolName: ReactNode;
   summaryAddress: ReactNode;
 }) => {
@@ -129,7 +127,6 @@ export const SchoolRequestsSnapshot = ({
     <div>
       <p className="text-xs uppercase text-muted-foreground">{label}</p>
       <p className="text-sm font-medium">{schoolName}</p>
-      {phone ? <p className="text-sm text-muted-foreground">{phone}</p> : null}
       {logoUrl ? (
         <SafeImage src={logoUrl} alt={logoAlt} className="mt-1 h-8 w-8 rounded object-cover" />
       ) : null}

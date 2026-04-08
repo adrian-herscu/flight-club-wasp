@@ -24,6 +24,8 @@ test.describe("4.1 public discovery", () => {
     const schoolCards = await page.getByTestId("landing-school-card").count();
     await expect(page.getByTestId("landing-school-logo")).toHaveCount(schoolCards);
     await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
+    await expect(page.getByTestId("landing-school-manager-contact-item")).toHaveCount(0);
+    await expect(page.getByTestId("landing-course-instructor-contact-item")).toHaveCount(0);
   });
 
   test("[4.1][STD-PUB-003] logged in users can see schools and courses on landing", async ({ page }) => {
@@ -36,6 +38,8 @@ test.describe("4.1 public discovery", () => {
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
     await expect(page.getByTestId("landing-course-item").first()).toBeVisible();
+    await expect(page.getByTestId("landing-school-manager-contact-item").first()).toBeVisible();
+    await expect(page.getByTestId("landing-course-instructor-contact-item").first()).toBeVisible();
   });
 
   test("[4.1][STD-PUB-007][STD-PUB-010] course name filter shows only matching courses", async ({ page }) => {

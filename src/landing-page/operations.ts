@@ -1,9 +1,17 @@
 import {
   CourseInterestStatus,
   CourseLifecycleStatus,
+  SchoolRole,
   SyllabusVersionStatus,
 } from "@prisma/client";
 import { prisma } from "wasp/server";
+
+type LandingContact = {
+  userId: string;
+  displayName: string;
+  email: string;
+  phone: string | null;
+};
 
 export type LandingCourse = {
   id: string;
@@ -12,6 +20,7 @@ export type LandingCourse = {
   minCapacity: number | null;
   maxCapacity: number | null;
   hourlyRate: number | null;
+  instructorContacts: LandingContact[];
   canExpressInterest: boolean;
   viewerInterestId: string | null;
   viewerInterestStatus: CourseInterestStatus | null;
@@ -24,6 +33,7 @@ export type LandingSchoolWithCourses = {
   logoUrl: string | null;
   city: string;
   country: string;
+  managerContacts: LandingContact[];
   courses: LandingCourse[];
 };
 
@@ -31,6 +41,8 @@ export const getLandingSchoolsWithCourses = async (
   _args: unknown,
   context: { user?: { id: string } | null },
 ): Promise<LandingSchoolWithCourses[]> => {
+  const isAuthenticated = Boolean(context.user?.id);
+
   const [schools, finalCourses] = await Promise.all([
     prisma.school.findMany({
       select: {
@@ -40,6 +52,30 @@ export const getLandingSchoolsWithCourses = async (
         logoUrl: true,
         city: true,
         country: true,
+        admin: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        schoolRoles: {
+          where: {
+            role: SchoolRole.SCHOOL_MANAGER,
+            revokedAt: null,
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phone: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ name: "asc" }, { createdAt: "asc" }],
     }),
@@ -56,6 +92,22 @@ export const getLandingSchoolsWithCourses = async (
         maxCapacity: true,
         hourlyRate: true,
         schoolId: true,
+        assignedInstructors: {
+          select: {
+            instructor: {
+              select: {
+                user: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         syllabusVersion: {
           select: {
             id: true,
@@ -125,6 +177,52 @@ export const getLandingSchoolsWithCourses = async (
     }
   }
 
+  const schoolManagerContactsBySchoolId = new Map<string, LandingContact[]>();
+  for (const school of schools) {
+    const managerContactsByUserId = new Map<string, LandingContact>();
+    const managerUsers = [
+      school.admin,
+      ...school.schoolRoles.map((schoolRole) => schoolRole.user),
+    ];
+
+    for (const user of managerUsers) {
+      managerContactsByUserId.set(user.id, {
+        userId: user.id,
+        displayName: user.fullName ?? user.email,
+        email: user.email,
+        phone: user.phone,
+      });
+    }
+
+    schoolManagerContactsBySchoolId.set(
+      school.id,
+      Array.from(managerContactsByUserId.values()).sort((a, b) =>
+        a.displayName.localeCompare(b.displayName),
+      ),
+    );
+  }
+
+  const instructorContactsByCourseId = new Map<string, LandingContact[]>();
+  for (const course of openFinalCourses) {
+    const instructorContactsByUserId = new Map<string, LandingContact>();
+    for (const assignment of course.assignedInstructors) {
+      const user = assignment.instructor.user;
+      instructorContactsByUserId.set(user.id, {
+        userId: user.id,
+        displayName: user.fullName ?? user.email,
+        email: user.email,
+        phone: user.phone,
+      });
+    }
+
+    instructorContactsByCourseId.set(
+      course.id,
+      Array.from(instructorContactsByUserId.values()).sort((a, b) =>
+        a.displayName.localeCompare(b.displayName),
+      ),
+    );
+  }
+
   return schools
     .map((school) => {
       const courses = openFinalCourses
@@ -146,6 +244,9 @@ export const getLandingSchoolsWithCourses = async (
           minCapacity: course.minCapacity,
           maxCapacity: course.maxCapacity,
           hourlyRate: course.hourlyRate,
+          instructorContacts: isAuthenticated
+            ? (instructorContactsByCourseId.get(course.id) ?? [])
+            : [],
           canExpressInterest: true,
         }));
 
@@ -156,6 +257,9 @@ export const getLandingSchoolsWithCourses = async (
         logoUrl: school.logoUrl,
         city: school.city,
         country: school.country,
+        managerContacts: isAuthenticated
+          ? (schoolManagerContactsBySchoolId.get(school.id) ?? [])
+          : [],
         courses,
       };
     })

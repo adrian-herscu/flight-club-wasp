@@ -170,6 +170,44 @@ export const LandingSchoolWebsite = ({ href, children }: { href: string; childre
   </a>
 );
 
+export const LandingContactSectionTitle = ({ children }: { children: ReactNode }) => (
+  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{children}</p>
+);
+
+export const LandingSchoolContactSection = ({
+  children,
+  testId,
+}: {
+  children: ReactNode;
+  testId: string;
+}) => <section className="mb-3 space-y-2" data-testid={testId}>{children}</section>;
+
+export const LandingCourseContactSection = ({
+  children,
+  testId,
+}: {
+  children: ReactNode;
+  testId: string;
+}) => <section className="mt-2 space-y-2" data-testid={testId}>{children}</section>;
+
+export const LandingContactList = ({ children }: { children: ReactNode }) => (
+  <ul className="space-y-1">{children}</ul>
+);
+
+export const LandingContactItem = ({ children, testId }: { children: ReactNode; testId: string }) => (
+  <li data-testid={testId} className="rounded-md border border-border/60 bg-background px-2 py-1">
+    {children}
+  </li>
+);
+
+export const LandingContactName = ({ children }: { children: ReactNode }) => (
+  <p className="text-sm font-medium">{children}</p>
+);
+
+export const LandingContactMeta = ({ children }: { children: ReactNode }) => (
+  <p className="text-xs text-muted-foreground">{children}</p>
+);
+
 export const LandingCourseList = ({ children }: { children: ReactNode }) => (
   <ul className="space-y-2">{children}</ul>
 );

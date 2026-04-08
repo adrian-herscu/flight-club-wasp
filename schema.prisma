@@ -64,7 +64,6 @@ model School {
   id                        String          @id @default(uuid())
   name                      String
   websiteUrl                String?
-  phone                     String?
   logoUrl                   String?
   addressLine1              String
   addressLine2              String?
@@ -141,7 +140,6 @@ model RegistrationRequest {
 
   requestedSchoolName       String?
   requestedWebsiteUrl       String?
-  requestedPhone            String?
   requestedLogoUrl          String?
   requestedAddressLine1     String?
   requestedAddressLine2     String?
