@@ -3,6 +3,10 @@ import { Prisma, SchoolRole } from "@prisma/client";
 // @ts-ignore
 import { HttpError, prisma } from "wasp/server";
 
+// ---------------------------------------------------------------------------
+// Context types
+// ---------------------------------------------------------------------------
+
 export type RequestContext = {
   user?: {
     id: string;
@@ -26,6 +30,31 @@ type SchoolWithAccounts = Prisma.SchoolGetPayload<{
     };
   };
 }>;
+
+export type AuthenticatedContext = {
+  readonly user: AuthenticatedUser;
+};
+
+export type SystemAdminContext = {
+  readonly user: AuthenticatedUser;
+};
+
+export type SchoolManagerContext = {
+  readonly user: AuthenticatedUser;
+  readonly school: SchoolWithAccounts;
+};
+
+/**
+ * school is null for system admins, who operate across all schools.
+ */
+export type SyllabusOperatorContext = {
+  readonly user: AuthenticatedUser;
+  readonly school: SchoolWithAccounts | null;
+};
+
+// ---------------------------------------------------------------------------
+// Low-level guards (use directly only when wrappers don't fit)
+// ---------------------------------------------------------------------------
 
 export function ensureAuthenticatedUser(context: RequestContext): AuthenticatedUser {
   if (!context.user) {
@@ -131,4 +160,58 @@ export async function ensureSyllabusOperator(context: RequestContext): Promise<A
   }
 
   return user;
+}
+
+// ---------------------------------------------------------------------------
+// Operation wrappers — preferred API for declaring authorized operations.
+//
+// Usage:
+//   export const myOp = withSchoolManager(async (rawArgs, ctx) => {
+//     // ctx.user and ctx.school are guaranteed and typed
+//   });
+//
+// The inner handler never receives the raw RequestContext, making it
+// structurally impossible to forget the authorization check.
+// ---------------------------------------------------------------------------
+
+export function withAuthenticated<T>(
+  handler: (rawArgs: unknown, ctx: AuthenticatedContext) => Promise<T>,
+): (rawArgs: unknown, context: RequestContext) => Promise<T> {
+  return async (rawArgs: unknown, context: RequestContext): Promise<T> => {
+    const user: AuthenticatedUser = ensureAuthenticatedUser(context);
+    return handler(rawArgs, { user });
+  };
+}
+
+export function withSystemAdmin<T>(
+  handler: (rawArgs: unknown, ctx: SystemAdminContext) => Promise<T>,
+): (rawArgs: unknown, context: RequestContext) => Promise<T> {
+  return async (rawArgs: unknown, context: RequestContext): Promise<T> => {
+    const user: AuthenticatedUser = ensureSystemAdmin(context);
+    return handler(rawArgs, { user });
+  };
+}
+
+export function withSchoolManager<T>(
+  handler: (rawArgs: unknown, ctx: SchoolManagerContext) => Promise<T>,
+): (rawArgs: unknown, context: RequestContext) => Promise<T> {
+  return async (rawArgs: unknown, context: RequestContext): Promise<T> => {
+    const user: AuthenticatedUser = await ensureSchoolManager(context);
+    const schoolId: string | undefined = getOptionalSchoolIdFromArgs(rawArgs);
+    const school: SchoolWithAccounts = await getManagedSchoolForUserId(user.id, schoolId);
+    return handler(rawArgs, { user, school });
+  };
+}
+
+export function withSyllabusOperator<T>(
+  handler: (rawArgs: unknown, ctx: SyllabusOperatorContext) => Promise<T>,
+): (rawArgs: unknown, context: RequestContext) => Promise<T> {
+  return async (rawArgs: unknown, context: RequestContext): Promise<T> => {
+    const user: AuthenticatedUser = await ensureSyllabusOperator(context);
+    const schoolId: string | undefined = getOptionalSchoolIdFromArgs(rawArgs);
+    const school: SchoolWithAccounts | null = user.isSystemAdmin
+      ? null
+      : await getManagedSchoolForUserId(user.id, schoolId);
+    return handler(rawArgs, { user, school });
+  };
 }

@@ -12,10 +12,10 @@ import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import {
-  getOptionalSchoolIdFromArgs,
-  getManagedSchoolForUserId,
+  type RequestContext,
   ensureSchoolManager,
-  ensureSyllabusOperator,
+  withSchoolManager,
+  withSyllabusOperator,
 } from "../server/guards";
 
 const lessonInputSchema = z.object({
@@ -289,7 +289,7 @@ async function isCourseClosed(courseId: string) {
 
 export const getMyManagedSchool = async (
   _args: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+  context: RequestContext,
 ) => {
   const user = await ensureSchoolManager(context);
   return prisma.school.findMany({
@@ -309,19 +309,15 @@ export const getMyManagedSchool = async (
   });
 };
 
-export const getManagerSyllabusCatalog = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+export const getManagerSyllabusCatalog = withSyllabusOperator(async (
+  rawArgs,
+  ctx,
 ): Promise<{
   courseOpeningCandidates: SyllabusCatalogItem[];
   editableDrafts: SyllabusCatalogItem[];
 }> => {
-  const user = await ensureSyllabusOperator(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    !user.isSystemAdmin
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+  const user = ctx.user;
+  const school = ctx.school;
 
   const versions = await prisma.syllabusVersion.findMany({
     where: {
@@ -403,16 +399,10 @@ export const getManagerSyllabusCatalog = async (
   };
 };
 
-export const getSyllabusVersionDetails = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<SyllabusVersionDetails> => {
-  const user = await ensureSyllabusOperator(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    !user.isSystemAdmin
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+export const getSyllabusVersionDetails = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<SyllabusVersionDetails> => {
+  const user = ctx.user;
+  const school = ctx.school;
   const { syllabusVersionId } = ensureArgsSchemaOrThrowHttpError(
     syllabusVersionDetailsSchema,
     rawArgs,
@@ -491,16 +481,10 @@ export const getSyllabusVersionDetails = async (
   };
 };
 
-export const createDraftSyllabusFromScratch = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
-  const user = await ensureSyllabusOperator(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    !user.isSystemAdmin
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+export const createDraftSyllabusFromScratch = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
+  const user = ctx.user;
+  const school = ctx.school;
   const { name, lessons } = ensureArgsSchemaOrThrowHttpError(
     createDraftFromScratchSchema,
     rawArgs,
@@ -541,16 +525,10 @@ export const createDraftSyllabusFromScratch = async (
   return created;
 };
 
-export const createDraftSyllabusFromTemplate = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
-  const user = await ensureSyllabusOperator(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    !user.isSystemAdmin
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+export const createDraftSyllabusFromTemplate = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<{ syllabusId: string; syllabusVersionId: string }> => {
+  const user = ctx.user;
+  const school = ctx.school;
   const { templateVersionId, name } = ensureArgsSchemaOrThrowHttpError(
     createDraftFromTemplateSchema,
     rawArgs,
@@ -618,16 +596,10 @@ export const createDraftSyllabusFromTemplate = async (
   return created;
 };
 
-export const saveDraftSyllabusRevision = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ syllabusVersionId: string; version: number }> => {
-  const user = await ensureSyllabusOperator(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    !user.isSystemAdmin
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+export const saveDraftSyllabusRevision = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<{ syllabusVersionId: string; version: number }> => {
+  const user = ctx.user;
+  const school = ctx.school;
   const { sourceVersionId, lessons } = ensureArgsSchemaOrThrowHttpError(
     saveDraftRevisionSchema,
     rawArgs,
@@ -694,16 +666,10 @@ export const saveDraftSyllabusRevision = async (
   return created;
 };
 
-export const publishDraftSyllabusVersion = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ syllabusVersionId: string; version: number }> => {
-  const user = await ensureSyllabusOperator(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school =
-    !user.isSystemAdmin
-      ? await getManagedSchoolForUserId(user.id, schoolId)
-      : null;
+export const publishDraftSyllabusVersion = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<{ syllabusVersionId: string; version: number }> => {
+  const user = ctx.user;
+  const school = ctx.school;
   const { sourceVersionId } = ensureArgsSchemaOrThrowHttpError(
     publishDraftSchema,
     rawArgs,
@@ -776,16 +742,10 @@ export const publishDraftSyllabusVersion = async (
   return created;
 };
 
-export const getManagerCoursesForEnrollment = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerCourseListItem[]> => {
-  const user = await ensureSyllabusOperator(context);
-  if (user.isSystemAdmin) {
-    return [];
-  }
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerCoursesForEnrollment = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<ManagerCourseListItem[]> => {
+  const school = ctx.school;
+  if (!school) return [];
 
   const courses = await prisma.course.findMany({
     where: {
@@ -826,16 +786,10 @@ export const getManagerCoursesForEnrollment = async (
     }));
 };
 
-export const getManagerClosedCourses = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerCourseListItem[]> => {
-  const user = await ensureSyllabusOperator(context);
-  if (user.isSystemAdmin) {
-    return [];
-  }
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerClosedCourses = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<ManagerCourseListItem[]> => {
+  const school = ctx.school;
+  if (!school) return [];
 
   const courses = await prisma.course.findMany({
     where: {
@@ -876,16 +830,10 @@ export const getManagerClosedCourses = async (
     }));
 };
 
-export const getManagerStudentsForEnrollment = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerStudentListItem[]> => {
-  const user = await ensureSyllabusOperator(context);
-  if (user.isSystemAdmin) {
-    return [];
-  }
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerStudentsForEnrollment = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<ManagerStudentListItem[]> => {
+  const school = ctx.school;
+  if (!school) return [];
 
   const students = await prisma.student.findMany({
     where: {
@@ -921,16 +869,10 @@ export const getManagerStudentsForEnrollment = async (
   }));
 };
 
-export const getManagerInstructorsForAssignment = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerInstructorListItem[]> => {
-  const user = await ensureSyllabusOperator(context);
-  if (user.isSystemAdmin) {
-    return [];
-  }
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerInstructorsForAssignment = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<ManagerInstructorListItem[]> => {
+  const school = ctx.school;
+  if (!school) return [];
 
   const instructors = await prisma.instructor.findMany({
     where: {
@@ -966,16 +908,10 @@ export const getManagerInstructorsForAssignment = async (
   }));
 };
 
-export const getManagerCourseEnrollmentDetails = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerCourseEnrollmentDetails> => {
-  const user = await ensureSyllabusOperator(context);
-  if (user.isSystemAdmin) {
-    return null;
-  }
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerCourseEnrollmentDetails = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<ManagerCourseEnrollmentDetails> => {
+  const school = ctx.school;
+  if (!school) return null;
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     managerCourseEnrollmentDetailsSchema,
     rawArgs,
@@ -1034,13 +970,9 @@ export const getManagerCourseEnrollmentDetails = async (
   };
 };
 
-export const enrollStudentInCourse = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ courseId: string; studentId: string }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const enrollStudentInCourse = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ courseId: string; studentId: string }> => {
+  const { user, school } = ctx;
   const { courseId, studentId } = ensureArgsSchemaOrThrowHttpError(
     enrollStudentInCourseSchema,
     rawArgs,
@@ -1107,16 +1039,10 @@ export const enrollStudentInCourse = async (
   };
 };
 
-export const getManagerCourseInstructorDetails = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerCourseInstructorDetails> => {
-  const user = await ensureSyllabusOperator(context);
-  if (user.isSystemAdmin) {
-    return null;
-  }
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerCourseInstructorDetails = withSyllabusOperator(
+  async (rawArgs, ctx): Promise<ManagerCourseInstructorDetails> => {
+  const school = ctx.school;
+  if (!school) return null;
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     managerCourseInstructorDetailsSchema,
     rawArgs,
@@ -1175,13 +1101,9 @@ export const getManagerCourseInstructorDetails = async (
   };
 };
 
-export const assignInstructorToCourse = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ courseId: string; instructorId: string }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const assignInstructorToCourse = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ courseId: string; instructorId: string }> => {
+  const { user, school } = ctx;
   const { courseId, instructorId } = ensureArgsSchemaOrThrowHttpError(
     assignInstructorToCourseSchema,
     rawArgs,
@@ -1251,13 +1173,9 @@ export const assignInstructorToCourse = async (
   };
 };
 
-export const createCourseFromFinalSyllabus = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ courseId: string }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const createCourseFromFinalSyllabus = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ courseId: string }> => {
+  const { user, school } = ctx;
   const {
     syllabusVersionId,
     startDate,
@@ -1325,13 +1243,9 @@ export const createCourseFromFinalSyllabus = async (
   };
 };
 
-export const closeCourse = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const closeCourse = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
+  const { user, school } = ctx;
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     closeCourseSchema,
     rawArgs,
@@ -1366,13 +1280,9 @@ export const closeCourse = async (
   return { courseId: course.id, status: CourseLifecycleStatus.CLOSED };
 };
 
-export const reopenCourse = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const reopenCourse = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
+  const { user, school } = ctx;
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     reopenCourseSchema,
     rawArgs,
@@ -1504,13 +1414,9 @@ async function ensureApprovedStudentRegistrationRequestId(
  * Returns student-course pairs sourced from CourseInterest records in the
  * manager's school scope. Includes actionable pending and enrolled states.
  */
-export const getManagerStudentCoursePairs = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerStudentCoursePairItem[]> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerStudentCoursePairs = withSchoolManager(
+  async (rawArgs, ctx): Promise<ManagerStudentCoursePairItem[]> => {
+  const { school } = ctx;
 
   const args = ensureArgsSchemaOrThrowHttpError(
     managerStudentCoursePairsSchema,
@@ -1582,13 +1488,9 @@ export const getManagerStudentCoursePairs = async (
  * STUDENT capability source request integrity, Student profile, Account,
  * EnrolledStudent row (idempotent), and updates interest status to ENROLLED.
  */
-export const approveStudentEnrollmentFromInterest = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ interestId: string; status: CourseInterestStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const approveStudentEnrollmentFromInterest = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ interestId: string; status: CourseInterestStatus }> => {
+  const { user, school } = ctx;
 
   const { interestId } = ensureArgsSchemaOrThrowHttpError(
     approveStudentEnrollmentFromInterestSchema,
@@ -1729,13 +1631,9 @@ export const approveStudentEnrollmentFromInterest = async (
  * Returns CourseInterest records for the manager's school, filtered by an
  * optional courseId. Only actionable INTERESTED records are returned (ENROLLED/CANCELLED are excluded).
  */
-export const getManagerCourseInterests = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<ManagerInterestItem[]> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const getManagerCourseInterests = withSchoolManager(
+  async (rawArgs, ctx): Promise<ManagerInterestItem[]> => {
+  const { school } = ctx;
 
   const args = ensureArgsSchemaOrThrowHttpError(
     managerCourseInterestsSchema,
@@ -1803,13 +1701,9 @@ export const getManagerCourseInterests = async (
 };
 
 
-export const cancelCourseInterestForManager = async (
-  rawArgs: unknown,
-  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
-): Promise<{ id: string; status: CourseInterestStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+export const cancelCourseInterestForManager = withSchoolManager(
+  async (rawArgs, ctx): Promise<{ id: string; status: CourseInterestStatus }> => {
+  const { school } = ctx;
 
   const { interestId } = ensureArgsSchemaOrThrowHttpError(
     cancelCourseInterestForManagerSchema,

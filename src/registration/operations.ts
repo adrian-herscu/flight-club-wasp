@@ -10,9 +10,9 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import {
   type RequestContext,
-  ensureAuthenticatedUser,
-  ensureSystemAdmin,
-  getOptionalSchoolIdFromArgs,
+  withAuthenticated,
+  withSystemAdmin,
+  withSchoolManager,
 } from "../server/guards";
 
 function schoolRequestRoleToSchoolRole(role: RegistrationRequestRole): SchoolRole {
@@ -96,47 +96,6 @@ function isValidOptionalLogoUrl(value: string | undefined): boolean {
   }
 }
 
-async function ensureSchoolManagerAndGetSchool(context: RequestContext, rawArgs?: unknown) {
-  const user = ensureAuthenticatedUser(context);
-
-  const hasManagerRole = await prisma.userSchoolRole.findFirst({
-    where: {
-      userId: user.id,
-      role: SchoolRole.SCHOOL_MANAGER,
-      revokedAt: null,
-    },
-    select: { id: true },
-  });
-
-  if (!hasManagerRole) {
-    throw new HttpError(403, "Only school managers can access this resource.");
-  }
-
-  const selectedSchoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await prisma.school.findFirst({
-    where: {
-      adminId: user.id,
-      ...(selectedSchoolId ? { id: selectedSchoolId } : {}),
-    },
-    select: {
-      id: true,
-      currency: true,
-      adminId: true,
-    },
-    orderBy: [{ createdAt: "asc" }],
-  });
-
-  if (!school) {
-    throw new HttpError(
-      403,
-      selectedSchoolId
-        ? "Selected school is not managed by this account."
-        : "No managed school is assigned to this account.",
-    );
-  }
-
-  return { user, school };
-}
 
 const submitRegistrationRequestSchema = z
   .object({
@@ -300,14 +259,9 @@ type RegistrationRequestListItem = {
   } | null;
 };
 
-export const getMyRegistrationRequests = async (
-  _args: unknown,
-  context: RequestContext,
-) => {
-  const user = ensureAuthenticatedUser(context);
-
+export const getMyRegistrationRequests = withAuthenticated(async (_args, ctx) => {
   return prisma.registrationRequest.findMany({
-    where: { requesterId: user.id },
+    where: { requesterId: ctx.user.id },
     include: {
       targetSchool: {
         select: {
@@ -357,11 +311,8 @@ export const getRegistrationSchoolOptions = async (
   });
 };
 
-export const submitRegistrationRequest = async (
-  rawArgs: unknown,
-  context: RequestContext,
-) => {
-  const user = ensureAuthenticatedUser(context);
+export const submitRegistrationRequest = withAuthenticated(async (rawArgs, ctx) => {
+  const user = ctx.user;
 
   const args = ensureArgsSchemaOrThrowHttpError(
     submitRegistrationRequestSchema,
@@ -533,13 +484,9 @@ export const submitRegistrationRequest = async (
   }
 };
 
-export const getPendingSchoolManagerRequests = async (
-  _args: unknown,
-  context: RequestContext,
-): Promise<RegistrationRequestListItem[]> => {
-  ensureSystemAdmin(context);
-
-  return prisma.registrationRequest.findMany({
+export const getPendingSchoolManagerRequests = withSystemAdmin(
+  async (_args, _ctx): Promise<RegistrationRequestListItem[]> => {
+    return prisma.registrationRequest.findMany({
     where: {
       requestedRole: RegistrationRequestRole.SCHOOL_MANAGER,
       status: {
@@ -580,49 +527,44 @@ export const getPendingSchoolManagerRequests = async (
     },
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
-};
+},
+);
 
-export const getPendingSchoolMemberRequests = async (
-  rawArgs: unknown,
-  context: RequestContext,
-): Promise<RegistrationRequestListItem[]> => {
-  const { school } = await ensureSchoolManagerAndGetSchool(context, rawArgs);
-
-  return prisma.registrationRequest.findMany({
-    where: {
-      targetSchoolId: school.id,
-      requestedRole: {
-        in: [RegistrationRequestRole.INSTRUCTOR, RegistrationRequestRole.STUDENT],
-      },
-      status: {
-        in: [RegistrationRequestStatus.PENDING, RegistrationRequestStatus.APPROVED],
-      },
-    },
-    include: {
-      requester: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
+export const getPendingSchoolMemberRequests = withSchoolManager(
+  async (rawArgs, ctx): Promise<RegistrationRequestListItem[]> => {
+    return prisma.registrationRequest.findMany({
+      where: {
+        targetSchoolId: ctx.school.id,
+        requestedRole: {
+          in: [RegistrationRequestRole.INSTRUCTOR, RegistrationRequestRole.STUDENT],
+        },
+        status: {
+          in: [RegistrationRequestStatus.PENDING, RegistrationRequestStatus.APPROVED],
         },
       },
-      targetSchool: {
-        select: {
-          id: true,
-          name: true,
+      include: {
+        requester: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        targetSchool: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-    },
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-  });
-};
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    });
+  },
+);
 
-export const approveSchoolManagerRequest = async (
-  rawArgs: unknown,
-  context: RequestContext,
-) => {
-  const reviewer = ensureSystemAdmin(context);
+export const approveSchoolManagerRequest = withSystemAdmin(async (rawArgs, ctx) => {
+  const reviewer = ctx.user;
   const { requestId } = ensureArgsSchemaOrThrowHttpError(
     requestIdSchema,
     rawArgs,
@@ -764,11 +706,8 @@ export const approveSchoolManagerRequest = async (
   }
 };
 
-export const rejectSchoolManagerRequest = async (
-  rawArgs: unknown,
-  context: RequestContext,
-) => {
-  const reviewer = ensureSystemAdmin(context);
+export const rejectSchoolManagerRequest = withSystemAdmin(async (rawArgs, ctx) => {
+  const reviewer = ctx.user;
   const { requestId, rejectionReason } = ensureArgsSchemaOrThrowHttpError(
     rejectRequestSchema,
     rawArgs,
@@ -826,11 +765,9 @@ export const rejectSchoolManagerRequest = async (
   });
 };
 
-export const approveSchoolMemberRequest = async (
-  rawArgs: unknown,
-  context: RequestContext,
-) => {
-  const { user: reviewer, school } = await ensureSchoolManagerAndGetSchool(context, rawArgs);
+export const approveSchoolMemberRequest = withSchoolManager(async (rawArgs, ctx) => {
+  const reviewer = ctx.user;
+  const school = ctx.school;
   const { requestId } = ensureArgsSchemaOrThrowHttpError(
     requestIdSchema,
     rawArgs,
@@ -963,11 +900,9 @@ export const approveSchoolMemberRequest = async (
   });
 };
 
-export const rejectSchoolMemberRequest = async (
-  rawArgs: unknown,
-  context: RequestContext,
-) => {
-  const { user: reviewer, school } = await ensureSchoolManagerAndGetSchool(context, rawArgs);
+export const rejectSchoolMemberRequest = withSchoolManager(async (rawArgs, ctx) => {
+  const reviewer = ctx.user;
+  const school = ctx.school;
   const { requestId, rejectionReason } = ensureArgsSchemaOrThrowHttpError(
     rejectRequestSchema,
     rawArgs,
