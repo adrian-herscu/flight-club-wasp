@@ -18,7 +18,7 @@ test.describe("4.1 public discovery", () => {
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();
   });
 
-  test("[4.1][STD-PUB-001][STD-PUB-002] anonymous users can see schools and courses on landing", async ({ page }) => {
+  test("[4.1][STD-PUB-001][STD-PUB-002][STD-PUB-003A] anonymous users can see schools and courses on landing", async ({ page }) => {
     await expect(page.getByTestId("landing-schools-section")).toBeVisible();
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
     const schoolCards = await page.getByTestId("landing-school-card").count();
@@ -28,7 +28,7 @@ test.describe("4.1 public discovery", () => {
     await expect(page.getByTestId("landing-course-instructor-contact-item")).toHaveCount(0);
   });
 
-  test("[4.1][STD-PUB-003] logged in users can see schools and courses on landing", async ({ page }) => {
+  test("[4.1][STD-PUB-003B] logged in users can see schools and courses on landing", async ({ page }) => {
     const user = await provisionFreshEmailUser();
     await logUserIn({
       page,
