@@ -76,6 +76,15 @@ npm run wasp:restart
 
 The app will be available at `http://localhost:3000`.
 
+### Playwright browser setup
+
+Before running end-to-end tests, install Playwright browsers and system dependencies:
+
+```bash
+npx playwright install --with-deps chromium
+npx playwright install --with-deps firefox
+```
+
 ### Running tests
 
 - Run all unit and API tests with `npm test`
