@@ -275,7 +275,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
       );
     });
 
-    it('lists only pending/approved school-manager requests (excludes rejected)', async () => {
+    it('[STD-ADM-001][STD-ADM-007] lists only pending/approved school-manager requests (excludes rejected)', async () => {
       const pendingId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-sm-pending');
       const approvedId = await createSchoolManagerRequest(tempCtx.requesterB, 'api-sm-approved-list');
       const rejectedId = await createSchoolManagerRequest(tempCtx.requesterC, 'api-sm-rejected-list');

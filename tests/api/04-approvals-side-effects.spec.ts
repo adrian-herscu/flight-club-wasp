@@ -220,7 +220,7 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
   });
 
   describe('approveSchoolManagerRequest', () => {
-    it('[STD-ADM-003] approves pending request and provisions school/account/role/decision', async () => {
+    it('[STD-ADM-002][STD-ADM-003] approves pending request and provisions school/account/role/decision', async () => {
       const { requestId, schoolName } = await createSchoolManagerRequest(
         tempCtx.managerReqA,
         'api-approve-school-manager',
@@ -356,7 +356,7 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
   });
 
   describe('approveSchoolMemberRequest', () => {
-    it('approves INSTRUCTOR request and provisions profile/account/role/decision', async () => {
+    it('[STD-MGR-006] approves INSTRUCTOR request and provisions profile/account/role/decision', async () => {
       const requestId = await createMemberRequest(
         tempCtx.memberReqInstructor,
         'INSTRUCTOR',

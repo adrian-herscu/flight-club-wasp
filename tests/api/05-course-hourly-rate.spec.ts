@@ -14,41 +14,6 @@ const SECONDARY_MANAGER_SCHOOL_ID = 'seed-school-cloudbase-annex';
 
 describe('4.8 course hourly-rate baseline (API)', () => {
   beforeEach(async () => {
-    const school = await prisma.school.findUnique({
-      where: { id: SEED.schools.cloudbase },
-      select: {
-        id: true,
-        name: true,
-        websiteUrl: true,
-        logoUrl: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        stateProvince: true,
-        postalCode: true,
-      },
-    });
-
-    if (!school) {
-      throw new Error('Seed school not found.');
-    }
-
-    await updateMyManagedSchool(
-      {
-        schoolId: school.id,
-        name: school.name,
-        websiteUrl: school.websiteUrl ?? '',
-        logoUrl: school.logoUrl ?? '',
-        addressLine1: school.addressLine1,
-        addressLine2: school.addressLine2 ?? '',
-        city: school.city,
-        stateProvince: school.stateProvince ?? '',
-        postalCode: school.postalCode,
-        defaultHourlyRate: null,
-      },
-      ctx.schoolManager,
-    );
-
     const secondarySchool = await prisma.school.findUnique({
       where: { id: SECONDARY_MANAGER_SCHOOL_ID },
       select: {
@@ -188,6 +153,38 @@ describe('4.8 course hourly-rate baseline (API)', () => {
 
     expect(course).not.toBeNull();
     expect(course?.hourlyRate).toBe(120);
+  });
+
+  it('[STD-CRS-002] persists start date and capacity settings on the created course', async () => {
+    const startDate = '2026-04-11T00:00:00.000Z';
+    const created = await createCourseFromFinalSyllabus(
+      {
+        schoolId: SECONDARY_MANAGER_SCHOOL_ID,
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate,
+        minCapacity: 4,
+        maxCapacity: 9,
+        hourlyRate: 135,
+      },
+      ctx.schoolManager,
+    );
+
+    const course = await prisma.course.findUnique({
+      where: { id: created.courseId },
+      select: {
+        id: true,
+        startDate: true,
+        minCapacity: true,
+        maxCapacity: true,
+        hourlyRate: true,
+      },
+    });
+
+    expect(course).not.toBeNull();
+    expect(course?.startDate?.toISOString()).toBe(startDate);
+    expect(course?.minCapacity).toBe(4);
+    expect(course?.maxCapacity).toBe(9);
+    expect(course?.hourlyRate).toBe(135);
   });
 
   it('[STD-CRS-003] rejects creation when neither school default nor course hourly rate is provided', async () => {

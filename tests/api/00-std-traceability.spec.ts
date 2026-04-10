@@ -32,9 +32,12 @@ function collectSpecFiles(dirPath: string): string[] {
   return files;
 }
 
-function parseCoveredStdIds(stdMarkdown: string): Set<string> {
+function parseStdIdsByStatusPredicate(
+  stdMarkdown: string,
+  predicate: (status: string) => boolean,
+): Set<string> {
   const lines = stdMarkdown.split(/\r?\n/);
-  const coveredStdIds = new Set<string>();
+  const matchingStdIds = new Set<string>();
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
@@ -54,12 +57,12 @@ function parseCoveredStdIds(stdMarkdown: string): Set<string> {
     const stdId = columns[0];
     const status = columns[4];
 
-    if (/^Covered\b/.test(status)) {
-      coveredStdIds.add(stdId);
+    if (predicate(status)) {
+      matchingStdIds.add(stdId);
     }
   }
 
-  return coveredStdIds;
+  return matchingStdIds;
 }
 
 function collectTaggedStdIds(specFilePaths: string[]) {
@@ -93,7 +96,9 @@ function collectTaggedStdIds(specFilePaths: string[]) {
 describe('STD traceability guard', () => {
   it('all STD rows marked Covered have at least one active tagged test', () => {
     const stdMarkdown = fs.readFileSync(stdPath, 'utf8');
-    const coveredStdIds = parseCoveredStdIds(stdMarkdown);
+    const coveredStdIds = parseStdIdsByStatusPredicate(stdMarkdown, (status) =>
+      /^Covered\b/.test(status),
+    );
 
     const specFilePaths = testRoots.flatMap((testRoot) => collectSpecFiles(testRoot));
     const { active: activeTaggedStdIds, inactive: inactiveTaggedStdIds } =
@@ -130,6 +135,53 @@ describe('STD traceability guard', () => {
       onlyInactiveMatches: [],
       coveredCount: coveredStdIds.size,
       activeTaggedCount: activeTaggedStdIds.size,
+    });
+  });
+
+  it('all STD rows marked Covered (API*) have at least one active tagged API test', () => {
+    const stdMarkdown = fs.readFileSync(stdPath, 'utf8');
+    const coveredApiStdIds = parseStdIdsByStatusPredicate(
+      stdMarkdown,
+      (status) => /^Covered\b/.test(status) && /\(API(?:\+E2E)?\)/.test(status),
+    );
+
+    const apiSpecFilePaths = collectSpecFiles(path.join(repoRoot, 'tests/api'));
+    const { active: activeApiTaggedStdIds, inactive: inactiveApiTaggedStdIds } =
+      collectTaggedStdIds(apiSpecFilePaths);
+
+    const missingCoveredApiIds = [...coveredApiStdIds]
+      .filter((stdId) => !activeApiTaggedStdIds.has(stdId))
+      .sort();
+
+    const onlyInactiveApiMatches = missingCoveredApiIds.filter((stdId) =>
+      inactiveApiTaggedStdIds.has(stdId),
+    );
+
+    if (missingCoveredApiIds.length > 0) {
+      console.warn(
+        `[STD traceability][API] Covered API IDs without active API tagged tests (${missingCoveredApiIds.length}): ${missingCoveredApiIds.join(', ')}`,
+      );
+    }
+
+    if (onlyInactiveApiMatches.length > 0) {
+      console.warn(
+        `[STD traceability][API] Covered API IDs mapped only to inactive API tests (${onlyInactiveApiMatches.length}): ${onlyInactiveApiMatches.join(', ')}`,
+      );
+    }
+
+    expect(
+      {
+        missingCoveredApiIds,
+        onlyInactiveApiMatches,
+        coveredApiCount: coveredApiStdIds.size,
+        activeApiTaggedCount: activeApiTaggedStdIds.size,
+      },
+      `Found ${missingCoveredApiIds.length} Covered (API*) STD IDs without active tagged API tests.`,
+    ).toEqual({
+      missingCoveredApiIds: [],
+      onlyInactiveApiMatches: [],
+      coveredApiCount: coveredApiStdIds.size,
+      activeApiTaggedCount: activeApiTaggedStdIds.size,
     });
   });
 });

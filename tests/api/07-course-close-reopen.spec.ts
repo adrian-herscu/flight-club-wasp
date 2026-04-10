@@ -217,7 +217,20 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     expect(closedCoursesAfterReopen.some((course) => course.courseId === created.courseId)).toBe(false);
   });
 
-  it('lists seeded Cloudbase instructors for assignment and excludes outside-school instructors', async () => {
+  it('[STD-ENR-001] lists only students in manager school scope for enrollment', async () => {
+    const students = await getManagerStudentsForEnrollment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    const studentUserIds = students.map((student) => student.userId);
+
+    expect(studentUserIds).toContain(SEED.users.student01);
+    expect(studentUserIds).toContain(SEED.users.student02);
+    expect(studentUserIds).not.toContain(OUTSIDER_STUDENT_USER_ID);
+  });
+
+  it('[STD-ASN-001] lists only instructors in manager school scope for assignment', async () => {
     const instructors = await getManagerInstructorsForAssignment(
       { schoolId: SEED.schools.cloudbase },
       ctx.schoolManager,
@@ -438,6 +451,77 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     ).rejects.toMatchObject({
       statusCode: 409,
       message: 'Instructor is already assigned to this course.',
+    });
+  });
+
+  it('[STD-ASN-002] persists lead designation and agreed wage and keeps only one lead per course', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-10T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const instructors = await getManagerInstructorsForAssignment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    if (instructors.length < 2) {
+      throw new Error('Expected at least two seeded instructors in manager scope.');
+    }
+
+    const firstInstructorId = instructors[0]!.instructorId;
+    const secondInstructorId = instructors[1]!.instructorId;
+
+    await assignInstructorToCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+        instructorId: firstInstructorId,
+        isLead: true,
+        agreedWagePerHour: 55,
+      },
+      ctx.schoolManager,
+    );
+
+    await assignInstructorToCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+        instructorId: secondInstructorId,
+        isLead: true,
+        agreedWagePerHour: 65,
+      },
+      ctx.schoolManager,
+    );
+
+    const assignments = await prisma.assignedInstructor.findMany({
+      where: { courseId: created.courseId },
+      select: {
+        instructorId: true,
+        isLead: true,
+        agreedWagePerHour: true,
+      },
+      orderBy: { instructorId: 'asc' },
+    });
+
+    expect(assignments).toHaveLength(2);
+    expect(assignments.filter((assignment) => assignment.isLead)).toHaveLength(1);
+    expect(
+      assignments.find((assignment) => assignment.instructorId === firstInstructorId),
+    ).toMatchObject({
+      instructorId: firstInstructorId,
+      isLead: false,
+      agreedWagePerHour: 55,
+    });
+    expect(
+      assignments.find((assignment) => assignment.instructorId === secondInstructorId),
+    ).toMatchObject({
+      instructorId: secondInstructorId,
+      isLead: true,
+      agreedWagePerHour: 65,
     });
   });
 
