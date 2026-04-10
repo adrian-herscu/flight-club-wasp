@@ -8,7 +8,7 @@ export default defineConfig({
     setupFiles: ['./tests/api/setup.ts'],
     sequence: { concurrent: false },
     fileParallelism: false,
-    include: ['./tests/api/**/*.spec.ts'],
+    include: ['./tests/api/**/*.spec.ts', './tests/unit/**/*.spec.ts'],
     coverage: {
       reportsDirectory: './out/coverage',
     },
