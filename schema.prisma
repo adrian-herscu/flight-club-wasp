@@ -93,6 +93,12 @@ enum EnrolledStudentStatus {
   FAILED
 }
 
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
@@ -164,6 +170,7 @@ model User {
   courseLifecycleEvents               CourseLifecycleEvent[]     @relation("CourseLifecycleChangedBy")
   proposedLessons                     CourseLesson[]             @relation("CourseLessonProposedBy")
   reviewedInstructorSuggestions       InstructorSuggestion[]     @relation("InstructorSuggestionReviewedBy")
+  reviewedRefundRequests              RefundRequest[]            @relation("RefundRequestReviewedBy")
 }
 
 model RegistrationRequest {
@@ -273,6 +280,7 @@ model Student {
   enrolledCourses           EnrolledStudent[]
   evaluations               StudentLessonEvaluation[]
   meetingAttendances        MeetingAttendance[]
+  refundRequests            RefundRequest[]
 }
 
 model Syllabus {
@@ -447,6 +455,7 @@ model Course {
   assignedInstructors       AssignedInstructor[]
   enrolledStudents          EnrolledStudent[]
   lifecycleEvents           CourseLifecycleEvent[]
+  refundRequests            RefundRequest[]
 
   @@index([startDate])
   @@index([syllabusVersionId, startDate])
@@ -530,6 +539,7 @@ model StudentLessonEvaluation {
 
   notes                     String?
   status                    LessonEvaluationStatus
+  attended                  Boolean                @default(true)
 
   @@unique([studentId, courseLessonId])
   @@index([instructorId])
@@ -606,6 +616,29 @@ model InstructorLessonPresence {
 
   @@unique([instructorId, courseLessonId])
   @@index([courseLessonId])
+}
+
+model RefundRequest {
+  id                      String               @id @default(uuid())
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  course                  Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                String
+
+  student                 Student              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  studentId               String
+
+  status                  RefundRequestStatus  @default(PENDING)
+  approvedAmountMinor     Int?
+  reason                  String?
+
+  reviewedBy              User?                @relation("RefundRequestReviewedBy", fields: [reviewedByUserId], references: [id])
+  reviewedByUserId        String?
+  reviewedAt              DateTime?
+
+  @@index([courseId, studentId, status])
+  @@index([studentId])
 }
 
 model GptResponse {

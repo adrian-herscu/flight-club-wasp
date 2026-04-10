@@ -329,6 +329,56 @@ action rescheduleLesson {
   entities: [User, Course, SyllabusLesson, CourseLesson, AssignedInstructor, Instructor, MeetingAttendance, InstructorLessonPresence, InstructorSuggestion]
 }
 
+action updateMeetingAttendance {
+  fn: import { updateMeetingAttendance } from "@src/course-execution/operations",
+  entities: [User, CourseLesson, Student, EnrolledStudent, MeetingAttendance]
+}
+
+action submitInstructorSuggestion {
+  fn: import { submitInstructorSuggestion } from "@src/course-execution/operations",
+  entities: [User, CourseLesson, Instructor, AssignedInstructor, MeetingAttendance, InstructorSuggestion]
+}
+
+action approveInstructorSuggestion {
+  fn: import { approveInstructorSuggestion } from "@src/course-execution/operations",
+  entities: [User, School, Course, CourseLesson, InstructorSuggestion, CourseLifecycleEvent]
+}
+
+action updateInstructorPresence {
+  fn: import { updateInstructorPresence } from "@src/course-execution/operations",
+  entities: [User, CourseLesson, Instructor, AssignedInstructor, InstructorLessonPresence]
+}
+
+action markInstructorAbsent {
+  fn: import { markInstructorAbsent } from "@src/course-execution/operations",
+  entities: [User, CourseLesson, Instructor, AssignedInstructor, InstructorLessonPresence]
+}
+
+action submitStudentAssessment {
+  fn: import { submitStudentAssessment } from "@src/course-execution/operations",
+  entities: [User, Course, CourseLesson, SyllabusLesson, Instructor, AssignedInstructor, Student, EnrolledStudent, StudentLessonEvaluation, InstructorLessonPresence, Account, Transaction, CourseLifecycleEvent, School]
+}
+
+action enrollInStartedCourse {
+  fn: import { enrollInStartedCourse } from "@src/course-execution/operations",
+  entities: [User, School, Course, Student, EnrolledStudent, CourseLesson, MeetingAttendance, Account, Transaction, SyllabusLesson]
+}
+
+action submitRefundRequest {
+  fn: import { submitRefundRequest } from "@src/course-execution/operations",
+  entities: [User, Course, Student, EnrolledStudent, RefundRequest, CourseLifecycleEvent]
+}
+
+action approveRefund {
+  fn: import { approveRefund } from "@src/course-execution/operations",
+  entities: [User, School, Course, Student, RefundRequest, Account, Transaction]
+}
+
+action declineRefund {
+  fn: import { declineRefund } from "@src/course-execution/operations",
+  entities: [User, School, Course, RefundRequest]
+}
+
 job lessonStatusJob {
   executor: PgBoss,
   perform: {

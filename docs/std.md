@@ -157,7 +157,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
 |---|---|---|---|---|---|
 | STD-ENR-001 | FC-012 | Manager can view eligible students within authorized school context. | P0 | Partial | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) exercises `getManagerStudentsForEnrollment` and confirms seeded students are available in manager scope, but it does not yet prove UI behavior or explicit cross-school scoping. |
-| STD-ENR-002 | FC-012 | Manager can enroll student into selected course and enrollment write keeps course-interest lifecycle synchronized for manager approved views. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-002]` validates enrollment creation in manager scope. Gap: late enrollment (after course start, before first lesson reaches `LESSON_UNDERWAY`) and the enrollment-lock timing guard are new PRD requirements not covered by the existing test. |
+| STD-ENR-002 | FC-012 | Manager can enroll student into selected course and enrollment write keeps course-interest lifecycle synchronized for manager approved views. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-002]` validates enrollment creation in manager scope. Late enrollment and enrollment-lock guard are covered by STD-EXEC-040 through STD-EXEC-044 in [15-late-enrollment.spec.ts](../../tests/api/15-late-enrollment.spec.ts). |
 | STD-ENR-003 | FC-012 | Duplicate enrollment is blocked with understandable error. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-003]` validates duplicate enrollment returns 409 with user-facing message. |
 | STD-ENR-004 | FC-012 | Course roster updates to show newly enrolled student. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-004]` validates enrollment details include the newly enrolled student. |
 | STD-ENR-005 | FC-015 | Manager cannot enroll student into a course outside authorized school context. | P0 | Covered (API) | [07-course-close-reopen.spec.ts](../../api-tests/tests/07-course-close-reopen.spec.ts) — `[STD-ENR-005]` validates out-of-scope student enrollment is rejected. |
@@ -185,7 +185,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-NAV-005 | FC-014 | Instructor sees Dashboard and Courses sidebar links; Dashboard shows "Under construction" placeholder; Courses navigates to `/instructor/courses` with the `instructor-courses-page` testId visible. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-005]` validates sidebar scope, dashboard placeholder, and courses page testId. |
 | STD-NAV-005A | FC-014 | Instructor sidebar shows a school-context badge when the user has an active INSTRUCTOR role in at least one school. | P1 | Covered | `[STD-NAV-005]` — badge visible for seeded multi-school instructor accounts. Note: execution-phase instructor capabilities (lesson scheduling, co-instructor absence marking, student evaluation submission) are new PRD requirements not yet implemented; they will require new STD entries when built. |
 | STD-NAV-006 | FC-014 | Student sees Dashboard and Courses sidebar links; Dashboard shows "Under construction" placeholder; Courses navigates to `/student/courses` with the `student-courses-page` testId visible. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-006]` validates student sidebar scope, dashboard placeholder, and courses page testId. |
-| STD-NAV-006A | FC-014 | Student sidebar shows a school-context badge when the user has an active STUDENT role in at least one school. | P1 | Covered | `[STD-NAV-006]` — badge visible for deterministic multi-school student fixtures. Note: execution-phase student capabilities (advisory attendance hints, lesson evaluation visibility, refund requests) are new PRD requirements not yet implemented; they will require new STD entries when built. |
+| STD-NAV-006A | FC-014 | Student sidebar shows a school-context badge when the user has an active STUDENT role in at least one school. | P1 | Covered | `[STD-NAV-006]` — badge visible for deterministic multi-school student fixtures. Execution-phase student capabilities (attendance hints, lesson evaluation visibility, refund requests) are API-covered via STD-EXEC-001 through STD-EXEC-056; E2E coverage for those flows remains a gap. |
 | STD-NAV-007 | FC-014 | Authenticated user without elevated role does not see admin/manager links. | P0 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-007]` validates plain-user visibility boundaries. |
 | STD-NAV-008 | FC-014 | Account menu shows dashboard link for dashboard roles (system admin → /system-admin, manager → /school-manager, instructor → /instructor, student → /student). | P1 | Covered | [04-02-account-menu-access.spec.ts](../../e2e-tests/tests/04-02-account-menu-access.spec.ts) — four `[STD-NAV-008]` cases cover each role. |
 | STD-NAV-009 | FC-014 | On wide screens, sidebar is open by default and remains open after outside click or Escape. | P1 | Covered | [04-11-role-based-navigation.spec.ts](../../e2e-tests/tests/04-11-role-based-navigation.spec.ts) — `[STD-NAV-009]` validates persistent desktop sidebar behavior. |
@@ -239,6 +239,72 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-CIN-016 | FC-017 | Manager-cancelled interest disappears from pending student-course pairs. | P0 | Covered (API+E2E) | API: [tests/api/09-student-course-enrollment-approval.spec.ts](../../tests/api/09-student-course-enrollment-approval.spec.ts) — `[STD-CIN-016] manager-cancelled interest no longer appears in pending student-course pairs`. E2E: [tests/e2e/04-17-students-course-pairs-approval.spec.ts](../../tests/e2e/04-17-students-course-pairs-approval.spec.ts) — `[STD-CIN-015][STD-CIN-016] ...`. |
 | STD-CIN-017 | FC-017 | Manager cannot cancel an enrolled interest. | P0 | Covered (API) | [tests/api/09-student-course-enrollment-approval.spec.ts](../../tests/api/09-student-course-enrollment-approval.spec.ts) — `[STD-CIN-017] manager cannot cancel an enrolled interest`. |
 
+## 4.15 Course execution — Slices 4–7
+
+### Attendance hints (FC-020)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing API link or gap note |
+|---|---|---|---|---|---|
+| STD-EXEC-001 | FC-020 | Student can accept a scheduled lesson ahead of the lesson date. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `student can accept a SCHEDULED lesson`. |
+| STD-EXEC-002 | FC-020 | Student attendance hint is locked once the lesson date is reached (INV-09). | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `rejects attendance update when lesson date has passed`. |
+| STD-EXEC-003 | FC-020 | Non-lead instructor can confirm or report unavailability before the lesson date. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `non-lead can accept/decline presence before lesson date`. |
+| STD-EXEC-004 | FC-020 | Lead instructor cannot update their own presence hint via the non-lead presence action. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `lead instructor cannot update own presence`. |
+| STD-EXEC-005 | FC-020 | Attendance hint state does not change lesson status. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — lesson status unchanged after hint updates. |
+
+### Below-capacity resolution (FC-021)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing API link or gap note |
+|---|---|---|---|---|---|
+| STD-EXEC-010 | FC-021 | Lead instructor can submit a PROCEED_WITH_PARTIAL suggestion when lesson is BELOW_CAPACITY (requires ≥1 ACCEPTED student). | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `submit PROCEED_WITH_PARTIAL suggestion`. |
+| STD-EXEC-011 | FC-021 | Lead instructor can submit a CLOSE_COURSE suggestion when lesson is BELOW_CAPACITY. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `submit CLOSE_COURSE suggestion`. |
+| STD-EXEC-012 | FC-021 | Duplicate PENDING suggestion is rejected (INV-06). | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `blocks a second PENDING suggestion (INV-06)`. |
+| STD-EXEC-013 | FC-021 | Manager approves PROCEED_WITH_PARTIAL → lesson advances to CONFIRMED. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `approves PROCEED_WITH_PARTIAL → lesson becomes CONFIRMED`. |
+| STD-EXEC-014 | FC-021 | Manager approves CLOSE_COURSE → lesson CANCELLED and course CLOSED. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `approves CLOSE_COURSE → lesson CANCELLED and course CLOSED`. |
+| STD-EXEC-015 | FC-021 | Rescheduling a BELOW_CAPACITY lesson supersedes any pending suggestion. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `rescheduling a BELOW_CAPACITY lesson supersedes PENDING suggestion`. |
+
+### Mark co-instructor absent (FC-023)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing API link or gap note |
+|---|---|---|---|---|---|
+| STD-EXEC-020 | FC-023 | Lead instructor can mark a DECLINED co-instructor ABSENT while lesson is LESSON_UNDERWAY. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `lead can mark DECLINED non-lead ABSENT during LESSON_UNDERWAY`. |
+| STD-EXEC-021 | FC-023 | Lead instructor cannot mark absent an instructor who has not DECLINED. | P0 | Covered (API) | [tests/api/13-lesson-interaction.spec.ts](../../tests/api/13-lesson-interaction.spec.ts) — `rejects absent mark when instructor has not DECLINED`. |
+
+### Student evaluation and lesson conclusion (FC-022, FC-025)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing API link or gap note |
+|---|---|---|---|---|---|
+| STD-EXEC-030 | FC-022 | Lead instructor can submit PASS/FAIL evaluation per ACTIVE student during LESSON_UNDERWAY. | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — PASS/FAIL submission tests. |
+| STD-EXEC-031 | FC-022 | Marking a student absent (attended=false) requires FAIL outcome (INV-15). | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `rejects attended=false with status=PASS (INV-15)`. |
+| STD-EXEC-032 | FC-022 | FAIL evaluation immediately sets EnrolledStudent status to FAILED. | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `FAIL assessment → EnrolledStudent.status = FAILED`. |
+| STD-EXEC-033 | FC-022 | PASS on a non-final lesson keeps student ACTIVE. | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `PASS on lesson 1 (non-final) → student stays ACTIVE`. |
+| STD-EXEC-034 | FC-022/FC-025 | PASS on the final lesson transitions student to CERTIFIED and, when all students resolved, course to COMPLETED. | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `PASS on final lesson → student CERTIFIED and course COMPLETED`; `2 students: both resolved → course COMPLETED`. |
+| STD-EXEC-035 | FC-022 | When all ACTIVE students are assessed, lesson transitions to LESSON_CONCLUDED and instructors are paid. | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `creates pay transaction for lead instructor when lesson concludes`. |
+| STD-EXEC-036 | FC-023 | ABSENT co-instructor receives no pay at LESSON_CONCLUDED (INV-20). | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `does not pay ABSENT non-lead instructor (INV-20)`. |
+| STD-EXEC-037 | FC-022 | Duplicate student assessment is rejected. | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `rejects duplicate assessment (409)`. |
+| STD-EXEC-038 | FC-022 | Non-lead instructor cannot submit student evaluations (INV-03). | P0 | Covered (API) | [tests/api/14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts) — `rejects submission by non-lead instructor (403)`. |
+
+### Late enrollment (FC-012 extension)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing API link or gap note |
+|---|---|---|---|---|---|
+| STD-EXEC-040 | FC-012 | Manager can enroll a student in a STARTED course before the first lesson reaches LESSON_UNDERWAY. | P0 | Covered (API) | [tests/api/15-late-enrollment.spec.ts](../../tests/api/15-late-enrollment.spec.ts) — `creates EnrolledStudent with ACTIVE status`. |
+| STD-EXEC-041 | FC-012 | Late enrollment is blocked once the first lesson has reached LESSON_UNDERWAY (INV-19). | P0 | Covered (API) | [tests/api/15-late-enrollment.spec.ts](../../tests/api/15-late-enrollment.spec.ts) — `rejects enrollment once first lesson has reached LESSON_UNDERWAY (INV-19)`. |
+| STD-EXEC-042 | FC-012 | Late enrollment charges the student's account the full course fee. | P0 | Covered (API) | [tests/api/15-late-enrollment.spec.ts](../../tests/api/15-late-enrollment.spec.ts) — `charges student account and credits school account (§8)`. |
+| STD-EXEC-043 | FC-012 | Late enrollment creates an ACCEPTED attendance hint when an active lesson exists. | P1 | Covered (API) | [tests/api/15-late-enrollment.spec.ts](../../tests/api/15-late-enrollment.spec.ts) — `creates ACCEPTED MeetingAttendance hint when active lesson exists`. |
+| STD-EXEC-044 | FC-012 | Late enrollment is rejected when student account has insufficient balance. | P0 | Covered (API) | [tests/api/15-late-enrollment.spec.ts](../../tests/api/15-late-enrollment.spec.ts) — `rejects enrollment when student account has insufficient balance (400)`. |
+
+### Refund requests (FC-024)
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing API link or gap note |
+|---|---|---|---|---|---|
+| STD-EXEC-050 | FC-024 | Student can submit a refund request for a STARTED course. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `creates a RefundRequest with PENDING status`. |
+| STD-EXEC-051 | FC-024 | Duplicate PENDING refund request per student per course is rejected (INV-13). | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `rejects duplicate PENDING request (INV-13, 409)`. |
+| STD-EXEC-052 | FC-024 | Refund request is rejected for a course that is not STARTED/COMPLETED/CLOSED. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `rejects request for a course not in STARTED/COMPLETED/CLOSED state (409)`. |
+| STD-EXEC-053 | FC-024 | Manager can approve a refund with a specified amount; status → APPROVED and student account credited. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `transitions request status to APPROVED`; `deposits approved amount to student account`. |
+| STD-EXEC-054 | FC-024 | Manager can decline a refund; status → DECLINED with optional reason. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `transitions request status to DECLINED with optional reason`. |
+| STD-EXEC-055 | FC-024 | Approving an already-processed refund request is rejected. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `rejects approval of an already-processed request (409, DECLINED)`. |
+| STD-EXEC-056 | FC-024 | Declining an already-approved refund request is rejected. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `rejects declining an already-APPROVED request (409)`. |
+
 ## 5. Coverage Summary by PRD Story
 
 | PRD Story | Coverage summary |
@@ -253,31 +319,36 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | FC-008 Review instructor and student requests separately | **Covered (API+E2E)**; instructor/student approval and rejection invariants are API-covered, with E2E route/filter/approve smoke retained. Remaining gap is dedicated E2E rejection-history visibility. |
 | FC-009 Manage school profile data | Partial; profile edit persistence and multi-school context switching are covered, while explicit unauthorized cross-school profile-edit denial remains a gap. |
 | FC-010 Manage syllabus lifecycle | Partial; template-based draft creation, draft revision, publish-to-final, and draft deletion flows are covered, while from-scratch creation, broader manager catalog coverage, and obsolete-state distinction remain incomplete. |
-| FC-011 Open a course from a final syllabus version | Partial; API coverage exists for creation from FINAL syllabus versions, hourly-rate rules, non-FINAL rejection messaging, and `OPEN → CLOSED → OPEN` close/reopen lifecycle. Additional gaps from updated PRD: `STARTED → CLOSED` close path, `COMPLETED` terminal state, pre-start hard/soft guard validation (lead instructor, agreed wages, hourly rate, student account balance check), and course-details UX remain incomplete. |
-| FC-012 Enroll students in courses | Partial; manager-scope lookup, enrollment happy path, duplicate blocking, roster update, cross-school denial, and closed-course rejection are API-covered. Additional gaps from updated PRD: late enrollment (after course start, before first lesson underway) and enrollment-lock timing guard. Remaining gaps also include E2E user-flow and concurrency coverage. |
-| FC-013 Assign instructors to courses | Partial; manager-scope lookup, basic assignment creation, duplicate blocking, cross-school denial, and closed-course rejection are API-covered. Additional gaps from updated PRD: lead instructor designation (exactly one required), agreed wage per hour required at assignment time, and cross-course schedule-overlap guard. Remaining gaps also include schedule/qualification conflict handling and E2E user-flow coverage. |
+| FC-011 Open a course from a final syllabus version | Partial; API coverage exists for creation from FINAL syllabus versions, hourly-rate rules, non-FINAL rejection messaging, `OPEN → CLOSED → OPEN` close/reopen lifecycle, course-start hard/soft guards, and `STARTED → COMPLETED` auto-transition. Remaining gaps: `STARTED → CLOSED` forced-close path and course-details UX. |
+| FC-012 Enroll students in courses | **Covered (API)** for manager-scope lookup, enrollment happy path, duplicate blocking, roster update, cross-school denial, closed-course rejection, late enrollment (after course start, before first lesson LESSON_UNDERWAY), enrollment-lock timing guard (INV-19), financial charge on late enrollment, and insufficient-balance rejection. Remaining gaps: E2E user-flow and concurrency coverage. |
+| FC-013 Assign instructors to courses | Partial; manager-scope lookup, basic assignment creation, duplicate blocking, cross-school denial, closed-course rejection, lead instructor designation, agreed wage requirement, and cross-course schedule-overlap guard are API-covered. Remaining gaps: schedule/qualification conflict error-message E2E and broader E2E user-flow coverage. |
 | FC-014 Navigate admin features by role | Covered for admin, school manager, instructor, student, and plain authenticated users in active E2E navigation tests. |
 | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; approval-action 401/403 role gates remain covered, E2E route denial remains covered, and manager school-scope denial is now API-covered for enrollment/assignment actions. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
 | FC-017 Express course interest (course-first student flow) | Covered (API+E2E) for logged-in interest creation, anonymous redirect/continuation, student cancel/reopen toggle behavior, manager pending-interest cancel flow, and enrollment label feedback. Remaining gap: dedicated student dashboard My Interests assertions. |
+| FC-018 Start a course | **Covered (API)**; hard-guard rejections (no lead, no wage, insufficient balance, duplicate STARTED), soft minimum-capacity override, STARTED lifecycle event, and enrolled-student financial charge are all API-covered. |
+| FC-019 Schedule and reschedule a lesson | **Covered (API)**; scheduling, rescheduling, schedule-overlap guard, hint reset on reschedule, and CONFIRMED-state guard are API-covered. |
+| FC-020 Provide advisory attendance hints | **Covered (API)**; student accept/decline, non-lead instructor presence confirmation, date-lock guard (INV-09), lead-blocks-own-presence guard, and hint-does-not-change-lesson-status invariant are all API-covered. |
+| FC-021 Resolve below-capacity lessons | **Covered (API)**; PROCEED_WITH_PARTIAL and CLOSE_COURSE suggestions, duplicate-pending guard (INV-06), manager approval advancing to CONFIRMED or CLOSED, and reschedule-supersedes are all API-covered. |
+| FC-022 Submit student evaluations | **Covered (API)**; PASS/FAIL evaluation, attended=false→FAIL guard (INV-15), LESSON_UNDERWAY precondition (INV-10), lead-only guard (INV-03), duplicate-assessment guard, LESSON_CONCLUDED transition, and instructor pay transactions are all API-covered. |
+| FC-023 Mark co-instructor absent | **Covered (API)**; ABSENT assignment, DECLINED-only guard, and no-pay-for-ABSENT invariant (INV-20) are API-covered. |
+| FC-024 Submit and manage refund requests | **Covered (API)**; student submission, course-status guard, duplicate-PENDING guard (INV-13), manager approval with amount and financial credit, and manager decline are all API-covered. |
+| FC-025 Complete a course | **Covered (API)**; automatic COMPLETED transition when all students resolved and course lifecycle event creation are API-covered (via `submitStudentAssessment` tests in [14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts)). |
 
 ## 6. Highest-Priority Gaps to Implement Next
 
 1. School profile view/edit authorization tests.
 2. Syllabus from-scratch creation, manager catalog breadth, and obsolete-state coverage.
 3. Course-details UX assertions after creation (metadata and enrollment details).
-4. Course start pre-condition guards: lead instructor designation, agreed wages, hourly rate, and student account balance check.
-5. `STARTED → CLOSED` direct close path and `COMPLETED` terminal state.
-6. Instructor assignment: lead designation, agreed wage requirement, and cross-course schedule-overlap guard.
-7. Late enrollment (after course start, before first lesson underway) and enrollment-lock timing guard.
-8. Instructor assignment conflict/error-message coverage (schedule and qualification paths).
-9. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
-10. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
-11. E2E coverage for enrollment/assignment user flows and integrity under concurrency.
-12. Registration request-history visibility and status persistence tests.
-13. E2E smoke for course-interest flow: unauthenticated redirect, student dashboard list, and manager pending-interest approval/cancellation handling.
+4. `STARTED → CLOSED` forced-close path API coverage.
+5. Instructor assignment conflict/error-message E2E coverage (schedule and qualification paths).
+6. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
+7. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
+8. E2E coverage for course execution user flows: lesson scheduling, attendance hints, evaluation submission, and refund handling.
+9. Registration request-history visibility and status persistence tests.
+10. E2E smoke for course-interest flow: student dashboard list and manager pending-interest approval/cancellation handling.
 
 ## 7. Notes
 
- - As of March 2026, **55 API operation tests** under [api-tests/tests](../../api-tests/tests/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, enrollment/assignment integrity, approval side effects, and the course-first interest pipeline. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.
+ - As of April 2026, **269 tests** (170 API + 99 unit) are passing. API tests under [tests/api](../../tests/api/) provide deterministic, database-backed validation for authorization gates, duplicate/role-hold guardrails, approval/rejection paths, listing scoping, enrollment/assignment integrity, approval side effects, course-first interest pipeline, course execution (lesson scheduling, attendance hints, below-capacity resolution, student evaluation, lesson conclusion, instructor pay, late enrollment, and refund lifecycle). Unit tests under [tests/unit](../../tests/unit/) validate all XState state machines for course execution. API tests validate operation-layer behavior without browser overhead; E2E suite keeps route/filter/layout and end-user smoke flows.
  
