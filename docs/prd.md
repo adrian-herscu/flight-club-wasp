@@ -9,7 +9,7 @@
 
 ### 1.2 Product summary
 
-The project is a multi-role flight school management platform built on the existing Wasp and Prisma architecture. It supports public discovery of schools and courses, authenticated role requests, admin-led school onboarding, and school-manager workflows for syllabuses, course creation, member approvals, instructor assignment, and student enrollment.
+The project is a multi-role flight school management platform built on the existing Wasp and Prisma architecture. It supports public discovery of schools and courses, authenticated role requests, admin-led school onboarding, and school-manager workflows for syllabuses, course creation, member approvals, instructor assignment, student enrollment, and course execution including lesson scheduling, student evaluations, instructor-absence handling, and financial settlements.
 
 The current product direction prioritizes two outcomes: faster user registrations and better course management. Faster registrations means reducing friction for prospective school managers, instructors, and students to find the right school, request access, and receive approvals quickly. Better course management means helping school managers move from syllabus setup to live courses, roster management, and instructor coordination with fewer manual steps and fewer operational errors.
 
@@ -33,6 +33,10 @@ The project should continue to evolve within the existing Wasp application struc
 - Let school managers review instructor and student requests in separate, easy-to-process queues.
 - Let school managers create, publish, and reuse syllabuses to open courses faster.
 - Let school managers enroll students and assign instructors with clear guardrails.
+- Let school managers start a course once minimum readiness conditions are met and track it through to completion.
+- Let lead instructors schedule lessons, manage co-instructor availability, and submit student evaluations.
+- Let managers and lead instructors resolve below-capacity and instructor-unavailability situations with clear escalation paths.
+- Let students and non-lead instructors provide advisory attendance hints that help the lead instructor plan lesson execution.
 
 ### 2.3 Non-goals
 
@@ -68,9 +72,8 @@ The project should continue to evolve within the existing Wasp application struc
 - **Registered user**: Can authenticate, manage account details, and submit role registration requests.
 - **System admin**: Can access admin dashboard routes, user management, school manager approval flows, and platform settings.
 - **School manager**: Can access manager dashboards, school profile management, instructor and student approval queues, syllabus catalog/details, course creation, instructor assignment, and student enrollment.
-- **Instructor**: Can access instructor-specific capabilities when implemented and must not access manager-only or admin-only workflows.
-- **Instructor**: Can view their assigned courses per school via the instructor portal (Dashboard placeholder + Courses page with school-context selector) and must not access manager-only or admin-only workflows.
-- **Student**: Can view enrolled courses per school via the student portal (Dashboard placeholder + Courses page with school-context selector) and must not access manager-only or admin-only workflows.
+- **Instructor**: Can view assigned courses per school via the instructor portal; the lead instructor for a course can additionally schedule and reschedule lessons, mark non-lead co-instructors absent, and submit student evaluations; non-lead instructors can report their availability as an advisory hint; all instructors must not access manager-only or admin-only workflows.
+- **Student**: Can view enrolled courses per school via the student portal, provide advisory attendance hints for scheduled lessons, view their own lesson evaluations and enrollment status, and submit refund requests; must not access manager-only or admin-only workflows.
 
 ## 4. Functional requirements
 
@@ -130,18 +133,37 @@ The project should continue to evolve within the existing Wasp application struc
 - **Course creation and management** (Priority: High)
 
   - School managers must be able to create courses only from final syllabus versions.
-  - Course setup must support start date, capacity bounds, and default lesson pricing.
+  - Course setup must support capacity bounds and default lesson pricing (hourly rate).
+  - A course progresses through four lifecycle states: `OPEN`, `STARTED`, `COMPLETED`, and `CLOSED`.
+  - Managers must be able to start a course; the system must enforce hard pre-start conditions (at least one assigned instructor designated as lead, all instructors have an agreed wage, hourly rate is set, and all enrolled student accounts have sufficient balance). Minimum enrolled student capacity is a soft condition the manager may override.
   - Managers must be able to view course enrollment details and course-level metadata.
   - Managers must be able to close a course and reopen it later from a dedicated closed-courses panel.
   - Closed courses must be hidden from public landing-page discovery and must reject new enrollments and instructor assignments until reopened.
 
 - **Instructor assignment and student enrollment** (Priority: High)
 
-  - School managers must be able to assign instructors to courses.
-  - School managers must be able to enroll students in courses.
+  - School managers must be able to assign instructors to courses; exactly one assigned instructor must be designated as the lead instructor.
+  - Each assigned instructor must have an agreed wage per hour set at assignment time; the system must reject course start if any agreed wage is missing.
+  - School managers must be able to enroll students in courses. Late enrollment (after course start, before the first lesson begins) must also be supported.
   - Enrollment writes must keep course-interest lifecycle state synchronized (`ENROLLED`) so Courses and Students manager views remain consistent.
+  - Student enrollment is locked once the first lesson reaches `LESSON_UNDERWAY`.
   - The system must block invalid or duplicate assignments and enrollments.
+  - The schedule-conflict guard for instructor assignment must check for overlapping `CONFIRMED` or `LESSON_UNDERWAY` lessons across all courses the instructor is assigned to.
   - The system should surface understandable errors when database-level constraints reject an action, such as schedule conflicts or invalid syllabus usage.
+
+- **Course execution and lesson delivery** (Priority: High)
+
+  - Once a course is started, the lead instructor must be able to schedule each lesson by proposing a date and location; the system must reject proposals that conflict with the lead instructor's other `CONFIRMED` or in-progress lessons across all courses.
+  - Students and non-lead instructors may provide advisory attendance hints (accept, decline, or re-accept freely) for any scheduled lesson before the lesson date is reached; these hints do not change lesson status and do not constitute binding commitments.
+  - The system must automatically evaluate hint counts at the lesson date: if accepted student count meets minimum capacity the lesson is confirmed; if not, the lesson enters a below-capacity state requiring lead instructor action.
+  - When a lesson is below capacity, the lead instructor must be able to reschedule it, or escalate to the manager with a suggestion to proceed with partial attendance or close the course.
+  - The lead instructor must be able to reschedule a confirmed lesson before its date if they become unavailable.
+  - When a non-lead instructor reports unavailability, the lead instructor must be able to either reschedule the lesson or mark the co-instructor absent and proceed; an absent co-instructor receives no pay for that lesson.
+  - Once a lesson is underway, the lead instructor must be able to submit a pass/fail evaluation with optional notes for each active enrolled student; marking a student absent automatically results in a fail.
+  - A student who fails a lesson is immediately removed from all future lesson requirements and the course counts toward completion once all students are either certified or failed.
+  - The system must charge each enrolled student the full course fee when the course is started (and immediately on late enrollment), and must pay each attending instructor their agreed wage when each lesson concludes.
+  - Students must be able to submit refund requests for started, completed, or closed courses; managers must be able to approve (with a specified amount up to the amount paid) or decline requests.
+  - All financial operations are append-only; corrections are made via compensating transactions only.
 
 - **Internationalization and responsive admin navigation** (Priority: Medium)
 
@@ -185,13 +207,22 @@ The project should continue to evolve within the existing Wasp application struc
 
   - This reduces manual coordination errors and respects existing data integrity rules.
 
+- **Deliver a lesson safely**: The lead instructor schedules each lesson, monitors attendance hints from students and co-instructors, and decides whether to proceed, reschedule, or escalate to the manager.
+
+  - This gives the lead instructor full situational control while providing a clear escalation path to the manager when capacity or co-instructor issues arise.
+
 ### 5.3 Advanced features & edge cases
 
 - Duplicate pending role requests must be prevented or explained clearly.
 - Requests for school manager role must support school creation details when no target school exists yet.
 - Instructor and student role requests must support school selection and visibility of school logos and website data.
 - Course creation must fail clearly when attempted from a non-final syllabus version.
-- Instructor assignment must handle schedule conflict rejections gracefully.
+- Instructor assignment must enforce exactly one lead instructor per course and must reject proposals that overlap the lead instructor's other confirmed or in-progress lessons across all courses.
+- A course start must be blocked with a clear error if any hard pre-start guard fails (missing lead, missing agreed wage, missing hourly rate, or any student account has insufficient balance).
+- When a lesson reaches its date with insufficient accepted student hints, the below-capacity state must be visible to the lead instructor with clear action options: reschedule, proceed with partial, or suggest closing the course.
+- When a non-lead instructor reports unavailability, the lead instructor must see this prominently and be offered the choice to reschedule or confirm absence and proceed without that instructor.
+- Student and non-lead instructor attendance hints are advisory only: the system must make clear that hints do not commit the responder to attendance and that no-response is a valid state.
+- A student who is marked absent at a lesson is immediately failed; the system must notify the manager and instructor that a resolution decision (re-enroll in a new course or refund) is needed.
 - Manager-only routes must not appear for unauthorized roles.
 - RTL layout and translated labels must remain usable for navigation-heavy manager pages.
 - Optional school metadata, such as website URL and logo, must not break the public or registration experience when absent.
@@ -204,10 +235,12 @@ The project should continue to evolve within the existing Wasp application struc
 - Manager syllabus views that communicate visibility and usage policy.
 - Account menu shortcuts for dashboard and role requests.
 - Responsive layout with RTL support for core manager workflows.
+- Lead instructor lesson view showing current lesson status, per-student and per-co-instructor hint counts, and available actions (reschedule, evaluate, escalate).
+- Student and non-lead instructor lesson view showing the proposed date and location with simple accept/decline toggle before the lesson date.
 
 ## 6. Narrative
 
-The project helps a prospective school community move from discovery to participation with less friction. A visitor finds a school and course, creates an account, requests the appropriate role, and receives approval through a clearly owned workflow. Once the school is operational, the manager uses syllabuses to open courses, assign instructors, and enroll students within a controlled system that favors clear permissions, predictable workflows, and strong data integrity.
+The project helps a prospective school community move from discovery to participation with less friction. A visitor finds a school and course, creates an account, requests the appropriate role, and receives approval through a clearly owned workflow. Once the school is operational, the manager uses syllabuses to open courses, assign instructors, and enroll students within a controlled system that favors clear permissions, predictable workflows, and strong data integrity. When the manager starts a course, financial charges are recorded and the lead instructor takes over lesson coordination: proposing dates, monitoring advisory attendance hints, submitting evaluations, and settling instructor payments lesson by lesson until every student reaches a certified or failed outcome and the course completes.
 
 ## 7. Success metrics
 
@@ -230,15 +263,19 @@ The project helps a prospective school community move from discovery to particip
 
 - E2E pass rate for landing, auth, registration, role navigation, and manager workflows.
 - Error rate for registration submission, approval actions, course creation, enrollment, and assignment actions.
+- Error rate for course start, lesson scheduling, evaluation submission, and refund actions.
 - P95 response time for key Wasp queries and actions used by registration and manager workflows.
+- P95 response time for lesson scheduling, evaluation, and financial settlement actions.
 - Frequency of DB constraint violations surfaced to users, categorized by workflow.
+- Cron job reliability: percentage of `SCHEDULED` and `CONFIRMED` lessons that transition on time within one cron interval of the lesson date.
 
 ## 8. Technical considerations
 
 ### 8.1 Integration points
 
 - Wasp routes, pages, queries, and actions defined in the application configuration.
-- Prisma schema and PostgreSQL models for users, schools, registration requests, roles, syllabuses, courses, enrollments, assignments, accounts, and transactions.
+- Prisma schema and PostgreSQL models for users, schools, registration requests, roles, syllabuses, courses, enrollments, assignments, accounts, transactions, meeting attendance, instructor suggestions, instructor lesson presence, and refund requests.
+- PgBoss recurring job (`lessonStatusJob`) for automatic lesson status transitions at lesson date boundaries.
 - Existing email and Google authentication flows.
 - SendGrid-based email sender configuration.
 - Playwright E2E suite for validating landing, auth, navigation, registration, and manager workflows.
@@ -266,7 +303,9 @@ The project helps a prospective school community move from discovery to particip
 - Working within append-only or immutable domain patterns already enforced in the database.
 - Preventing duplicate requests, enrollments, and assignments under concurrent usage.
 - Balancing system-level syllabus visibility with school-specific drafts and final versions.
-- Extending future workflows, such as evaluations or waitlists, without undermining current invariants.
+- Cron job timing: lesson status transitions depend on a recurring PgBoss job; clock skew or job backlog can delay `CONFIRMED` or `LESSON_UNDERWAY` transitions and must be handled gracefully.
+- Cross-course schedule overlap checks for instructor assignment and lesson scheduling require efficient queries across all courses an instructor is assigned to.
+- Extending future workflows, such as weather-triggered rescheduling notifications, waitlists, or evaluations, without undermining current invariants.
 
 ## 9. Milestones & sequencing
 
