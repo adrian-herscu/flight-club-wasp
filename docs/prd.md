@@ -148,7 +148,6 @@ The project should continue to evolve within the existing Wasp application struc
   - Enrollment writes must keep course-interest lifecycle state synchronized (`ENROLLED`) so Courses and Students manager views remain consistent.
   - Student enrollment is locked once the first lesson reaches `LESSON_UNDERWAY`.
   - The system must block invalid or duplicate assignments and enrollments.
-  - The schedule-conflict guard for instructor assignment must check for overlapping `CONFIRMED` or `LESSON_UNDERWAY` lessons across all courses the instructor is assigned to.
   - The system should surface understandable errors when database-level constraints reject an action, such as schedule conflicts or invalid syllabus usage.
 
 - **Course execution and lesson delivery** (Priority: High)
@@ -537,3 +536,87 @@ The project helps a prospective school community move from discovery to particip
   - A school manager can view pending course-interest records for their school's courses in the Courses page.
   - A school manager can cancel a pending interest before enrollment from the students queue.
   - All interest operations enforce authentication and role authorization on the server side.
+
+### 10.18 Start a course
+
+- **ID**: FC-018
+- **Description**: As a school manager, I want to start a course so that scheduled lesson delivery can begin.
+- **Acceptance criteria**:
+
+  - Starting a course is blocked when any hard guard fails: no assigned instructor, no lead instructor, missing hourly rate, missing agreed wage for any instructor, prior STARTED event already exists, or any enrolled student's account has insufficient balance.
+  - Minimum capacity is a soft condition the manager may override with explicit confirmation.
+  - Successful start appends a STARTED CourseLifecycleEvent and charges each enrolled student the full course fee.
+
+### 10.19 Schedule and reschedule a lesson
+
+- **ID**: FC-019
+- **Description**: As a lead instructor, I want to schedule and reschedule lessons so that students and co-instructors know when and where to meet.
+- **Acceptance criteria**:
+
+  - Lead instructor can propose a date and location for the current syllabus lesson.
+  - Proposals that overlap the lead instructor's other CONFIRMED or LESSON_UNDERWAY lessons across all courses are rejected.
+  - Rescheduling resets all student attendance hints and co-instructor presence records.
+  - A CONFIRMED lesson can be rescheduled before its date.
+
+### 10.20 Provide advisory attendance hints
+
+- **ID**: FC-020
+- **Description**: As a student or non-lead instructor, I want to signal whether I can attend a scheduled lesson so that the lead instructor has planning information.
+- **Acceptance criteria**:
+
+  - Students can accept, decline, or re-accept any number of times before the lesson date.
+  - Non-lead instructors can confirm or report unavailability any number of times before the lesson date.
+  - Hints are locked once the lesson date is reached.
+  - Hints do not change lesson status.
+
+### 10.21 Resolve below-capacity lessons
+
+- **ID**: FC-021
+- **Description**: As a lead instructor or manager, I want to resolve a lesson that reached its date with insufficient accepted students so that the course can continue or be closed appropriately.
+- **Acceptance criteria**:
+
+  - Lead instructor can reschedule the lesson, submit a proceed-with-partial suggestion, or submit a close-course suggestion.
+  - Manager can approve a proceed-with-partial suggestion (advances lesson to CONFIRMED) or a close-course suggestion (closes the course).
+  - At most one pending suggestion can exist per lesson at a time.
+
+### 10.22 Submit student evaluations
+
+- **ID**: FC-022
+- **Description**: As a lead instructor, I want to submit pass/fail evaluations for each active enrolled student after a lesson so that enrollment outcomes are recorded.
+- **Acceptance criteria**:
+
+  - Lead instructor can submit a PASS or FAIL evaluation with optional notes for each ACTIVE student once the lesson is LESSON_UNDERWAY.
+  - Marking a student absent (attended=false) automatically results in FAIL.
+  - A failed student is immediately removed from all future lesson requirements.
+  - When all active students have evaluations, the lesson transitions to LESSON_CONCLUDED and instructors are paid.
+
+### 10.23 Mark co-instructor absent
+
+- **ID**: FC-023
+- **Description**: As a lead instructor, I want to mark a co-instructor absent so that they are excluded from lesson pay.
+- **Acceptance criteria**:
+
+  - Lead instructor can mark a DECLINED co-instructor as ABSENT before the lesson date or during LESSON_UNDERWAY before all assessments are submitted.
+  - An ABSENT co-instructor receives no pay transaction at LESSON_CONCLUDED.
+  - A co-instructor can still toggle their own availability hint independently of the lead instructor's ABSENT decision.
+
+### 10.24 Submit and manage refund requests
+
+- **ID**: FC-024
+- **Description**: As a student, I want to submit a refund request, and as a manager, I want to approve or decline it, so that financial resolutions are handled within the platform.
+- **Acceptance criteria**:
+
+  - Students can submit a refund request for a STARTED, COMPLETED, or CLOSED course.
+  - At most one PENDING refund request per student per course at a time.
+  - Managers can approve with a specified amount up to the total amount paid, or decline.
+  - Approval triggers a refund transaction pair; the student is notified either way.
+
+### 10.25 Complete a course
+
+- **ID**: FC-025
+- **Description**: As the system, I want to automatically complete a course when all students are resolved so that the course lifecycle closes cleanly.
+- **Acceptance criteria**:
+
+  - Course transitions to COMPLETED automatically when every EnrolledStudent has status CERTIFIED or FAILED.
+  - Any remaining SCHEDULED, BELOW_CAPACITY, or CONFIRMED lessons are cancelled on completion.
+  - COMPLETED is a terminal state; no further transitions are possible.

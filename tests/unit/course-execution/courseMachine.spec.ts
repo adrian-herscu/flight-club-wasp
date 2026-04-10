@@ -19,6 +19,7 @@ function ctx(overrides: Partial<CourseMachineContext> = {}): CourseMachineContex
     minCapacity: null,
     allStudentsResolved: true,
     hasPendingCloseSuggestion: false,
+    hasStartedBefore: false,
     ...overrides,
   };
 }
@@ -87,6 +88,12 @@ describe('OPEN', () => {
     const actor = actorAt('OPEN', ctx({ enrolledCount: 1, minCapacity: 3 }));
     actor.send({ type: 'START_COURSE', overrideCapacity: true });
     expect(actor.getSnapshot().value).toBe('STARTED');
+  });
+
+  it('START_COURSE when hasStartedBefore=true → stays OPEN (INV-22, once-only start)', () => {
+    const actor = actorAt('OPEN', ctx({ hasStartedBefore: true }));
+    actor.send({ type: 'START_COURSE' });
+    expect(actor.getSnapshot().value).toBe('OPEN');
   });
 
   it('CLOSE_COURSE direct → CLOSED', () => {

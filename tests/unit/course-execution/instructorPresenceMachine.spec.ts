@@ -10,7 +10,7 @@ import {
 } from '../../../src/course-execution/machines/instructorPresenceMachine.js';
 
 function ctx(overrides: Partial<InstructorPresenceContext> = {}): InstructorPresenceContext {
-  return { lessonDateReached: false, ...overrides };
+  return { lessonDateReached: false, lessonIsUnderway: false, ...overrides };
 }
 
 function actorAt(stateValue: string, context: InstructorPresenceContext) {
@@ -73,10 +73,16 @@ describe('DECLINED', () => {
     expect(actor.getSnapshot().value).toBe('ABSENT');
   });
 
-  it('MARK_ABSENT after date reached → stays DECLINED (locked)', () => {
-    const actor = actorAt('DECLINED', ctx({ lessonDateReached: true }));
+  it('MARK_ABSENT after date reached, not underway → stays DECLINED (locked)', () => {
+    const actor = actorAt('DECLINED', ctx({ lessonDateReached: true, lessonIsUnderway: false }));
     actor.send({ type: 'MARK_ABSENT' });
     expect(actor.getSnapshot().value).toBe('DECLINED');
+  });
+
+  it('MARK_ABSENT during LESSON_UNDERWAY → ABSENT (B-5 exception, INV-09)', () => {
+    const actor = actorAt('DECLINED', ctx({ lessonDateReached: true, lessonIsUnderway: true }));
+    actor.send({ type: 'MARK_ABSENT' });
+    expect(actor.getSnapshot().value).toBe('ABSENT');
   });
 });
 

@@ -43,12 +43,20 @@ Columns: **From State** · **Event/Trigger** · **Actor** · **Guard** · **To S
 
 | From State | Event / Trigger | Actor | Guard | To State | Side Effects |
 |---|---|---|---|---|---|
-| `OPEN` | **Start course** | Manager | **Hard:** (a) `assignedInstructors.count >= 1` AND (b) exactly one `AssignedInstructor` has `isLead = true` AND (c) `course.hourlyRate IS NOT NULL` AND (d) all `AssignedInstructor` rows have `agreedWagePerHour IS NOT NULL`. **Soft (manager may override with confirmation):** (e) `enrolledStudents.count >= course.minCapacity` (`course.minCapacity` is nullable; null = no minimum enforced, soft guard always passes). | `STARTED` | Appends `STARTED` `CourseLifecycleEvent`. Course pointer is now at syllabus position 1 (no `CourseLesson` row yet = implicit `UNSCHEDULED`). **Financial:** For each enrolled student, debits the student's account and credits the school (manager) account for the full course fee (`hourlyRate × total lesson duration`). Each pair is recorded as a linked `Transaction` pair. |
-| `STARTED` | **All students resolved** | System | Every `EnrolledStudent` has status `CERTIFIED` or `FAILED` (no `ACTIVE` students remain). | `COMPLETED` | Appends `COMPLETED` `CourseLifecycleEvent`. Sets any `SCHEDULED`/`CONFIRMED` `CourseLesson` rows to `CANCELLED`. |
+| `OPEN` | **Start course** | Manager | **Hard:** (a) `assignedInstructors.count >= 1` AND (b) exactly one `AssignedInstructor` has `isLead = true` AND (c) `course.hourlyRate IS NOT NULL` AND (d) all `AssignedInstructor` rows have `agreedWagePerHour IS NOT NULL` AND (e) no prior `STARTED` `CourseLifecycleEvent` exists for this course (INV-22). **Soft (manager may override with confirmation):** (f) `enrolledStudents.count >= course.minCapacity` (`course.minCapacity` is nullable; null = no minimum enforced, soft guard always passes). | `STARTED` | Appends `STARTED` `CourseLifecycleEvent`. Course pointer is now at syllabus position 1 (no `CourseLesson` row yet = implicit `UNSCHEDULED`). **Financial:** For each enrolled student, debits the student's account and credits the school (manager) account for the full course fee (`hourlyRate × total lesson duration`). Each pair is recorded as a linked `Transaction` pair. |
+| `STARTED` | **All students resolved** | System | Every `EnrolledStudent` has status `CERTIFIED` or `FAILED` (no `ACTIVE` students remain). | `COMPLETED` | Appends `COMPLETED` `CourseLifecycleEvent`. Sets any `SCHEDULED`, `BELOW_CAPACITY`, or `CONFIRMED` `CourseLesson` rows to `CANCELLED`. |
 | `STARTED` | **Approve CLOSE_COURSE suggestion** | Manager | An active `InstructorSuggestion` with `CLOSE_COURSE` exists and is `PENDING`. | `CLOSED` | Marks suggestion `APPROVED`. Appends `CLOSED` `CourseLifecycleEvent`. Sets any `SCHEDULED` or `CONFIRMED` `CourseLesson` for the current lesson to `CANCELLED`. |
 | `STARTED` | **Close course** (direct, no suggestion required) | Manager | Course is not already `CLOSED` or `COMPLETED`. | `CLOSED` | Appends `CLOSED` `CourseLifecycleEvent`. Sets any active `CourseLesson` for the current lesson to `CANCELLED`. |
 | `OPEN` | **Close course** (direct, no suggestion required) | Manager | Course is not already `CLOSED` or `COMPLETED`. | `CLOSED` | Appends `CLOSED` `CourseLifecycleEvent`. |
 | `CLOSED` | **Reopen course** | Manager | Course is `CLOSED`. | `OPEN` | Appends `REOPENED` `CourseLifecycleEvent`. Clears the active lesson pointer (requires manager to restart). |
+
+---
+
+### Derived concepts
+
+> **Current lesson (course pointer):** The `SyllabusLesson` at the minimum `position` among all `SyllabusLesson` rows for `course.syllabusVersionId` for which either (a) no non-`CANCELLED` `CourseLesson` row exists for this course, or (b) a non-`CANCELLED` `CourseLesson` row exists with `status ≠ LESSON_CONCLUDED`. In other words: the lowest-position syllabus lesson that has not yet been concluded.
+
+> **Final lesson:** The `SyllabusLesson` with the maximum `position` among all `SyllabusLesson` rows for `course.syllabusVersionId`. A `CourseLesson` is the final lesson when its `syllabusLesson.position` equals this maximum.
 
 ---
 
@@ -102,6 +110,10 @@ Columns: **From State** · **Event/Trigger** · **Actor** · **Guard** · **To S
 | `CLOSE_COURSE` | **Manager approves** | Manager | Suggestion is `PENDING`. Course still `STARTED`. | `APPROVED` | Course → `CLOSED` (see Course Lifecycle). |
 | `PROCEED_WITH_PARTIAL` or `CLOSE_COURSE` | **Instructor reschedules** | Lead instructor | `CourseLesson.status = BELOW_CAPACITY`. | *(suggestion `status = SUPERSEDED`)* | `CourseLesson.date`/`.location` updated, `status = SCHEDULED`, attendance reset. |
 
+> **Note on type vs status:** `PROCEED_WITH_PARTIAL` and `CLOSE_COURSE` are values of `InstructorSuggestionType`. The row state when a suggestion is awaiting manager review is represented by `InstructorSuggestionStatus = PENDING`, which is omitted from the table above for conciseness. See the Schema Changes section for the full `InstructorSuggestion` model.
+
+> **Suggestion withdrawal:** A lead instructor may replace a pending suggestion only by rescheduling the lesson, which supersedes it. Direct withdrawal of a pending suggestion without rescheduling is not supported.
+
 ---
 
 ### 5. Instructor Lesson Presence
@@ -113,9 +125,11 @@ Columns: **From State** · **Event/Trigger** · **Actor** · **Guard** · **To S
 | From State | Event / Trigger | Actor | Guard | To State | Side Effects |
 |---|---|---|---|---|---|
 | *(row created on lesson schedule/reschedule)* | **Lesson scheduled or rescheduled** | System | — | `EXPECTED` | Creates or resets `InstructorLessonPresence` records for all non-lead assigned instructors. |
+| *(no row)* | **Instructor assigned after lesson exists** | Manager | A `SCHEDULED`, `BELOW_CAPACITY`, or `CONFIRMED` active `CourseLesson` exists for the current lesson. Newly assigned instructor is not the lead (INV-21). | `EXPECTED` | Creates `InstructorLessonPresence` record for the newly assigned non-lead instructor. |
 | any | **Report unavailability** | Non-lead instructor | `CourseLesson.date` has not yet been reached. | `DECLINED` | Notifies lead instructor and manager. |
 | any | **Confirm availability / re-accept** | Non-lead instructor | `CourseLesson.date` has not yet been reached. | `EXPECTED` | Notifies lead instructor. |
 | `DECLINED` | **Confirm absence — proceed without** | Lead instructor | `CourseLesson.date` has not yet been reached. | `ABSENT` | Notifies manager. Non-lead instructor will not be paid for this lesson at `LESSON_CONCLUDED`. |
+| `DECLINED` | **Mark absent (lesson underway)** | Lead instructor | `CourseLesson.status = LESSON_UNDERWAY`. Not all assessments have been submitted yet. | `ABSENT` | Notifies manager. Non-lead instructor will not be paid for this lesson at `LESSON_CONCLUDED`. |
 
 ---
 
@@ -169,6 +183,8 @@ All financial operations for a course use the account scoped to `course.schoolId
 > `TransactionType` already has `DEPOSIT` and `WITHDRAWAL`. No new transaction-level models are
 > needed; only the new triggers and the `RefundRequest` model are additions.
 
+> **Currency convention:** `Course.hourlyRate` and `AssignedInstructor.agreedWagePerHour` store values in **minor currency units** (e.g., pence for GBP, cents for EUR/USD). The schema comments that say "whole currency units" are incorrect and must be updated during implementation. All arithmetic in the formulas above produces minor-unit values that can be written directly to `Transaction.amountMinor` with no further conversion. Display layers divide by the currency's decimal factor (100 for most ISO 4217 currencies).
+
 ---
 
 ## Read Access Rules
@@ -210,16 +226,16 @@ The following rules must be enforced at the data layer (DB constraints or server
 | ID | Invariant |
 |---|---|
 | INV-01 | **Hard (blocking):** course must have ≥ 1 assigned instructor, exactly one with `isLead = true`, non-null `hourlyRate`, and non-null `agreedWagePerHour` on every `AssignedInstructor` row. **Soft (manager may override):** `enrolledStudents.count >= course.minCapacity` (`course.minCapacity` is nullable; null = always passes). |
-| INV-02 | The lead instructor may not schedule a lesson whose datetime range `[CourseLesson.date, CourseLesson.date + syllabusLesson.durationMinutes + CourseLesson.bufferMinutes]` overlaps any other `CourseLesson` with `status` `CONFIRMED` or `LESSON_UNDERWAY` to which that lead instructor is assigned, across all courses. (`syllabusLesson.durationMinutes` accessed via `CourseLesson.syllabusLesson`.) |
+| INV-02 | The lead instructor may not schedule a lesson whose datetime range `[CourseLesson.date, CourseLesson.date + syllabusLesson.durationMinutes + CourseLesson.bufferMinutes]` overlaps any other `CourseLesson` with `status` `CONFIRMED` or `LESSON_UNDERWAY` to which that lead instructor is assigned, across all courses. (`syllabusLesson.durationMinutes` accessed via `CourseLesson.syllabusLesson`.) This guard fires at lesson **scheduling** time. No overlap check is performed at instructor **assignment** time — lesson dates are not yet known at that point. |
 | INV-03 | A `StudentLessonEvaluation` may only be created by the lead instructor of the course (`AssignedInstructor.isLead = true`). |
 | INV-04 | A `StudentLessonEvaluation` may only be created for a student with `EnrolledStudent.status = ACTIVE` in this course. Physical attendance is tracked implicitly by the lead instructor submitting an assessment; the student does not need to have prior `ACCEPTED` response in the system. A student with `status = FAILED` is excluded from assessment requirements in all subsequent lessons. |
-| INV-05 | At most one non-`CANCELLED` `CourseLesson` may exist per `(courseId, syllabusLessonId)` pair at any time (excluding `isExtra = true` rows). |
+| INV-05 | At most one non-`CANCELLED` `CourseLesson` may exist per `(courseId, syllabusLessonId)` pair at any time. (Note: `CourseLesson.isExtra` is a legacy field with no defined creation path in this state machine; it must not be used in new code.) |
 | INV-06 | At most one `PENDING` `InstructorSuggestion` may exist per `CourseLesson` at any time. |
 | INV-07 | The course pointer may only advance when the current `CourseLesson.status = LESSON_CONCLUDED`. |
 | INV-08 | A course transitions to `COMPLETED` only when every `EnrolledStudent` has status `CERTIFIED` or `FAILED` (no `ACTIVE` students remain). A student set to `FAILED` mid-lesson is immediately dropped from all subsequent lesson requirements and counts toward course completion. |
-| INV-09 | Student `MeetingAttendance` and non-lead instructor `InstructorLessonPresence` responses are freely toggleable in any direction regardless of `CourseLesson.status`, until `CourseLesson.date` is reached. They are advisory hints and do not change `CourseLesson.status`. All toggling is locked once `CourseLesson.date` has been reached. |
+| INV-09 | Student `MeetingAttendance` and non-lead instructor `InstructorLessonPresence` responses are freely toggleable in any direction regardless of `CourseLesson.status`, until `CourseLesson.date` is reached. They are advisory hints and do not change `CourseLesson.status`. All toggling is locked once `CourseLesson.date` has been reached. **Exception:** the lead instructor may still set `ABSENT` on a `DECLINED` non-lead while the lesson is `LESSON_UNDERWAY` and before all assessments have been submitted. |
 | INV-10 | Assessments may not be entered until `CourseLesson.status = LESSON_UNDERWAY` (datetime reached). |
-| INV-11 | Before a course is started, the system must verify that each enrolled student's `Account` scoped to `course.schoolId` has a balance `>= full course fee` in the school's currency. The manager cannot fire the start event if any student's account is insufficient. |
+| INV-11 | Before a course is started, the system must verify that each enrolled student's `Account` scoped to `course.schoolId` has a balance `>= full course fee` in the school's currency. The manager cannot fire the start event if any student's account is insufficient. If no `Account` exists for a given student scoped to `course.schoolId`, treat the balance as 0 (blocking). The system must not auto-create accounts; the manager must ensure accounts exist and are funded before starting. |
 | INV-12 | A refund amount may not exceed the total amount debited from the student for this course enrollment. |
 | INV-13 | A student may have at most one `PENDING` refund request per course at any time. |
 | INV-14 | Financial transactions are append-only and must not be mutated after creation. Corrections are made via compensating transactions only. |
@@ -229,6 +245,8 @@ The following rules must be enforced at the data layer (DB constraints or server
 | INV-18 | `AssignedInstructor.agreedWagePerHour` must be set (NOT NULL) at assignment time. A course may not be started if any assigned instructor has a null agreed wage. |
 | INV-19 | A student may only be enrolled in a `STARTED` course before the first `CourseLesson` reaches `LESSON_UNDERWAY`. Enrollment is locked once the first lesson has started. |
 | INV-20 | At `LESSON_CONCLUDED`, a non-lead instructor with `InstructorLessonPresence.status = ABSENT` for that lesson must not receive a pay transaction. Only the lead instructor and non-lead instructors with `EXPECTED` (or no) presence record receive payment. |
+| INV-21 | When a non-lead instructor is assigned to a course that already has an active (non-`LESSON_CONCLUDED`, non-`CANCELLED`) `CourseLesson` for the current lesson, the system must immediately create an `EXPECTED` `InstructorLessonPresence` record for that instructor and that lesson. |
+| INV-22 | A course may only be started once. The `OPEN → STARTED` transition is blocked if any prior `STARTED` `CourseLifecycleEvent` exists for this course. A course that has been closed and reopened (`CLOSED → OPEN`) may not be started again; it may only be closed again. Re-enrollment and re-payment for continued training requires creating a new course. |
 
 ---
 
@@ -254,9 +272,10 @@ The following rules must be enforced at the data layer (DB constraints or server
 | Back-relation added | `User` | `reviewedInstructorSuggestions`, `reviewedRefundRequests` |
 | Back-relation added | `Transaction` | `refundDebit`, `refundCredit` |
 | New model | — | `MeetingAttendance` |
-| New model | — | `InstructorSuggestion` |
+| New model | — | `InstructorSuggestion` — fields: `id String`, `courseLesson CourseLesson (FK courseLessonId)`, `proposedByInstructor Instructor (FK proposedByInstructorId)`, `type InstructorSuggestionType`, `status InstructorSuggestionStatus`, `reviewedByUser User? (FK reviewedByUserId)`, `reviewedAt DateTime?`; `@@unique([courseLessonId])` enforces INV-06 at DB level |
 | New model | — | `InstructorLessonPresence` (`EXPECTED` · `DECLINED` · `ABSENT`; per non-lead instructor per `CourseLesson`) |
-| New model | — | `RefundRequest` |
+| New model | — | `RefundRequest` — fields: `id String`, `course Course (FK courseId)`, `student Student (FK studentId)`, `status RefundRequestStatus`, `approvedAmountMinor Int?` (set on approval), `reason String?` (manager-provided on decline), `reviewedByUser User? (FK reviewedByUserId)`, `reviewedAt DateTime?`; `@@index([courseId, studentId, status])` supports INV-13 query |
+| Deprecated field | `CourseLesson` | `isExtra Boolean` — legacy field with no defined creation path; must not be used in new code; to be dropped in a future migration |
 | New Wasp job | `main.wasp` | `lessonStatusJob` (PgBoss, recurring cron) — drives `SCHEDULED → CONFIRMED/BELOW_CAPACITY` and `CONFIRMED → LESSON_UNDERWAY` |
 
 ---

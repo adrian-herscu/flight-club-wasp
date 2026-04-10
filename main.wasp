@@ -314,6 +314,32 @@ action closeCourse {
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]
 }
 
+action startCourse {
+  fn: import { startCourse } from "@src/course-execution/operations",
+  entities: [User, School, Course, AssignedInstructor, EnrolledStudent, CourseLifecycleEvent]
+}
+
+action scheduleLesson {
+  fn: import { scheduleLesson } from "@src/course-execution/operations",
+  entities: [User, Course, SyllabusLesson, CourseLesson, AssignedInstructor, EnrolledStudent, Instructor, MeetingAttendance, InstructorLessonPresence]
+}
+
+action rescheduleLesson {
+  fn: import { rescheduleLesson } from "@src/course-execution/operations",
+  entities: [User, Course, SyllabusLesson, CourseLesson, AssignedInstructor, Instructor, MeetingAttendance, InstructorLessonPresence, InstructorSuggestion]
+}
+
+job lessonStatusJob {
+  executor: PgBoss,
+  perform: {
+    fn: import { lessonStatusJobHandler } from "@src/course-execution/lessonStatusJob"
+  },
+  schedule: {
+    cron: "* * * * *"
+  },
+  entities: [CourseLesson, Course, MeetingAttendance]
+}
+
 action reopenCourse {
   fn: import { reopenCourse } from "@src/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]

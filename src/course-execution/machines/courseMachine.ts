@@ -24,6 +24,8 @@ export interface CourseMachineContext {
   allStudentsResolved: boolean;
   // Close-via-suggestion guard (STARTED → CLOSED via APPROVE_CLOSE_SUGGESTION)
   hasPendingCloseSuggestion: boolean;
+  // INV-22: A course may only be started once — CLOSED→REOPENED cancels this flag
+  hasStartedBefore: boolean;
 }
 
 export type CourseEvent =
@@ -70,6 +72,9 @@ export const courseMachine = setup({
 
     /** An active CLOSE_COURSE InstructorSuggestion exists. */
     hasPendingCloseSuggestion: ({ context }) => context.hasPendingCloseSuggestion,
+
+    /** INV-22: Course may only be started once across its full lifecycle. */
+    noPriorStart: ({ context }) => !context.hasStartedBefore,
   },
 
   actions: {
@@ -94,7 +99,7 @@ export const courseMachine = setup({
     OPEN: {
       on: {
         START_COURSE: {
-          guard: and(['hardStartGuardsPassed', 'softCapacityOk']),
+          guard: and(['hardStartGuardsPassed', 'softCapacityOk', 'noPriorStart']),
           target: 'STARTED',
           actions: ['appendStartedEvent', 'chargeEnrolledStudents'],
         },

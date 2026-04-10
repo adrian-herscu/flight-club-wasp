@@ -17,8 +17,13 @@ import { setup } from 'xstate';
 export type InstructorPresenceStatus = 'EXPECTED' | 'DECLINED' | 'ABSENT';
 
 export interface InstructorPresenceContext {
-  /** True when CourseLesson.date has been reached — locks all toggling (INV-09). */
+  /** True when CourseLesson.date has been reached — locks advisory toggling (INV-09). */
   lessonDateReached: boolean;
+  /**
+   * True when CourseLesson.status = LESSON_UNDERWAY.
+   * Lead instructor may still MARK_ABSENT during underway (INV-09 exception, B-5).
+   */
+  lessonIsUnderway: boolean;
 }
 
 export type InstructorPresenceEvent =
@@ -45,6 +50,12 @@ export const instructorPresenceMachine = setup({
 
   guards: {
     dateNotReached: ({ context }) => !context.lessonDateReached,
+    /**
+     * MARK_ABSENT is allowed before the lesson date OR while the lesson is
+     * underway (lead instructor may still exclude a no-show mid-lesson).
+     */
+    dateNotReachedOrUnderway: ({ context }) =>
+      !context.lessonDateReached || context.lessonIsUnderway,
   },
 
   actions: {
@@ -91,9 +102,10 @@ export const instructorPresenceMachine = setup({
          * Lead instructor decides to proceed without this instructor.
          * Only available from DECLINED — MARK_ABSENT requires a prior
          * explicit unavailability signal from the non-lead (doc §5).
+         * Also allowed during LESSON_UNDERWAY (B-5 exception, INV-09).
          */
         MARK_ABSENT: {
-          guard: 'dateNotReached',
+          guard: 'dateNotReachedOrUnderway',
           target: 'ABSENT',
           actions: ['notifyManager'],
         },
