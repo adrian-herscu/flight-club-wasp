@@ -32,7 +32,7 @@ import {
 } from '../../src/course-execution/operations.js';
 import { lessonStatusJobHandler } from '../../src/course-execution/lessonStatusJob.js';
 import { prisma } from './wasp-server-stub.js';
-import { ctx, SEED } from './testHelpers.js';
+import { ctx, SEED, useIsolatedCourseMembers, type IsolatedCourseMembers } from './testHelpers.js';
 import {
   CourseLessonStatus,
   InstructorLessonPresenceStatus,
@@ -47,8 +47,10 @@ import {
 const FINAL_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
 const SEED_LESSON_01 = 'seed-lesson-tandem-flights-01'; // position 1, 30 min
 
-const ctx2 = { user: { id: SEED.users.instructor02, isSystemAdmin: false } };
-const ctxStudent = { user: { id: SEED.users.student01, isSystemAdmin: false } };
+let isolatedMembers: IsolatedCourseMembers;
+let ctxLead = ctx.instructor;
+let ctx2 = ctx.instructor;
+let ctxStudent = ctx.student;
 
 const futureDate = (offsetHours = 500) => new Date(Date.now() + offsetHours * 3_600_000);
 const pastDate = (offsetMinutes = 5) => new Date(Date.now() - offsetMinutes * 60_000);
@@ -57,8 +59,26 @@ const pastDate = (offsetMinutes = 5) => new Date(Date.now() - offsetMinutes * 60
 // Global beforeEach — reset mutable lesson state from prior runs
 // ---------------------------------------------------------------------------
 beforeEach(async () => {
+  isolatedMembers = await useIsolatedCourseMembers('api-13-lesson-interaction');
+  ctxLead = isolatedMembers.instructor1.ctx;
+  ctx2 = isolatedMembers.instructor2.ctx;
+  ctxStudent = isolatedMembers.student1.ctx;
+
   await prisma.courseLesson.updateMany({
-    where: { status: { in: [CourseLessonStatus.CONFIRMED, CourseLessonStatus.LESSON_UNDERWAY] } },
+    where: {
+      status: { in: [CourseLessonStatus.CONFIRMED, CourseLessonStatus.LESSON_UNDERWAY] },
+      course: {
+        assignedInstructors: {
+          some: {
+            instructor: {
+              userId: {
+                in: [isolatedMembers.instructor1.userId, isolatedMembers.instructor2.userId],
+              },
+            },
+          },
+        },
+      },
+    },
     data: { status: CourseLessonStatus.CANCELLED },
   });
   await updateMyManagedSchool(
@@ -85,17 +105,21 @@ beforeEach(async () => {
 
 async function createStartedCourseWithStudent(opts: { minCapacity?: number } = {}) {
   const { courseId } = await createCourseFromFinalSyllabus(
-    { syllabusVersionId: FINAL_SYLLABUS_VERSION_ID, minCapacity: opts.minCapacity ?? null },
+    {
+      syllabusVersionId: FINAL_SYLLABUS_VERSION_ID,
+      minCapacity: opts.minCapacity ?? null,
+      hourlyRate: 150,
+    },
     ctx.schoolManager,
   );
   const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-  const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
+  const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
   await assignInstructorToCourse(
     { courseId, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
     ctx.schoolManager,
   );
   const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-  const s = students.find((s) => s.userId === SEED.users.student01)!;
+  const s = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
   await enrollStudentInCourse({ courseId, studentId: s.studentId }, ctx.schoolManager);
   await startCourse({ courseId, overrideCapacity: true }, ctx.schoolManager);
   return { courseId, instructorId: lead.instructorId, studentId: s.studentId };
@@ -103,7 +127,7 @@ async function createStartedCourseWithStudent(opts: { minCapacity?: number } = {
 
 async function addNonLeadInstructor(courseId: string) {
   const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-  const nonLead = instructors.find((i) => i.userId === SEED.users.instructor02)!;
+  const nonLead = instructors.find((i) => i.userId === isolatedMembers.instructor2.userId)!;
   await assignInstructorToCourse(
     { courseId, instructorId: nonLead.instructorId, isLead: false, agreedWagePerHour: 30 },
     ctx.schoolManager,
@@ -120,7 +144,7 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       updateMeetingAttendance({ courseLessonId, status: 'ACCEPTED' }, ctx.unauthenticated),
@@ -131,7 +155,7 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       updateMeetingAttendance({ courseLessonId, status: 'ACCEPTED' }, ctx.schoolManager),
@@ -143,9 +167,9 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
-    const student2ctx = { user: { id: SEED.users.student02, isSystemAdmin: false } };
+    const student2ctx = isolatedMembers.student2.ctx;
     await expect(
       updateMeetingAttendance({ courseLessonId, status: 'ACCEPTED' }, student2ctx),
     ).rejects.toMatchObject({ statusCode: 403 });
@@ -155,7 +179,7 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(10), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       updateMeetingAttendance({ courseLessonId, status: 'ACCEPTED' }, ctxStudent),
@@ -166,7 +190,7 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     const result = await updateMeetingAttendance(
       { courseLessonId, status: 'ACCEPTED' },
@@ -182,7 +206,7 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     const result = await updateMeetingAttendance(
       { courseLessonId, status: 'DECLINED' },
@@ -195,7 +219,7 @@ describe('updateMeetingAttendance — auth and scope', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await updateMeetingAttendance({ courseLessonId, status: 'DECLINED' }, ctxStudent);
     const result = await updateMeetingAttendance(
@@ -215,7 +239,7 @@ describe('submitInstructorSuggestion — guards', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
     await expect(
@@ -228,7 +252,7 @@ describe('submitInstructorSuggestion — guards', () => {
     await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
     await expect(
@@ -241,12 +265,12 @@ describe('submitInstructorSuggestion — guards', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
     // Lesson should be LESSON_UNDERWAY (past date), not BELOW_CAPACITY
     await expect(
-      submitInstructorSuggestion({ courseLessonId, type: 'CLOSE_COURSE' }, ctx.instructor),
+      submitInstructorSuggestion({ courseLessonId, type: 'CLOSE_COURSE' }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
@@ -254,7 +278,7 @@ describe('submitInstructorSuggestion — guards', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
     // Student has NO_RESPONSE (default), minCapacity=3, 0 ACCEPTED → BELOW_CAPACITY
@@ -262,7 +286,7 @@ describe('submitInstructorSuggestion — guards', () => {
     expect(lesson?.status).toBe(CourseLessonStatus.BELOW_CAPACITY);
 
     await expect(
-      submitInstructorSuggestion({ courseLessonId, type: 'PROCEED_WITH_PARTIAL' }, ctx.instructor),
+      submitInstructorSuggestion({ courseLessonId, type: 'PROCEED_WITH_PARTIAL' }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
@@ -270,13 +294,13 @@ describe('submitInstructorSuggestion — guards', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
 
     const result = await submitInstructorSuggestion(
       { courseLessonId, type: 'CLOSE_COURSE' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(result.suggestionId).toBeTruthy();
 
@@ -291,7 +315,7 @@ describe('submitInstructorSuggestion — guards', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     // Student accepts before lesson date
     await updateMeetingAttendance({ courseLessonId, status: 'ACCEPTED' }, ctxStudent);
@@ -300,7 +324,7 @@ describe('submitInstructorSuggestion — guards', () => {
 
     const result = await submitInstructorSuggestion(
       { courseLessonId, type: 'PROCEED_WITH_PARTIAL' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(result.suggestionId).toBeTruthy();
   });
@@ -309,13 +333,13 @@ describe('submitInstructorSuggestion — guards', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
 
-    await submitInstructorSuggestion({ courseLessonId, type: 'CLOSE_COURSE' }, ctx.instructor);
+    await submitInstructorSuggestion({ courseLessonId, type: 'CLOSE_COURSE' }, ctxLead);
     await expect(
-      submitInstructorSuggestion({ courseLessonId, type: 'CLOSE_COURSE' }, ctx.instructor),
+      submitInstructorSuggestion({ courseLessonId, type: 'CLOSE_COURSE' }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 });
@@ -329,14 +353,14 @@ describe('approveInstructorSuggestion — PROCEED_WITH_PARTIAL', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await updateMeetingAttendance({ courseLessonId, status: 'ACCEPTED' }, ctxStudent);
     await prisma.courseLesson.update({ where: { id: courseLessonId }, data: { status: CourseLessonStatus.BELOW_CAPACITY } });
 
     const { suggestionId } = await submitInstructorSuggestion(
       { courseLessonId, type: 'PROCEED_WITH_PARTIAL' },
-      ctx.instructor,
+      ctxLead,
     );
 
     const result = await approveInstructorSuggestion({ suggestionId }, ctx.schoolManager);
@@ -355,13 +379,13 @@ describe('approveInstructorSuggestion — CLOSE_COURSE', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
 
     const { suggestionId } = await submitInstructorSuggestion(
       { courseLessonId, type: 'CLOSE_COURSE' },
-      ctx.instructor,
+      ctxLead,
     );
 
     const result = await approveInstructorSuggestion({ suggestionId }, ctx.schoolManager);
@@ -381,13 +405,13 @@ describe('approveInstructorSuggestion — CLOSE_COURSE', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
 
     const { suggestionId } = await submitInstructorSuggestion(
       { courseLessonId, type: 'CLOSE_COURSE' },
-      ctx.instructor,
+      ctxLead,
     );
     await approveInstructorSuggestion({ suggestionId }, ctx.schoolManager);
 
@@ -407,7 +431,7 @@ describe('updateInstructorPresence — non-lead confirms/declines', () => {
     await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctx.unauthenticated),
@@ -418,10 +442,10 @@ describe('updateInstructorPresence — non-lead confirms/declines', () => {
     const { courseId } = await createStartedCourseWithStudent();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
-      updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctx.instructor),
+      updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 403 });
   });
 
@@ -430,7 +454,7 @@ describe('updateInstructorPresence — non-lead confirms/declines', () => {
     await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(10), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctx2),
@@ -442,7 +466,7 @@ describe('updateInstructorPresence — non-lead confirms/declines', () => {
     await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     const result = await updateInstructorPresence(
       { courseLessonId, status: 'DECLINED' },
@@ -456,7 +480,7 @@ describe('updateInstructorPresence — non-lead confirms/declines', () => {
     await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctx2);
     const result = await updateInstructorPresence({ courseLessonId, status: 'EXPECTED' }, ctx2);
@@ -474,14 +498,14 @@ describe('markInstructorAbsent — lead marks non-lead absent', () => {
     const nonLeadId = await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     // Decline presence (while date is in future)
     await updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctx2);
     // Lesson is still SCHEDULED, not LESSON_UNDERWAY
 
     await expect(
-      markInstructorAbsent({ courseLessonId, instructorId: nonLeadId }, ctx.instructor),
+      markInstructorAbsent({ courseLessonId, instructorId: nonLeadId }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
@@ -490,7 +514,7 @@ describe('markInstructorAbsent — lead marks non-lead absent', () => {
     const nonLeadId = await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     // Don't decline — presence stays EXPECTED
     // Manually set to LESSON_UNDERWAY
@@ -500,7 +524,7 @@ describe('markInstructorAbsent — lead marks non-lead absent', () => {
     });
 
     await expect(
-      markInstructorAbsent({ courseLessonId, instructorId: nonLeadId }, ctx.instructor),
+      markInstructorAbsent({ courseLessonId, instructorId: nonLeadId }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
@@ -509,7 +533,7 @@ describe('markInstructorAbsent — lead marks non-lead absent', () => {
     const nonLeadId = await addNonLeadInstructor(courseId);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     // Non-lead declines (while date is in future)
     await updateInstructorPresence({ courseLessonId, status: 'DECLINED' }, ctx2);
@@ -519,7 +543,7 @@ describe('markInstructorAbsent — lead marks non-lead absent', () => {
       data: { status: CourseLessonStatus.LESSON_UNDERWAY },
     });
 
-    await markInstructorAbsent({ courseLessonId, instructorId: nonLeadId }, ctx.instructor);
+    await markInstructorAbsent({ courseLessonId, instructorId: nonLeadId }, ctxLead);
 
     const presence = await prisma.instructorLessonPresence.findFirst({
       where: { courseLessonId, instructorId: nonLeadId },
@@ -537,13 +561,13 @@ describe('rescheduleLesson — supersedes pending suggestion (§4)', () => {
     const { courseId } = await createStartedCourseWithStudent({ minCapacity: 3 });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
 
     const { suggestionId } = await submitInstructorSuggestion(
       { courseLessonId, type: 'CLOSE_COURSE' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(
       (await prisma.instructorSuggestion.findUnique({ where: { id: suggestionId } }))?.status,
@@ -552,7 +576,7 @@ describe('rescheduleLesson — supersedes pending suggestion (§4)', () => {
     // Reschedule → supersedes suggestion
     await rescheduleLesson(
       { courseLessonId, date: futureDate(600), location: 'New Hill' },
-      ctx.instructor,
+      ctxLead,
     );
 
     const suggestion = await prisma.instructorSuggestion.findUnique({ where: { id: suggestionId } });

@@ -4,9 +4,10 @@ import { expressInterestInCourse } from '../../src/portal/student/operations.js'
 import {
   approveStudentEnrollmentFromInterest,
   cancelCourseInterestForManager,
+  createCourseFromFinalSyllabus,
   getManagerStudentCoursePairs,
 } from '../../src/school-manager/operations.js';
-import { cleanTestData, ctx, SEED } from './testHelpers.js';
+import { ctx, SEED } from './testHelpers.js';
 import { prisma } from './wasp-server-stub.js';
 
 function uniqueEmail(prefix: string): string {
@@ -25,8 +26,17 @@ async function createTempUser() {
 }
 
 async function getSeedCourseForSchool(schoolId: string): Promise<{ id: string; title: string }> {
-  const course = await prisma.course.findFirst({
-    where: { schoolId },
+  const created = await createCourseFromFinalSyllabus(
+    {
+      schoolId,
+      syllabusVersionId: 'seed-syllabus-version-tandem-flights-v1',
+      hourlyRate: 150,
+    },
+    ctx.schoolManager as any,
+  );
+
+  const course = await prisma.course.findUniqueOrThrow({
+    where: { id: created.courseId },
     select: {
       id: true,
       syllabusVersion: {
@@ -36,12 +46,7 @@ async function getSeedCourseForSchool(schoolId: string): Promise<{ id: string; t
         },
       },
     },
-    orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
   });
-
-  if (!course) {
-    throw new Error('Expected at least one seeded course in manager school scope.');
-  }
 
   return {
     id: course.id,
@@ -50,10 +55,6 @@ async function getSeedCourseForSchool(schoolId: string): Promise<{ id: string; t
 }
 
 describe('4.5 students page enrollment workflow (API)', () => {
-  beforeEach(async () => {
-    await cleanTestData();
-  });
-
   it('[STD-MGR-003] manager students query returns student-course pairs sourced from course interests', async () => {
     const tempUser = await createTempUser();
     const targetCourse = await getSeedCourseForSchool(SEED.schools.cloudbase);

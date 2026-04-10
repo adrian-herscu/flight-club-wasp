@@ -6,8 +6,10 @@ export default defineConfig({
     environment: 'node',
     globals: false,
     setupFiles: ['./tests/api/setup.ts'],
+    minWorkers: 4,
+    maxWorkers: 8,
     sequence: { concurrent: false },
-    fileParallelism: false,
+    fileParallelism: true,
     include: ['./tests/api/**/*.spec.ts', './tests/unit/**/*.spec.ts'],
     coverage: {
       reportsDirectory: './out/coverage',

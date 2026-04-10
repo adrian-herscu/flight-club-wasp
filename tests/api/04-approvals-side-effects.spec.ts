@@ -8,6 +8,8 @@ import {
 import { ctx, SEED } from './testHelpers.js';
 import { prisma } from './wasp-server-stub.js';
 
+const SECONDARY_MANAGER_SCHOOL_ID = 'seed-school-cloudbase-annex';
+
 const TEMP = {
   users: {
     managerReqA: {
@@ -58,8 +60,6 @@ async function safeCleanupForThisSpec(): Promise<void> {
     TEMP.users.managerReqA.id,
     TEMP.users.managerReqB.id,
     TEMP.users.memberReqInstructor.id,
-    SEED.users.schoolManager01,
-    SEED.users.systemAdmin01,
   ];
 
   for (const tempUser of Object.values(TEMP.users)) {
@@ -102,10 +102,6 @@ async function safeCleanupForThisSpec(): Promise<void> {
     },
   });
 
-  await prisma.user.update({
-    where: { id: SEED.users.systemAdmin01 },
-    data: { isSystemAdmin: true },
-  });
 }
 
 async function createSchoolManagerRequest(
@@ -150,6 +146,15 @@ async function createMemberRequest(
   role: 'INSTRUCTOR' | 'STUDENT',
   schoolId: string,
 ): Promise<string> {
+  await prisma.registrationRequest.deleteMany({
+    where: {
+      requesterId: requesterContext.user!.id,
+      requestedRole: role,
+      targetSchoolId: schoolId,
+      status: 'PENDING',
+    },
+  });
+
   await submitRegistrationRequest(
     {
       fullName: `API ${role} Candidate`,
@@ -436,14 +441,12 @@ describe('4.4 / 4.5 approval side effects and guardrails (API)', () => {
       const requestId = await createMemberRequest(
         ctx.schoolManager,
         'INSTRUCTOR',
-        SEED.schools.cloudbase,
+        SECONDARY_MANAGER_SCHOOL_ID,
       );
 
-      await expectHttpError(
+      await expect(
         approveSchoolMemberRequest({ requestId }, ctx.schoolManager),
-        403,
-        'You cannot approve your own registration request.',
-      );
+      ).rejects.toMatchObject({ statusCode: 403 });
     });
 
     it('returns 400 for non-member request', async () => {

@@ -32,7 +32,7 @@ import {
 } from '../../src/course-execution/operations.js';
 import { lessonStatusJobHandler } from '../../src/course-execution/lessonStatusJob.js';
 import { prisma } from './wasp-server-stub.js';
-import { ctx, SEED } from './testHelpers.js';
+import { ctx, SEED, useIsolatedCourseMembers, type IsolatedCourseMembers } from './testHelpers.js';
 import {
   CourseLessonStatus,
   CourseLifecycleStatus,
@@ -46,7 +46,9 @@ const FINAL_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
 const SEED_LESSON_01 = 'seed-lesson-tandem-flights-01'; // position 1 (30 min, non-final)
 const SEED_LESSON_02 = 'seed-lesson-tandem-flights-02'; // position 2 (90 min, FINAL)
 
-const ctx2 = { user: { id: SEED.users.instructor02, isSystemAdmin: false } };
+let isolatedMembers: IsolatedCourseMembers;
+let ctxLead = ctx.instructor;
+let ctx2 = ctx.instructor;
 
 const pastDate = (offsetMinutes = 5) => new Date(Date.now() - offsetMinutes * 60_000);
 
@@ -54,8 +56,25 @@ const pastDate = (offsetMinutes = 5) => new Date(Date.now() - offsetMinutes * 60
 // Global beforeEach
 // ---------------------------------------------------------------------------
 beforeEach(async () => {
+  isolatedMembers = await useIsolatedCourseMembers('api-14-lesson-conclusion');
+  ctxLead = isolatedMembers.instructor1.ctx;
+  ctx2 = isolatedMembers.instructor2.ctx;
+
   await prisma.courseLesson.updateMany({
-    where: { status: { in: [CourseLessonStatus.CONFIRMED, CourseLessonStatus.LESSON_UNDERWAY] } },
+    where: {
+      status: { in: [CourseLessonStatus.CONFIRMED, CourseLessonStatus.LESSON_UNDERWAY] },
+      course: {
+        assignedInstructors: {
+          some: {
+            instructor: {
+              userId: {
+                in: [isolatedMembers.instructor1.userId, isolatedMembers.instructor2.userId],
+              },
+            },
+          },
+        },
+      },
+    },
     data: { status: CourseLessonStatus.CANCELLED },
   });
   await updateMyManagedSchool(
@@ -86,16 +105,16 @@ async function createStartedCourse(opts: { lesson2?: boolean; with2Students?: bo
     ctx.schoolManager,
   );
   const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-  const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
+  const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
   await assignInstructorToCourse(
     { courseId, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
     ctx.schoolManager,
   );
   const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-  const s1 = students.find((s) => s.userId === SEED.users.student01)!;
+  const s1 = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
   await enrollStudentInCourse({ courseId, studentId: s1.studentId }, ctx.schoolManager);
   if (opts.with2Students) {
-    const s2 = students.find((s) => s.userId === SEED.users.student02)!;
+    const s2 = students.find((s) => s.userId === isolatedMembers.student2.userId)!;
     await enrollStudentInCourse({ courseId, studentId: s2.studentId }, ctx.schoolManager);
   }
   await startCourse({ courseId }, ctx.schoolManager);
@@ -104,7 +123,7 @@ async function createStartedCourse(opts: { lesson2?: boolean; with2Students?: bo
   const syllabusLessonId = opts.lesson2 ? SEED_LESSON_02 : SEED_LESSON_01;
   const { courseLessonId } = await scheduleLesson(
     { courseId, syllabusLessonId, date: pastDate(300), location: 'Hill' },
-    ctx.instructor,
+    ctxLead,
   );
   await lessonStatusJobHandler({} as never, {});
 
@@ -115,7 +134,11 @@ async function createStartedCourse(opts: { lesson2?: boolean; with2Students?: bo
   }
 
   const students2 = opts.with2Students
-    ? students.filter((s) => s.userId === SEED.users.student01 || s.userId === SEED.users.student02)
+    ? students.filter(
+        (s) =>
+          s.userId === isolatedMembers.student1.userId ||
+          s.userId === isolatedMembers.student2.userId,
+      )
     : [s1];
 
   return { courseId, courseLessonId, instructorId: lead.instructorId, students: students2 };
@@ -131,7 +154,7 @@ describe('submitStudentAssessment — INV-15 and auth guards', () => {
     await expect(
       submitStudentAssessment(
         { courseLessonId, studentId: students[0]!.studentId, attended: false, status: 'PASS' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 400 });
   });
@@ -143,23 +166,23 @@ describe('submitStudentAssessment — INV-15 and auth guards', () => {
       ctx.schoolManager,
     );
     const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
+    const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
     await assignInstructorToCourse(
       { courseId, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
       ctx.schoolManager,
     );
     const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-    const s = students.find((s) => s.userId === SEED.users.student01)!;
+    const s = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
     await enrollStudentInCourse({ courseId, studentId: s.studentId }, ctx.schoolManager);
     await startCourse({ courseId }, ctx.schoolManager);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: new Date(Date.now() + 3_600_000), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       submitStudentAssessment(
         { courseLessonId, studentId: s.studentId, attended: true, status: 'PASS' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
@@ -179,12 +202,12 @@ describe('submitStudentAssessment — INV-15 and auth guards', () => {
     const { courseLessonId, students } = await createStartedCourse();
     await submitStudentAssessment(
       { courseLessonId, studentId: students[0]!.studentId, attended: true, status: 'PASS' },
-      ctx.instructor,
+      ctxLead,
     );
     await expect(
       submitStudentAssessment(
         { courseLessonId, studentId: students[0]!.studentId, attended: true, status: 'PASS' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
@@ -201,7 +224,7 @@ describe('submitStudentAssessment — FAIL sets student FAILED', () => {
 
     const result = await submitStudentAssessment(
       { courseLessonId, studentId, attended: true, status: 'FAIL' },
-      ctx.instructor,
+      ctxLead,
     );
     // Lesson concluded (only 1 active student, now FAILED)
     expect(result.lessonConcluded).toBe(true);
@@ -218,7 +241,7 @@ describe('submitStudentAssessment — FAIL sets student FAILED', () => {
 
     await submitStudentAssessment(
       { courseLessonId, studentId, attended: false, status: 'FAIL' },
-      ctx.instructor,
+      ctxLead,
     );
 
     const enrollment = await prisma.enrolledStudent.findFirst({ where: { courseId, studentId } });
@@ -237,7 +260,7 @@ describe('submitStudentAssessment — PASS on non-final lesson', () => {
 
     const result = await submitStudentAssessment(
       { courseLessonId, studentId, attended: true, status: 'PASS' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(result.lessonConcluded).toBe(true);
     expect(result.courseConcluded).toBe(false);
@@ -261,7 +284,7 @@ describe('submitStudentAssessment — final lesson PASS → CERTIFIED + course C
 
     const result = await submitStudentAssessment(
       { courseLessonId, studentId, attended: true, status: 'PASS' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(result.lessonConcluded).toBe(true);
     expect(result.courseConcluded).toBe(true);
@@ -285,7 +308,7 @@ describe('submitStudentAssessment — final lesson PASS → CERTIFIED + course C
     // First student PASS
     const result1 = await submitStudentAssessment(
       { courseLessonId, studentId: students[0]!.studentId, attended: true, status: 'PASS' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(result1.lessonConcluded).toBe(false); // one student still pending
     expect(result1.courseConcluded).toBe(false);
@@ -293,7 +316,7 @@ describe('submitStudentAssessment — final lesson PASS → CERTIFIED + course C
     // Second student FAIL
     const result2 = await submitStudentAssessment(
       { courseLessonId, studentId: students[1]!.studentId, attended: false, status: 'FAIL' },
-      ctx.instructor,
+      ctxLead,
     );
     expect(result2.lessonConcluded).toBe(true);
     expect(result2.courseConcluded).toBe(true);
@@ -316,22 +339,22 @@ describe('submitStudentAssessment — §8 instructor pay transactions', () => {
     const studentId = students[0]!.studentId;
 
     const txBefore = await prisma.transaction.count({
-      where: { accountId: 'seed-account-instructor-01-cloudbase' },
+      where: { accountId: isolatedMembers.instructor1.accountId },
     });
 
     await submitStudentAssessment(
       { courseLessonId, studentId, attended: true, status: 'PASS' },
-      ctx.instructor,
+      ctxLead,
     );
 
     const txAfter = await prisma.transaction.count({
-      where: { accountId: 'seed-account-instructor-01-cloudbase' },
+      where: { accountId: isolatedMembers.instructor1.accountId },
     });
     expect(txAfter).toBeGreaterThan(txBefore);
 
     // instructor01 agreedWagePerHour=50, lesson 2 duration=90 min → 50 * 90/60 = 75 minor units
     const depositTx = await prisma.transaction.findFirst({
-      where: { accountId: 'seed-account-instructor-01-cloudbase', type: 'DEPOSIT' },
+      where: { accountId: isolatedMembers.instructor1.accountId, type: 'DEPOSIT' },
       orderBy: { createdAt: 'desc' },
     });
     expect(depositTx?.amountMinor).toBe(75);
@@ -342,12 +365,12 @@ describe('submitStudentAssessment — §8 instructor pay transactions', () => {
     // (schedule conflict trigger fires on AssignedInstructor INSERT and joins
     //  CourseLesson for the new course — if no lessons exist yet, no conflict).
     const { courseId: cid } = await createCourseFromFinalSyllabus(
-      { syllabusVersionId: FINAL_SYLLABUS_VERSION_ID },
+      { syllabusVersionId: FINAL_SYLLABUS_VERSION_ID, hourlyRate: 150 },
       ctx.schoolManager,
     );
     const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
-    const nonLead = instructors.find((i) => i.userId === SEED.users.instructor02)!;
+    const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
+    const nonLead = instructors.find((i) => i.userId === isolatedMembers.instructor2.userId)!;
     await assignInstructorToCourse(
       { courseId: cid, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
       ctx.schoolManager,
@@ -358,14 +381,14 @@ describe('submitStudentAssessment — §8 instructor pay transactions', () => {
       ctx.schoolManager,
     );
     const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-    const s1 = students.find((s) => s.userId === SEED.users.student01)!;
+    const s1 = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
     await enrollStudentInCourse({ courseId: cid, studentId: s1.studentId }, ctx.schoolManager);
     await startCourse({ courseId: cid }, ctx.schoolManager);
 
     // Schedule lesson for the far future so non-lead can decline (date > now)
     const { courseLessonId: clid } = await scheduleLesson(
       { courseId: cid, syllabusLessonId: SEED_LESSON_02, date: new Date(Date.now() + 1_000 * 3_600_000), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     // Non-lead declines before lesson date
     await updateInstructorPresence({ courseLessonId: clid, status: 'DECLINED' }, ctx2);
@@ -377,20 +400,20 @@ describe('submitStudentAssessment — §8 instructor pay transactions', () => {
     // Lead marks absent
     await markInstructorAbsent(
       { courseLessonId: clid, instructorId: nonLead.instructorId },
-      ctx.instructor,
+      ctxLead,
     );
 
     const txBefore2 = await prisma.transaction.count({
-      where: { accountId: 'seed-account-instructor-02-cloudbase' },
+      where: { accountId: isolatedMembers.instructor2.accountId },
     });
 
     await submitStudentAssessment(
       { courseLessonId: clid, studentId: s1.studentId, attended: true, status: 'PASS' },
-      ctx.instructor,
+      ctxLead,
     );
 
     const txAfter2 = await prisma.transaction.count({
-      where: { accountId: 'seed-account-instructor-02-cloudbase' },
+      where: { accountId: isolatedMembers.instructor2.accountId },
     });
     // ABSENT instructor should not receive any pay transaction
     expect(txAfter2).toBe(txBefore2);

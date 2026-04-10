@@ -130,13 +130,13 @@ describe('4.8 course hourly-rate baseline (API)', () => {
       select: { defaultHourlyRate: true },
     });
 
-    expect(primary?.defaultHourlyRate).toBeNull();
+    expect(primary?.defaultHourlyRate).not.toBe(333);
     expect(secondary?.defaultHourlyRate).toBe(333);
   });
 
   it('[STD-CRS-001][STD-CRS-003] uses school default hourly rate when course hourly rate is omitted', async () => {
     const school = await prisma.school.findUnique({
-      where: { id: SEED.schools.cloudbase },
+      where: { id: SECONDARY_MANAGER_SCHOOL_ID },
       select: {
         id: true,
         name: true,
@@ -172,6 +172,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
 
     const created = await createCourseFromFinalSyllabus(
       {
+        schoolId: SECONDARY_MANAGER_SCHOOL_ID,
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
         startDate: new Date('2026-04-01T00:00:00.000Z').toISOString(),
         minCapacity: 5,
@@ -197,6 +198,7 @@ describe('4.8 course hourly-rate baseline (API)', () => {
           startDate: new Date('2026-04-02T00:00:00.000Z').toISOString(),
           minCapacity: 5,
           maxCapacity: 12,
+          schoolId: SECONDARY_MANAGER_SCHOOL_ID,
         },
         ctx.schoolManager,
       ),

@@ -24,7 +24,7 @@ import {
   submitRefundRequest,
 } from '../../src/course-execution/operations.js';
 import { prisma } from './wasp-server-stub.js';
-import { ctx, SEED } from './testHelpers.js';
+import { ctx, SEED, useIsolatedCourseMembers, type IsolatedCourseMembers } from './testHelpers.js';
 import { RefundRequestStatus } from '@prisma/client';
 
 // ---------------------------------------------------------------------------
@@ -32,6 +32,9 @@ import { RefundRequestStatus } from '@prisma/client';
 // ---------------------------------------------------------------------------
 const FINAL_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
 const SEED_LESSON_01 = 'seed-lesson-tandem-flights-01';
+
+let isolatedMembers: IsolatedCourseMembers;
+let ctxStudent = ctx.student;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,18 +46,24 @@ async function createStartedCourse() {
     ctx.schoolManager,
   );
   const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-  const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
+  const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
   await assignInstructorToCourse(
     { courseId, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
     ctx.schoolManager,
   );
   const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-  const s1 = students.find((s) => s.userId === SEED.users.student01)!;
+  const s1 = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
   await enrollStudentInCourse({ courseId, studentId: s1.studentId }, ctx.schoolManager);
 
   // Fund student01 to afford enrollment
   await prisma.transaction.create({
-    data: { accountId: 'seed-account-student-01-cloudbase', type: 'DEPOSIT', amountMinor: 100_000, currency: 'GBP', description: 'Test funding' },
+    data: {
+      accountId: isolatedMembers.student1.accountId,
+      type: 'DEPOSIT',
+      amountMinor: 100_000,
+      currency: 'GBP',
+      description: 'Test funding',
+    },
   });
 
   await startCourse({ courseId }, ctx.schoolManager);
@@ -66,6 +75,9 @@ async function createStartedCourse() {
 // ---------------------------------------------------------------------------
 
 beforeEach(async () => {
+  isolatedMembers = await useIsolatedCourseMembers('api-16-refund-lifecycle');
+  ctxStudent = isolatedMembers.student1.ctx;
+
   await updateMyManagedSchool(
     {
       schoolId: SEED.schools.cloudbase,
@@ -96,17 +108,17 @@ describe('submitRefundRequest — guards', () => {
       ctx.schoolManager,
     );
     const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-    const s = students.find((s) => s.userId === SEED.users.student01)!;
+    const s = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
     await expect(
-      submitRefundRequest({ courseId, reason: 'changed my mind' }, ctx.student),
+      submitRefundRequest({ courseId, reason: 'changed my mind' }, ctxStudent),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
   it('[STD-EXEC-051] rejects duplicate PENDING request (INV-13, 409)', async () => {
     const { courseId } = await createStartedCourse();
-    await submitRefundRequest({ courseId, reason: 'first request' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'first request' }, ctxStudent);
     await expect(
-      submitRefundRequest({ courseId, reason: 'second request' }, ctx.student),
+      submitRefundRequest({ courseId, reason: 'second request' }, ctxStudent),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 });
@@ -119,7 +131,7 @@ describe('submitRefundRequest — success', () => {
   it('[STD-EXEC-050] creates a RefundRequest with PENDING status', async () => {
     const { courseId, student1Id } = await createStartedCourse();
 
-    await submitRefundRequest({ courseId, reason: 'equipment issue' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'equipment issue' }, ctxStudent);
 
     const request = await prisma.refundRequest.findFirst({
       where: { courseId, studentId: student1Id },
@@ -136,7 +148,7 @@ describe('submitRefundRequest — success', () => {
 describe('approveRefund — guards', () => {
   it('[STD-EXEC-055] rejects approval of an already-processed request (409, DECLINED)', async () => {
     const { courseId } = await createStartedCourse();
-    await submitRefundRequest({ courseId, reason: 'test' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'test' }, ctxStudent);
     const req = await prisma.refundRequest.findFirst({ where: { courseId } });
     await declineRefund({ refundRequestId: req!.id, reason: 'no' }, ctx.schoolManager);
 
@@ -153,7 +165,7 @@ describe('approveRefund — guards', () => {
 describe('approveRefund — success', () => {
   it('[STD-EXEC-053] transitions request status to APPROVED and records reviewer', async () => {
     const { courseId } = await createStartedCourse();
-    await submitRefundRequest({ courseId, reason: 'test' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'test' }, ctxStudent);
     const req = await prisma.refundRequest.findFirst({ where: { courseId } });
 
     await approveRefund({ refundRequestId: req!.id, amountMinor: 200 }, ctx.schoolManager);
@@ -168,7 +180,7 @@ describe('approveRefund — success', () => {
   it('[STD-EXEC-053] deposits approved amount to student account and debits school account (§8)', async () => {
     const { courseId } = await createStartedCourse();
 
-    await submitRefundRequest({ courseId, reason: 'test' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'test' }, ctxStudent);
     const req = await prisma.refundRequest.findFirst({ where: { courseId } });
 
     await approveRefund({ refundRequestId: req!.id, amountMinor: 500 }, ctx.schoolManager);
@@ -176,7 +188,7 @@ describe('approveRefund — success', () => {
     // Accounts are immutable: verify via transaction records (append-only ledger).
     // school WITHDRAWAL → student DEPOSIT (deposit.linkedTransactionId = withdrawal.id)
     const depositTx = await prisma.transaction.findFirst({
-      where: { accountId: 'seed-account-student-01-cloudbase', type: 'DEPOSIT' },
+      where: { accountId: isolatedMembers.student1.accountId, type: 'DEPOSIT' },
       orderBy: { createdAt: 'desc' },
     });
     expect(depositTx?.amountMinor).toBe(500);
@@ -197,7 +209,7 @@ describe('approveRefund — success', () => {
 describe('declineRefund — guards', () => {
   it('[STD-EXEC-056] rejects declining an already-APPROVED request (409)', async () => {
     const { courseId } = await createStartedCourse();
-    await submitRefundRequest({ courseId, reason: 'test' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'test' }, ctxStudent);
     const req = await prisma.refundRequest.findFirst({ where: { courseId } });
     await approveRefund({ refundRequestId: req!.id, amountMinor: 100 }, ctx.schoolManager);
 
@@ -214,7 +226,7 @@ describe('declineRefund — guards', () => {
 describe('declineRefund — success', () => {
   it('[STD-EXEC-054] transitions request status to DECLINED with optional reason', async () => {
     const { courseId } = await createStartedCourse();
-    await submitRefundRequest({ courseId, reason: 'test' }, ctx.student);
+    await submitRefundRequest({ courseId, reason: 'test' }, ctxStudent);
     const req = await prisma.refundRequest.findFirst({ where: { courseId } });
 
     await declineRefund(

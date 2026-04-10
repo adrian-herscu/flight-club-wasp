@@ -26,7 +26,7 @@ import {
 } from '../../src/course-execution/operations.js';
 import { lessonStatusJobHandler } from '../../src/course-execution/lessonStatusJob.js';
 import { prisma } from './wasp-server-stub.js';
-import { ctx, SEED } from './testHelpers.js';
+import { ctx, SEED, useIsolatedCourseMembers, type IsolatedCourseMembers } from './testHelpers.js';
 import { CourseLessonStatus, InstructorSuggestionStatus, InstructorSuggestionType } from '@prisma/client';
 
 // ---------------------------------------------------------------------------
@@ -36,8 +36,9 @@ const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v
 const SEED_LESSON_01 = 'seed-lesson-tandem-flights-01'; // position 1, 30 min
 const SEED_LESSON_02 = 'seed-lesson-tandem-flights-02'; // position 2
 
-// instructor02 context (for non-lead tests)
-const ctx2 = { user: { id: SEED.users.instructor02, isSystemAdmin: false } };
+let isolatedMembers: IsolatedCourseMembers;
+let ctxLead = ctx.instructor;
+let ctx2 = ctx.instructor;
 
 // Date helpers — far future avoids accidental overlap with other test runs
 const futureDate = (offsetHours = 500) => new Date(Date.now() + offsetHours * 3_600_000);
@@ -47,12 +48,29 @@ const pastDate = (offsetMinutes = 5) => new Date(Date.now() - offsetMinutes * 60
 // Shared setup
 // ---------------------------------------------------------------------------
 beforeEach(async () => {
+  isolatedMembers = await useIsolatedCourseMembers('api-12-lesson-scheduling');
+  ctxLead = isolatedMembers.instructor1.ctx;
+  ctx2 = isolatedMembers.instructor2.ctx;
+
   // Reset any CONFIRMED/LESSON_UNDERWAY lessons left by prior test runs or
   // prior tests in this run so INV-02 checks start from a known clean state.
   // CourseLesson rows cannot be deleted (append-only trigger) but CAN be
   // status-updated (UPDATE trigger was dropped in Slice 3 migration).
   await prisma.courseLesson.updateMany({
-    where: { status: { in: [CourseLessonStatus.CONFIRMED, CourseLessonStatus.LESSON_UNDERWAY] } },
+    where: {
+      status: { in: [CourseLessonStatus.CONFIRMED, CourseLessonStatus.LESSON_UNDERWAY] },
+      course: {
+        assignedInstructors: {
+          some: {
+            instructor: {
+              userId: {
+                in: [isolatedMembers.instructor1.userId, isolatedMembers.instructor2.userId],
+              },
+            },
+          },
+        },
+      },
+    },
     data: { status: CourseLessonStatus.CANCELLED },
   });
 
@@ -85,7 +103,7 @@ async function createStartedCourse(opts: { withStudent?: boolean } = {}) {
 
   // Find instructor01 by userId
   const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-  const lead = instructors.find((i) => i.userId === SEED.users.instructor01);
+  const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId);
   if (!lead) throw new Error('seed instructor01 not found in assignment list');
 
   await assignInstructorToCourse(
@@ -146,7 +164,7 @@ describe('scheduleLesson — auth and scope', () => {
     const { courseId, instructorId } = await createStartedCourse();
     // Assign instructor02 as non-lead
     const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    const nonLead = instructors.find((i) => i.userId === SEED.users.instructor02);
+    const nonLead = instructors.find((i) => i.userId === isolatedMembers.instructor2.userId);
     if (!nonLead) throw new Error('instructor02 not found');
     await assignInstructorToCourse(
       { courseId, instructorId: nonLead.instructorId, isLead: false, agreedWagePerHour: 40 },
@@ -164,7 +182,7 @@ describe('scheduleLesson — auth and scope', () => {
     await expect(
       scheduleLesson(
         { courseId: 'no-such-course', syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 404 });
   });
@@ -182,7 +200,7 @@ describe('scheduleLesson — scheduling guards', () => {
       ctx.schoolManager,
     );
     const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
+    const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
     await assignInstructorToCourse(
       { courseId, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
       ctx.schoolManager,
@@ -190,7 +208,7 @@ describe('scheduleLesson — scheduling guards', () => {
     await expect(
       scheduleLesson(
         { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(), location: 'Hill' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('started') });
   });
@@ -200,7 +218,7 @@ describe('scheduleLesson — scheduling guards', () => {
     await expect(
       scheduleLesson(
         { courseId, syllabusLessonId: 'no-such-lesson', date: futureDate(), location: 'Hill' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 404 });
   });
@@ -210,13 +228,13 @@ describe('scheduleLesson — scheduling guards', () => {
     // First schedule — succeeds
     await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(600), location: 'Hill A' },
-      ctx.instructor,
+      ctxLead,
     );
     // Second schedule for same syllabusLessonId — must fail
     await expect(
       scheduleLesson(
         { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(700), location: 'Hill B' },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('INV-05') });
   });
@@ -232,7 +250,7 @@ describe('scheduleLesson — scheduling guards', () => {
         location: 'Hill A',
         bufferMinutes: 0,
       },
-      ctx.instructor,
+      ctxLead,
     );
     // Force to CONFIRMED directly (bypasses immutability guard which was dropped)
     await prisma.courseLesson.update({
@@ -251,7 +269,7 @@ describe('scheduleLesson — scheduling guards', () => {
           location: 'Hill B',
           bufferMinutes: 0,
         },
-        ctx.instructor,
+        ctxLead,
       ),
     ).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('INV-02') });
   });
@@ -266,7 +284,7 @@ describe('scheduleLesson — success and side effects', () => {
     const { courseId } = await createStartedCourse();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(1000), location: 'Launch Pad A' },
-      ctx.instructor,
+      ctxLead,
     );
     const lesson = await prisma.courseLesson.findUniqueOrThrow({ where: { id: courseLessonId } });
     expect(lesson.status).toBe(CourseLessonStatus.SCHEDULED);
@@ -279,7 +297,7 @@ describe('scheduleLesson — success and side effects', () => {
     const { courseId } = await createStartedCourse({ withStudent: true });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(1100), location: 'Meadow' },
-      ctx.instructor,
+      ctxLead,
     );
     const attendances = await prisma.meetingAttendance.findMany({ where: { courseLessonId } });
     expect(attendances.length).toBe(1);
@@ -290,14 +308,14 @@ describe('scheduleLesson — success and side effects', () => {
     const { courseId } = await createStartedCourse();
     // Assign instructor02 as non-lead
     const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    const nonLead = instructors.find((i) => i.userId === SEED.users.instructor02)!;
+    const nonLead = instructors.find((i) => i.userId === isolatedMembers.instructor2.userId)!;
     await assignInstructorToCourse(
       { courseId, instructorId: nonLead.instructorId, isLead: false, agreedWagePerHour: 40 },
       ctx.schoolManager,
     );
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(1200), location: 'Ridge' },
-      ctx.instructor,
+      ctxLead,
     );
     const presences = await prisma.instructorLessonPresence.findMany({ where: { courseLessonId } });
     expect(presences.length).toBe(1);
@@ -309,7 +327,7 @@ describe('scheduleLesson — success and side effects', () => {
     const { courseId } = await createStartedCourse(); // no student
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(1300), location: 'Cliff' },
-      ctx.instructor,
+      ctxLead,
     );
     const count = await prisma.meetingAttendance.count({ where: { courseLessonId } });
     expect(count).toBe(0);
@@ -325,12 +343,12 @@ describe('rescheduleLesson', () => {
     const { courseId } = await createStartedCourse();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(2000), location: 'Old Site' },
-      ctx.instructor,
+      ctxLead,
     );
     const newDate = futureDate(2500);
     await rescheduleLesson(
       { courseLessonId, date: newDate, location: 'New Site' },
-      ctx.instructor,
+      ctxLead,
     );
     const lesson = await prisma.courseLesson.findUniqueOrThrow({ where: { id: courseLessonId } });
     expect(lesson.date).toEqual(newDate);
@@ -342,7 +360,7 @@ describe('rescheduleLesson', () => {
     const { courseId } = await createStartedCourse({ withStudent: true });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(3000), location: 'Site A' },
-      ctx.instructor,
+      ctxLead,
     );
     // Manually set attendance to ACCEPTED
     await prisma.meetingAttendance.updateMany({
@@ -351,7 +369,7 @@ describe('rescheduleLesson', () => {
     });
     await rescheduleLesson(
       { courseLessonId, date: futureDate(3500), location: 'Site B' },
-      ctx.instructor,
+      ctxLead,
     );
     const attendances = await prisma.meetingAttendance.findMany({ where: { courseLessonId } });
     expect(attendances.every((a) => a.status === 'NO_RESPONSE')).toBe(true);
@@ -361,7 +379,7 @@ describe('rescheduleLesson', () => {
     const { courseId, instructorId } = await createStartedCourse();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(4000), location: 'Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     // Plant a PENDING suggestion directly via prisma
     const suggestionId = `test-suggestion-${Date.now()}`;
@@ -376,7 +394,7 @@ describe('rescheduleLesson', () => {
     });
     await rescheduleLesson(
       { courseLessonId, date: futureDate(4500), location: 'New Hill' },
-      ctx.instructor,
+      ctxLead,
     );
     const suggestion = await prisma.instructorSuggestion.findUnique({
       where: { id: suggestionId },
@@ -388,14 +406,14 @@ describe('rescheduleLesson', () => {
     const { courseId } = await createStartedCourse();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(5000), location: 'X' },
-      ctx.instructor,
+      ctxLead,
     );
     await prisma.courseLesson.update({
       where: { id: courseLessonId },
       data: { status: CourseLessonStatus.LESSON_UNDERWAY },
     });
     await expect(
-      rescheduleLesson({ courseLessonId, date: futureDate(5500), location: 'Y' }, ctx.instructor),
+      rescheduleLesson({ courseLessonId, date: futureDate(5500), location: 'Y' }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
@@ -403,14 +421,14 @@ describe('rescheduleLesson', () => {
     const { courseId } = await createStartedCourse();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(60), location: 'Past Site' },
-      ctx.instructor,
+      ctxLead,
     );
     await prisma.courseLesson.update({
       where: { id: courseLessonId },
       data: { status: CourseLessonStatus.CONFIRMED },
     });
     await expect(
-      rescheduleLesson({ courseLessonId, date: futureDate(6000), location: 'New' }, ctx.instructor),
+      rescheduleLesson({ courseLessonId, date: futureDate(6000), location: 'New' }, ctxLead),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 });
@@ -422,7 +440,7 @@ describe('rescheduleLesson', () => {
 describe('lessonStatusJob', () => {
   // NOTE on time offsets:
   // The reschedule-blocks-CONFIRMED-past test above leaves a CONFIRMED lesson
-  // for ctx.instructor at ~pastDate(60) with a 60-min window [now-60, now].
+  // for ctxLead at ~pastDate(60) with a 60-min window [now-60, now].
   // To avoid INV-02 conflicts here we use dates far enough in the past so the
   // proposed window ends well before now-60.  Default buffer = 30 min, duration
   // = 30 min → window = 60 min.  pastDate(200) → [now-200, now-140]: safe ✓
@@ -437,7 +455,7 @@ describe('lessonStatusJob', () => {
     const { courseId } = await createStartedCourse({ withStudent: true });
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(200), location: 'Field' },
-      ctx.instructor,
+      ctxLead,
     );
     // Set attendance to ACCEPTED so capacity is met (not stuck at BELOW_CAPACITY)
     await prisma.meetingAttendance.updateMany({
@@ -456,7 +474,7 @@ describe('lessonStatusJob', () => {
       ctx.schoolManager,
     );
     const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    const lead = instructors.find((i) => i.userId === SEED.users.instructor01)!;
+    const lead = instructors.find((i) => i.userId === isolatedMembers.instructor1.userId)!;
     await assignInstructorToCourse(
       { courseId, instructorId: lead.instructorId, isLead: true, agreedWagePerHour: 50 },
       ctx.schoolManager,
@@ -466,7 +484,7 @@ describe('lessonStatusJob', () => {
     // overlap with any LESSON_UNDERWAY lesson left by the previous test.
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(300), location: 'Valley' },
-      ctx.instructor,
+      ctxLead,
     );
     // No student accepted → count = 0 < minCapacity = 5 → BELOW_CAPACITY
     // Step 2 is skipped because BELOW_CAPACITY is not a valid source state.
@@ -480,7 +498,7 @@ describe('lessonStatusJob', () => {
     // Use pastDate(400) so [now-400, now-340] is clear of prior LESSON_UNDERWAY windows.
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: pastDate(400), location: 'Summit' },
-      ctx.instructor,
+      ctxLead,
     );
     // Force CONFIRMED directly — simulates lesson that was confirmed in a prior run
     await prisma.courseLesson.update({
@@ -496,7 +514,7 @@ describe('lessonStatusJob', () => {
     const { courseId } = await createStartedCourse();
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: futureDate(9999), location: 'FarFuture' },
-      ctx.instructor,
+      ctxLead,
     );
     await lessonStatusJobHandler({} as never, {});
     const lesson = await prisma.courseLesson.findUniqueOrThrow({ where: { id: courseLessonId } });

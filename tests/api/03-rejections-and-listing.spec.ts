@@ -152,8 +152,6 @@ async function safeCleanupForThisSpec(): Promise<void> {
     TEMP.users.requesterA.id,
     TEMP.users.requesterB.id,
     TEMP.users.requesterC.id,
-    SEED.users.schoolManager01,
-    SEED.users.systemAdmin01,
   ];
 
   // Ensure temp users exist and are reset before each test.
@@ -199,11 +197,6 @@ async function safeCleanupForThisSpec(): Promise<void> {
     },
   });
 
-  // Reset any elevated effective roles back to defaults for users touched here.
-  await prisma.user.update({
-    where: { id: SEED.users.systemAdmin01 },
-    data: { isSystemAdmin: true },
-  });
 }
 
 describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
