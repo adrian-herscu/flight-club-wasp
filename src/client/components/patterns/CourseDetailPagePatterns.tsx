@@ -1,4 +1,19 @@
-import { type ReactNode } from "react";
+import { type ReactNode, type FormEvent } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "../ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
 
 // ---------------------------------------------------------------------------
 // Layout primitives
@@ -122,6 +137,7 @@ export const CourseLessonListItem = ({
   dateLabel,
   location,
   status,
+  action,
 }: {
   position: number;
   lessonName: string;
@@ -129,6 +145,7 @@ export const CourseLessonListItem = ({
   dateLabel: string;
   location: string | null;
   status: string;
+  action?: ReactNode;
 }) => (
   <li className="rounded-md border p-3">
     <div className="flex items-start justify-between gap-3">
@@ -141,8 +158,150 @@ export const CourseLessonListItem = ({
           {location ? ` · ${location}` : ""}
         </p>
       </div>
-      <LessonStatusBadge status={status} />
+      <div className="flex items-center gap-2 shrink-0">
+        <LessonStatusBadge status={status} />
+        {action}
+      </div>
     </div>
     <p className="text-xs text-muted-foreground mt-1">{dateLabel}</p>
   </li>
+);
+
+// ---------------------------------------------------------------------------
+// Actions bar (below header, above lesson list)
+// ---------------------------------------------------------------------------
+
+export const CourseDetailActionsBar = ({ children }: { children: ReactNode }) => (
+  <div className="flex flex-wrap gap-2 mb-4">{children}</div>
+);
+
+// ---------------------------------------------------------------------------
+// Start course — hard guard error list
+// ---------------------------------------------------------------------------
+
+export const StartCourseGuardList = ({ errors }: { errors: string[] }) => (
+  <ul className="mt-2 space-y-1">
+    {errors.map((e) => (
+      <li key={e} className="flex items-start gap-2 text-sm text-destructive">
+        <span className="mt-0.5 shrink-0">✕</span>
+        <span>{e}</span>
+      </li>
+    ))}
+  </ul>
+);
+
+// ---------------------------------------------------------------------------
+// Start course — soft capacity confirmation modal
+// ---------------------------------------------------------------------------
+
+export const StartCourseCapacityModal = ({
+  open,
+  onClose,
+  onConfirm,
+  isSubmitting,
+  enrolledCount,
+  minCapacity,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isSubmitting: boolean;
+  enrolledCount: number;
+  minCapacity: number;
+}) => (
+  <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Start course below minimum capacity?</DialogTitle>
+        <DialogDescription>
+          {enrolledCount} student{enrolledCount !== 1 ? "s" : ""} enrolled, minimum is{" "}
+          {minCapacity}. You can still start the course — confirm to proceed.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button onClick={onConfirm} disabled={isSubmitting}>
+          {isSubmitting ? "Starting…" : "Start anyway"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
+// ---------------------------------------------------------------------------
+// Schedule / reschedule lesson — side sheet
+// ---------------------------------------------------------------------------
+
+export const ScheduleLessonSheet = ({
+  open,
+  onClose,
+  title,
+  onSubmit,
+  isSubmitting,
+  date,
+  onDateChange,
+  location,
+  onLocationChange,
+  errorMessage,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  onSubmit: (e: FormEvent) => void;
+  isSubmitting: boolean;
+  date: string;
+  onDateChange: (v: string) => void;
+  location: string;
+  onLocationChange: (v: string) => void;
+  errorMessage: string | null;
+}) => (
+  <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetHeader>
+        <SheetTitle>{title}</SheetTitle>
+      </SheetHeader>
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <div className="space-y-1">
+          <label className="text-sm font-medium" htmlFor="lesson-date">
+            Date
+          </label>
+          <input
+            id="lesson-date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => onDateChange(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium" htmlFor="lesson-location">
+            Location
+          </label>
+          <input
+            id="lesson-location"
+            type="text"
+            required
+            placeholder="e.g. Airfield North"
+            value={location}
+            onChange={(e) => onLocationChange(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+        {errorMessage && (
+          <p className="text-sm text-destructive">{errorMessage}</p>
+        )}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </form>
+    </SheetContent>
+  </Sheet>
 );

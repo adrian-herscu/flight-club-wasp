@@ -681,4 +681,17 @@ export const en = {
     app: "App",
     company: "Company",
   },
+  courseDetail: {
+    notYetScheduled: "Not yet scheduled",
+    startCourse: "Start Course",
+    starting: "Starting…",
+    courseStarted: "Course started",
+    startFailed: "Could not start course",
+    scheduleLesson: "Schedule Lesson",
+    rescheduleLesson: "Reschedule Lesson",
+    schedule: "Schedule",
+    reschedule: "Reschedule",
+    lessonScheduled: "Lesson scheduled",
+    scheduleFailed: "Could not schedule lesson",
+  },
 };

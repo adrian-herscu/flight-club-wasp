@@ -1560,6 +1560,8 @@ export type CourseDetailResult = {
   hourlyRate: number | null;
   minCapacity: number | null;
   maxCapacity: number | null;
+  enrolledCount: number;
+  isLeadInstructor: boolean;
   lessons: CourseLessonDetail[];
 };
 
@@ -1604,7 +1606,7 @@ export const getCourseDetail = async (
         orderBy: { createdAt: 'desc' },
         take: 1,
       },
-      assignedInstructors: { select: { instructorId: true } },
+      assignedInstructors: { select: { instructorId: true, isLead: true } },
       enrolledStudents: { select: { student: { select: { userId: true } } } },
     },
   });
@@ -1623,6 +1625,8 @@ export const getCourseDetail = async (
     select: { id: true },
   });
 
+  let isLeadInstructor = false;
+
   if (!isManager) {
     const instructor = await prisma.instructor.findUnique({
       where: { userId: context.user.id },
@@ -1631,6 +1635,9 @@ export const getCourseDetail = async (
     const isInstructor =
       instructor !== null &&
       course.assignedInstructors.some((ai) => ai.instructorId === instructor.id);
+    isLeadInstructor =
+      instructor !== null &&
+      course.assignedInstructors.some((ai) => ai.instructorId === instructor.id && ai.isLead);
     const isStudent = course.enrolledStudents.some(
       (es) => es.student.userId === context.user!.id,
     );
@@ -1668,6 +1675,8 @@ export const getCourseDetail = async (
     hourlyRate: course.hourlyRate,
     minCapacity: course.minCapacity,
     maxCapacity: course.maxCapacity,
+    enrolledCount: course.enrolledStudents.length,
+    isLeadInstructor,
     lessons,
   };
 };
