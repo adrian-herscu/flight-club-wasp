@@ -78,6 +78,8 @@ type EnrollStudentInCourseInput = z.infer<typeof enrollStudentInCourseSchema>;
 const assignInstructorToCourseSchema = z.object({
   courseId: z.string().min(1),
   instructorId: z.string().min(1),
+  isLead: z.boolean().optional(),
+  agreedWagePerHour: z.number().int().positive().optional(),
 });
 
 type AssignInstructorToCourseInput = z.infer<typeof assignInstructorToCourseSchema>;
@@ -1290,7 +1292,7 @@ export const assignInstructorToCourse = async (
   const user = await ensureSchoolManager(context);
   const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school = await getManagedSchoolForUserId(user.id, schoolId);
-  const { courseId, instructorId } = ensureArgsSchemaOrThrowHttpError(
+  const { courseId, instructorId, isLead, agreedWagePerHour } = ensureArgsSchemaOrThrowHttpError(
     assignInstructorToCourseSchema,
     rawArgs,
   ) as AssignInstructorToCourseInput;
@@ -1336,11 +1338,21 @@ export const assignInstructorToCourse = async (
     throw new HttpError(404, "Instructor not found in your school scope.");
   }
 
+  // Enforce INV-16: if isLead=true, clear any existing lead before assigning the new one.
+  if (isLead) {
+    await prisma.assignedInstructor.updateMany({
+      where: { courseId, isLead: true },
+      data: { isLead: false },
+    });
+  }
+
   try {
     await prisma.assignedInstructor.create({
       data: {
         courseId,
         instructorId,
+        isLead: isLead ?? false,
+        agreedWagePerHour: agreedWagePerHour ?? null,
       },
     });
   } catch (error: unknown) {
@@ -1459,7 +1471,18 @@ export const closeCourse = async (
     throw new HttpError(404, "Course not found in your school scope.");
   }
 
-  if (await isCourseClosed(course.id)) {
+  const latestCloseEvent = await prisma.courseLifecycleEvent.findFirst({
+    where: { courseId: course.id },
+    orderBy: { createdAt: 'desc' },
+    select: { status: true },
+  });
+  const latestStatus = latestCloseEvent?.status ?? null;
+
+  if (latestStatus === CourseLifecycleStatus.COMPLETED) {
+    throw new HttpError(409, 'Course is already completed and cannot be closed.');
+  }
+
+  if (latestStatus === CourseLifecycleStatus.CLOSED) {
     return { courseId: course.id, status: CourseLifecycleStatus.CLOSED };
   }
 

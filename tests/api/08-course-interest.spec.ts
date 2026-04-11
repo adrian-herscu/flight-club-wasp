@@ -72,7 +72,7 @@ async function createTestCourse(): Promise<string> {
   );
 
   const result = await createCourseFromFinalSyllabus(
-    { syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID },
+    { syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID, hourlyRate: 150 },
     ctx.schoolManager,
   ) as { courseId: string };
   return result.courseId;

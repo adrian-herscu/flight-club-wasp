@@ -51,6 +51,52 @@ enum CourseInterestStatus {
 enum CourseLifecycleStatus {
   CLOSED
   REOPENED
+  STARTED
+  COMPLETED
+}
+
+enum CourseLessonStatus {
+  SCHEDULED
+  BELOW_CAPACITY
+  CONFIRMED
+  LESSON_UNDERWAY
+  LESSON_CONCLUDED
+  CANCELLED
+}
+
+enum MeetingAttendanceStatus {
+  NO_RESPONSE
+  ACCEPTED
+  DECLINED
+}
+
+enum InstructorSuggestionType {
+  PROCEED_WITH_PARTIAL
+  CLOSE_COURSE
+}
+
+enum InstructorSuggestionStatus {
+  PENDING
+  APPROVED
+  SUPERSEDED
+}
+
+enum InstructorLessonPresenceStatus {
+  EXPECTED
+  DECLINED
+  ABSENT
+}
+
+enum EnrolledStudentStatus {
+  ACTIVE
+  CERTIFIED
+  FAILED
+}
+
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
 }
 
 enum SubscriptionStatus {
@@ -120,8 +166,11 @@ model User {
   schoolRoles               UserSchoolRole[]      @relation("UserSchoolRoleMembership")
   grantedSchoolRoles        UserSchoolRole[]      @relation("UserSchoolRoleGrantedBy")
   reviewedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionReviewer")
-  hiddenSyllabusDrafts      HiddenSyllabusDraft[]            @relation("HiddenSyllabusDraftDeletedBy")
-  courseLifecycleEvents     CourseLifecycleEvent[]           @relation("CourseLifecycleChangedBy")
+  hiddenSyllabusDrafts                HiddenSyllabusDraft[]      @relation("HiddenSyllabusDraftDeletedBy")
+  courseLifecycleEvents               CourseLifecycleEvent[]     @relation("CourseLifecycleChangedBy")
+  proposedLessons                     CourseLesson[]             @relation("CourseLessonProposedBy")
+  reviewedInstructorSuggestions       InstructorSuggestion[]     @relation("InstructorSuggestionReviewedBy")
+  reviewedRefundRequests              RefundRequest[]            @relation("RefundRequestReviewedBy")
 }
 
 model RegistrationRequest {
@@ -217,6 +266,8 @@ model Instructor {
 
   assignedCourses           AssignedInstructor[]
   lessonEvaluations         StudentLessonEvaluation[]
+  suggestions               InstructorSuggestion[]
+  lessonPresences           InstructorLessonPresence[]
 }
 
 model Student {
@@ -228,6 +279,8 @@ model Student {
 
   enrolledCourses           EnrolledStudent[]
   evaluations               StudentLessonEvaluation[]
+  meetingAttendances        MeetingAttendance[]
+  refundRequests            RefundRequest[]
 }
 
 model Syllabus {
@@ -402,6 +455,7 @@ model Course {
   assignedInstructors       AssignedInstructor[]
   enrolledStudents          EnrolledStudent[]
   lifecycleEvents           CourseLifecycleEvent[]
+  refundRequests            RefundRequest[]
 
   @@index([startDate])
   @@index([syllabusVersionId, startDate])
@@ -409,28 +463,38 @@ model Course {
 }
 
 model CourseLesson {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
+  id                        String              @id @default(uuid())
+  createdAt                 DateTime            @default(now())
 
-  course                    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course                    Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId                  String
 
-  syllabusLesson            SyllabusLesson  @relation(fields: [syllabusLessonId], references: [id])
+  syllabusLesson            SyllabusLesson      @relation(fields: [syllabusLessonId], references: [id])
   syllabusLessonId          String
 
   // Optional metadata for additional sessions on the same syllabus topic.
-  isExtra                   Boolean         @default(false)
+  // isExtra is a legacy field with no defined creation path; not used in new code.
+  isExtra                   Boolean             @default(false)
 
   location                  String
   date                      DateTime
-  bufferMinutes             Int             @default(30)
-  lessonPrice               Int?            // Lesson price override in whole currency units; if null, derive from course.hourlyRate and lesson duration
+  bufferMinutes             Int                 @default(30)
+  lessonPrice               Int?                // Legacy override field; new code uses course.hourlyRate
+
+  status                    CourseLessonStatus
+
+  proposedBy                User?               @relation("CourseLessonProposedBy", fields: [proposedById], references: [id])
+  proposedById              String?
+
+  studentEvaluations        StudentLessonEvaluation[]
+  meetingAttendances        MeetingAttendance[]
+  instructorSuggestions     InstructorSuggestion[]
+  instructorPresences       InstructorLessonPresence[]
 
   @@index([date])
   @@index([courseId, date])
   @@index([courseId, syllabusLessonId])
-  
-  studentEvaluations        StudentLessonEvaluation[]
+  @@index([courseId, status])
 }
 
 model AssignedInstructor {
@@ -440,17 +504,23 @@ model AssignedInstructor {
   instructor                Instructor      @relation(fields: [instructorId], references: [id], onDelete: Restrict)
   instructorId              String
 
+  isLead                    Boolean         @default(false)
+  agreedWagePerHour         Int?
+
   @@id([courseId, instructorId])
 }
 
 model EnrolledStudent {
-  course                    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course                    Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId                  String
 
-  student                   Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  student                   Student               @relation(fields: [studentId], references: [id], onDelete: Restrict)
   studentId                 String
 
+  status                    EnrolledStudentStatus @default(ACTIVE)
+
   @@id([courseId, studentId])
+  @@index([courseId, status])
 }
 
 model StudentLessonEvaluation {
@@ -469,6 +539,7 @@ model StudentLessonEvaluation {
 
   notes                     String?
   status                    LessonEvaluationStatus
+  attended                  Boolean                @default(true)
 
   @@unique([studentId, courseLessonId])
   @@index([instructorId])
@@ -489,6 +560,85 @@ model CourseLifecycleEvent {
 
   @@index([courseId, createdAt])
   @@index([changedByUserId, createdAt])
+}
+
+model MeetingAttendance {
+  id              String                 @id @default(uuid())
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  courseLesson    CourseLesson           @relation(fields: [courseLessonId], references: [id], onDelete: Cascade)
+  courseLessonId  String
+
+  student         Student                @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  studentId       String
+
+  status          MeetingAttendanceStatus @default(NO_RESPONSE)
+
+  @@unique([studentId, courseLessonId])
+  @@index([courseLessonId, status])
+  @@index([studentId])
+}
+
+model InstructorSuggestion {
+  id                      String                    @id @default(uuid())
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  courseLesson            CourseLesson              @relation(fields: [courseLessonId], references: [id], onDelete: Cascade)
+  courseLessonId          String
+
+  proposedByInstructor    Instructor                @relation(fields: [proposedByInstructorId], references: [id])
+  proposedByInstructorId  String
+
+  type                    InstructorSuggestionType
+  status                  InstructorSuggestionStatus @default(PENDING)
+
+  reviewedBy              User?                     @relation("InstructorSuggestionReviewedBy", fields: [reviewedByUserId], references: [id])
+  reviewedByUserId        String?
+  reviewedAt              DateTime?
+
+  @@index([courseLessonId])
+}
+
+model InstructorLessonPresence {
+  id              String                          @id @default(uuid())
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+
+  courseLesson    CourseLesson                    @relation(fields: [courseLessonId], references: [id], onDelete: Cascade)
+  courseLessonId  String
+
+  instructor      Instructor                      @relation(fields: [instructorId], references: [id])
+  instructorId    String
+
+  status          InstructorLessonPresenceStatus  @default(EXPECTED)
+
+  @@unique([instructorId, courseLessonId])
+  @@index([courseLessonId])
+}
+
+model RefundRequest {
+  id                      String               @id @default(uuid())
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  course                  Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                String
+
+  student                 Student              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  studentId               String
+
+  status                  RefundRequestStatus  @default(PENDING)
+  approvedAmountMinor     Int?
+  reason                  String?
+
+  reviewedBy              User?                @relation("RefundRequestReviewedBy", fields: [reviewedByUserId], references: [id])
+  reviewedByUserId        String?
+  reviewedAt              DateTime?
+
+  @@index([courseId, studentId, status])
+  @@index([studentId])
 }
 
 model GptResponse {

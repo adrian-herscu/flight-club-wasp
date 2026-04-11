@@ -48,19 +48,178 @@ type OperationContext = {
   user: { id: string; isSystemAdmin: boolean } | null;
 };
 
-function makeContext(userId: string, isSystemAdmin: boolean): OperationContext {
+type AuthenticatedOperationContext = {
+  user: { id: string; isSystemAdmin: boolean };
+};
+
+function makeContext(userId: string, isSystemAdmin: boolean): AuthenticatedOperationContext {
   return { user: { id: userId, isSystemAdmin } };
 }
 
-export const ctx = {
+type TestContextMap = {
+  systemAdmin: AuthenticatedOperationContext;
+  schoolManager: AuthenticatedOperationContext;
+  instructor: AuthenticatedOperationContext;
+  student: AuthenticatedOperationContext;
+  user01: AuthenticatedOperationContext;
+  user02: AuthenticatedOperationContext;
+  unauthenticated: OperationContext;
+};
+
+export const ctx: TestContextMap = {
   systemAdmin:   makeContext(SEED.users.systemAdmin01, true),
   schoolManager: makeContext(SEED.users.schoolManager01, false),
   instructor:    makeContext(SEED.users.instructor01, false),
   student:       makeContext(SEED.users.student01, false),
   user01:        makeContext(SEED.users.user01, false),
   user02:        makeContext(SEED.users.user02, false),
-  unauthenticated: { user: null } as OperationContext,
-} as const;
+  unauthenticated: { user: null },
+};
+
+type IsolatedMember = {
+  userId: string;
+  profileId: string;
+  accountId: string;
+  ctx: AuthenticatedOperationContext;
+};
+
+export type IsolatedCourseMembers = {
+  instructor1: IsolatedMember;
+  instructor2: IsolatedMember;
+  student1: IsolatedMember;
+  student2: IsolatedMember;
+};
+
+const isolatedCourseMemberCache = new Map<string, Promise<IsolatedCourseMembers>>();
+
+function normalizeScope(scope: string): string {
+  return scope.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40);
+}
+
+async function ensureIsolatedCourseMembers(scope: string): Promise<IsolatedCourseMembers> {
+  const key = normalizeScope(scope);
+
+  const school = await prisma.school.findUniqueOrThrow({
+    where: { id: SEED.schools.cloudbase },
+    select: { id: true, currency: true },
+  });
+
+  const mkIds = (label: string) => {
+    const base = `api-${key}-${label}`;
+    return {
+      userId: `${base}-user`,
+      profileId: `${base}-profile`,
+      accountId: `${base}-account`,
+      email: `${base}@example.test`,
+      fullName: `${key} ${label}`,
+    };
+  };
+
+  const instructor1Ids = mkIds('instructor-01');
+  const instructor2Ids = mkIds('instructor-02');
+  const student1Ids = mkIds('student-01');
+  const student2Ids = mkIds('student-02');
+
+  for (const ids of [instructor1Ids, instructor2Ids, student1Ids, student2Ids]) {
+    await prisma.user.upsert({
+      where: { id: ids.userId },
+      update: {
+        email: ids.email,
+        fullName: ids.fullName,
+        isSystemAdmin: false,
+      },
+      create: {
+        id: ids.userId,
+        email: ids.email,
+        fullName: ids.fullName,
+        isSystemAdmin: false,
+      },
+    });
+  }
+
+  await prisma.instructor.upsert({
+    where: { userId: instructor1Ids.userId },
+    update: {},
+    create: { id: instructor1Ids.profileId, userId: instructor1Ids.userId },
+  });
+  await prisma.instructor.upsert({
+    where: { userId: instructor2Ids.userId },
+    update: {},
+    create: { id: instructor2Ids.profileId, userId: instructor2Ids.userId },
+  });
+  await prisma.student.upsert({
+    where: { userId: student1Ids.userId },
+    update: {},
+    create: { id: student1Ids.profileId, userId: student1Ids.userId },
+  });
+  await prisma.student.upsert({
+    where: { userId: student2Ids.userId },
+    update: {},
+    create: { id: student2Ids.profileId, userId: student2Ids.userId },
+  });
+
+  for (const ids of [instructor1Ids, instructor2Ids, student1Ids, student2Ids]) {
+    const existingAccount = await prisma.account.findUnique({
+      where: {
+        userId_schoolId: {
+          userId: ids.userId,
+          schoolId: school.id,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!existingAccount) {
+      await prisma.account.create({
+        data: {
+          id: ids.accountId,
+          userId: ids.userId,
+          schoolId: school.id,
+          currency: school.currency,
+        },
+      });
+    }
+  }
+
+  return {
+    instructor1: {
+      userId: instructor1Ids.userId,
+      profileId: instructor1Ids.profileId,
+      accountId: instructor1Ids.accountId,
+      ctx: makeContext(instructor1Ids.userId, false) as AuthenticatedOperationContext,
+    },
+    instructor2: {
+      userId: instructor2Ids.userId,
+      profileId: instructor2Ids.profileId,
+      accountId: instructor2Ids.accountId,
+      ctx: makeContext(instructor2Ids.userId, false) as AuthenticatedOperationContext,
+    },
+    student1: {
+      userId: student1Ids.userId,
+      profileId: student1Ids.profileId,
+      accountId: student1Ids.accountId,
+      ctx: makeContext(student1Ids.userId, false) as AuthenticatedOperationContext,
+    },
+    student2: {
+      userId: student2Ids.userId,
+      profileId: student2Ids.profileId,
+      accountId: student2Ids.accountId,
+      ctx: makeContext(student2Ids.userId, false) as AuthenticatedOperationContext,
+    },
+  };
+}
+
+export async function useIsolatedCourseMembers(scope: string): Promise<IsolatedCourseMembers> {
+  const cacheKey = normalizeScope(scope);
+  let membersPromise = isolatedCourseMemberCache.get(cacheKey);
+  if (!membersPromise) {
+    membersPromise = ensureIsolatedCourseMembers(cacheKey);
+    isolatedCourseMemberCache.set(cacheKey, membersPromise);
+  }
+  const members = await membersPromise;
+
+  return members;
+}
 
 // ---------------------------------------------------------------------------
 // Data cleanup

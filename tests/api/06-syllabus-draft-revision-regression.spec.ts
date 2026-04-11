@@ -13,7 +13,7 @@ import { prisma } from './wasp-server-stub.js';
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
 
 describe('4.10 syllabus draft revision regression (API)', () => {
-  it('[STD-SYL-010] allows saving a new DRAFT revision after editing a manager-owned FINAL version', async () => {
+  it('[STD-SYL-005][STD-SYL-010] allows saving a new DRAFT revision after editing a manager-owned FINAL version', async () => {
     const uniqueName = `Regression syllabus ${Date.now()}`;
 
     const createdDraft = await createDraftSyllabusFromTemplate(

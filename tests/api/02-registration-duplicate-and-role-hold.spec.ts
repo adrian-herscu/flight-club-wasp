@@ -16,6 +16,22 @@ type HttpErrorShape = {
 const DUPLICATE_PENDING_MESSAGE = 'You already have a pending request for this role.';
 const ALREADY_HOLD_ROLE_MESSAGE = 'You already hold this role for the selected school.';
 
+function uniqueEmail(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}@example.test`;
+}
+
+async function createTempRequesterCtx() {
+  const user = await prisma.user.create({
+    data: {
+      email: uniqueEmail('api-temp-reg-requester'),
+      fullName: 'API Temp Requester',
+    },
+    select: { id: true },
+  });
+
+  return { user: { id: user.id, isSystemAdmin: false } };
+}
+
 async function clearRequesterRequests(requesterId: string): Promise<void> {
   await prisma.registrationRequestDecision.deleteMany({
     where: {
@@ -133,6 +149,7 @@ describe('4.3 registration request guardrails (API)', () => {
   });
 
   it('[STD-INT-004] concurrent duplicate submissions produce exactly one pending request', async () => {
+    const tempRequesterCtx = await createTempRequesterCtx();
     const schoolName = `API Race School ${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const args = {
       fullName: 'API User 01',
@@ -148,8 +165,8 @@ describe('4.3 registration request guardrails (API)', () => {
     };
 
     const [left, right] = await Promise.allSettled([
-      submitRegistrationRequest(args, ctx.user01),
-      submitRegistrationRequest(args, ctx.user01),
+      submitRegistrationRequest(args, tempRequesterCtx as any),
+      submitRegistrationRequest(args, tempRequesterCtx as any),
     ]);
 
     const fulfilled = [left, right].filter((r) => r.status === 'fulfilled');
@@ -164,7 +181,7 @@ describe('4.3 registration request guardrails (API)', () => {
 
     const pendingCount = await prisma.registrationRequest.count({
       where: {
-        requesterId: SEED.users.user01,
+        requesterId: tempRequesterCtx.user.id,
         requestedRole: 'SCHOOL_MANAGER',
         requestedSchoolName: schoolName,
         status: 'PENDING',
