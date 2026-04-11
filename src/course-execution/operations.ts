@@ -1535,3 +1535,140 @@ export const declineRefund = async (
   return { refundRequestId };
 };
 
+// ---------------------------------------------------------------------------
+// Query: getCourseDetail — read layer shared across all roles (Phase 1)
+// ---------------------------------------------------------------------------
+
+export type CourseLessonDetail = {
+  lessonId: string | null;
+  syllabusLessonId: string;
+  position: number;
+  lessonName: string;
+  durationMinutes: number;
+  date: Date | null;
+  location: string | null;
+  status: string; // CourseLessonStatus or 'UNSCHEDULED'
+};
+
+export type CourseDetailResult = {
+  courseId: string;
+  syllabusName: string;
+  syllabusVersion: number;
+  schoolName: string;
+  lifecycleStatus: string; // CourseLifecycleStatus or 'OPEN'
+  startDate: Date | null;
+  hourlyRate: number | null;
+  minCapacity: number | null;
+  maxCapacity: number | null;
+  lessons: CourseLessonDetail[];
+};
+
+const getCourseDetailSchema = z.object({ courseId: z.string().min(1) });
+
+export const getCourseDetail = async (
+  rawArgs: unknown,
+  context: { user?: { id: string } | null },
+): Promise<CourseDetailResult> => {
+  if (!context.user) {
+    throw new HttpError(401, 'Authentication required.');
+  }
+
+  const { courseId } = ensureArgsSchemaOrThrowHttpError(getCourseDetailSchema, rawArgs);
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      id: true,
+      startDate: true,
+      hourlyRate: true,
+      minCapacity: true,
+      maxCapacity: true,
+      schoolId: true,
+      school: { select: { name: true } },
+      syllabusVersion: {
+        select: {
+          version: true,
+          syllabus: { select: { name: true } },
+          lessons: {
+            select: { id: true, position: true, name: true, durationMinutes: true },
+            orderBy: { position: 'asc' },
+          },
+        },
+      },
+      courseLessons: {
+        select: { id: true, syllabusLessonId: true, date: true, location: true, status: true },
+        orderBy: { date: 'asc' },
+      },
+      lifecycleEvents: {
+        select: { status: true },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
+      assignedInstructors: { select: { instructorId: true } },
+      enrolledStudents: { select: { student: { select: { userId: true } } } },
+    },
+  });
+
+  if (!course) {
+    throw new HttpError(404, 'Course not found.');
+  }
+
+  const isManager = await prisma.userSchoolRole.findFirst({
+    where: {
+      userId: context.user.id,
+      schoolId: course.schoolId,
+      role: SchoolRole.SCHOOL_MANAGER,
+      revokedAt: null,
+    },
+    select: { id: true },
+  });
+
+  if (!isManager) {
+    const instructor = await prisma.instructor.findUnique({
+      where: { userId: context.user.id },
+      select: { id: true },
+    });
+    const isInstructor =
+      instructor !== null &&
+      course.assignedInstructors.some((ai) => ai.instructorId === instructor.id);
+    const isStudent = course.enrolledStudents.some(
+      (es) => es.student.userId === context.user!.id,
+    );
+    if (!isInstructor && !isStudent) {
+      throw new HttpError(403, 'You do not have access to this course.');
+    }
+  }
+
+  const lessonMap = new Map<string, (typeof course.courseLessons)[number]>();
+  for (const cl of course.courseLessons) {
+    lessonMap.set(cl.syllabusLessonId, cl);
+  }
+
+  const lessons: CourseLessonDetail[] = course.syllabusVersion.lessons.map((sl) => {
+    const cl = lessonMap.get(sl.id);
+    return {
+      lessonId: cl?.id ?? null,
+      syllabusLessonId: sl.id,
+      position: sl.position,
+      lessonName: sl.name,
+      durationMinutes: sl.durationMinutes,
+      date: cl?.date ?? null,
+      location: cl?.location ?? null,
+      status: cl?.status ?? 'UNSCHEDULED',
+    };
+  });
+
+  return {
+    courseId: course.id,
+    syllabusName: course.syllabusVersion.syllabus.name,
+    syllabusVersion: course.syllabusVersion.version,
+    schoolName: course.school.name,
+    lifecycleStatus: course.lifecycleEvents[0]?.status ?? 'OPEN',
+    startDate: course.startDate,
+    hourlyRate: course.hourlyRate,
+    minCapacity: course.minCapacity,
+    maxCapacity: course.maxCapacity,
+    lessons,
+  };
+};
+

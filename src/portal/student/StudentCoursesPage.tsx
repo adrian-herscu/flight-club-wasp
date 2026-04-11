@@ -55,6 +55,7 @@ const StudentCoursesPage = ({ user }: { user: AuthUser }) => {
               return (
                 <StudentCourseListItem
                   key={course.courseId}
+                  href={`/student/courses/${course.courseId}`}
                   title={`${course.syllabusName} v${course.syllabusVersion}`}
                   subtitle={`${course.schoolName} · ${startLabel}`}
                 />

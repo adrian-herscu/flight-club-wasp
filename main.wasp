@@ -379,6 +379,11 @@ action declineRefund {
   entities: [User, School, Course, RefundRequest]
 }
 
+query getCourseDetail {
+  fn: import { getCourseDetail } from "@src/course-execution/operations",
+  entities: [User, UserSchoolRole, School, Course, CourseLesson, SyllabusLesson, SyllabusVersion, Syllabus, CourseLifecycleEvent, Instructor, AssignedInstructor, Student, EnrolledStudent]
+}
+
 job lessonStatusJob {
   executor: PgBoss,
   perform: {
@@ -497,6 +502,24 @@ page StudentCoursesPage {
   component: import StudentCoursesPage from "@src/portal/student/StudentCoursesPage"
 }
 route StudentCoursesRoute { path: "/student/courses", to: StudentCoursesPage }
+
+page InstructorCourseDetailPage {
+  authRequired: true,
+  component: import CourseDetailPage from "@src/course-execution/CourseDetailPage"
+}
+route InstructorCourseDetailRoute { path: "/instructor/courses/:courseId", to: InstructorCourseDetailPage }
+
+page StudentCourseDetailPage {
+  authRequired: true,
+  component: import CourseDetailPage from "@src/course-execution/CourseDetailPage"
+}
+route StudentCourseDetailRoute { path: "/student/courses/:courseId", to: StudentCourseDetailPage }
+
+page ManagerCourseDetailPage {
+  authRequired: true,
+  component: import CourseDetailPage from "@src/course-execution/CourseDetailPage"
+}
+route ManagerCourseDetailRoute { path: "/school-manager/courses/:courseId", to: ManagerCourseDetailPage }
 
 page SystemAdminUsersPage {
   authRequired: true,

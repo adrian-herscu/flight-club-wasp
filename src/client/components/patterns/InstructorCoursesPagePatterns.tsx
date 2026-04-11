@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { NavLink } from "react-router";
 
 export const InstructorCoursesPageRoot = ({
   testId,
@@ -24,16 +25,31 @@ export const InstructorCourseListItem = ({
   title,
   subtitle,
   status,
+  href,
 }: {
   title: ReactNode;
   subtitle: ReactNode;
   status: ReactNode;
-}) => (
-  <li className="rounded-md border p-3">
-    <div className="flex items-start justify-between gap-3">
-      <p className="text-sm font-medium">{title}</p>
-      <span className="text-xs font-medium">{status}</span>
+  href?: string;
+}) => {
+  const inner = (
+    <div className="rounded-md border p-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-medium">{title}</p>
+        <span className="text-xs font-medium">{status}</span>
+      </div>
+      <p className="text-muted-foreground text-xs">{subtitle}</p>
     </div>
-    <p className="text-muted-foreground text-xs">{subtitle}</p>
-  </li>
-);
+  );
+  return (
+    <li>
+      {href ? (
+        <NavLink to={href} className="block hover:opacity-80 transition-opacity">
+          {inner}
+        </NavLink>
+      ) : (
+        inner
+      )}
+    </li>
+  );
+};

@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { NavLink } from "react-router";
 
 export const StudentCoursesPageRoot = ({
   testId,
@@ -23,12 +24,27 @@ export const StudentCoursesList = ({ children }: { children: ReactNode }) => (
 export const StudentCourseListItem = ({
   title,
   subtitle,
+  href,
 }: {
   title: ReactNode;
   subtitle: ReactNode;
-}) => (
-  <li className="rounded-md border p-3">
-    <p className="text-sm font-medium">{title}</p>
-    <p className="text-muted-foreground text-xs">{subtitle}</p>
-  </li>
-);
+  href?: string;
+}) => {
+  const inner = (
+    <div className="rounded-md border p-3">
+      <p className="text-sm font-medium">{title}</p>
+      <p className="text-muted-foreground text-xs">{subtitle}</p>
+    </div>
+  );
+  return (
+    <li>
+      {href ? (
+        <NavLink to={href} className="block hover:opacity-80 transition-opacity">
+          {inner}
+        </NavLink>
+      ) : (
+        inner
+      )}
+    </li>
+  );
+};

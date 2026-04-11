@@ -56,6 +56,7 @@ const InstructorCoursesPage = ({ user }: { user: AuthUser }) => {
               return (
                 <InstructorCourseListItem
                   key={course.courseId}
+                  href={`/instructor/courses/${course.courseId}`}
                   title={`${course.syllabusName} v${course.syllabusVersion}`}
                   subtitle={`${course.schoolName} · ${startLabel}`}
                   status={course.lifecycleStatus === "CLOSED" ? "Closed" : "Open"}
