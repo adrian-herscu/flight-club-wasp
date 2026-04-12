@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
@@ -20,7 +20,7 @@ import {
 } from "../client/components/ui/card";
 import { Input } from "../client/components/ui/input";
 import { Separator } from "../client/components/ui/separator";
-import { toast } from "../client/hooks/use-toast";
+import { useWaspMutation } from "../client/hooks/useWaspMutation";
 
 const { updateMyUserProfile } = operations as any;
 
@@ -32,32 +32,21 @@ export default function AccountPage({ user }: { user: AuthUser }) {
     email?: string | null;
   };
 
-  const [fullName, setFullName] = useState(currentUser.fullName ?? "");
-  const [phone, setPhone] = useState(currentUser.phone ?? "");
-  const [saving, setSaving] = useState(false);
+  const form = useForm({
+    defaultValues: {
+      fullName: currentUser.fullName ?? "",
+      phone: currentUser.phone ?? "",
+    },
+  });
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      await updateMyUserProfile({
-        fullName: fullName.trim() || null,
-        phone: phone.trim() || null,
-      });
-      toast({
-        title: t("user.savedSuccess"),
-        description: t("user.savedSuccessMessage"),
-      });
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: t("user.saveError"),
-        description: err?.message ?? t("user.saveErrorMessage"),
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+  const saveProfile = useWaspMutation(
+    ({ fullName, phone }: { fullName: string; phone: string }) =>
+      updateMyUserProfile({ fullName: fullName.trim() || null, phone: phone.trim() || null }),
+    {
+      successToast: { title: t("user.savedSuccess"), description: t("user.savedSuccessMessage") },
+      errorToast: { title: t("user.saveError"), fallbackDescription: t("user.saveErrorMessage") },
+    },
+  );
 
   return (
     <AppPageInset>
@@ -76,25 +65,23 @@ export default function AccountPage({ user }: { user: AuthUser }) {
               </>
             )}
             <InsetBlock>
-              <FormStack onSubmit={handleSubmit} gap="lg">
+              <FormStack onSubmit={form.handleSubmit((data) => saveProfile.mutate(data))} gap="lg">
                 <FieldRow label={t("user.fullName")}>
                   <Input
                     id="fullName"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
+                    {...form.register("fullName")}
                   />
                 </FieldRow>
                 <FieldRow label={t("user.phone")}>
                   <Input
                     id="phone"
                     type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
+                    {...form.register("phone")}
                   />
                 </FieldRow>
                 <EndAlignedActions>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? t("user.saving") : t("user.saveDetails")}
+                  <Button type="submit" disabled={saveProfile.isPending}>
+                    {saveProfile.isPending ? t("user.saving") : t("user.saveDetails")}
                   </Button>
                 </EndAlignedActions>
               </FormStack>

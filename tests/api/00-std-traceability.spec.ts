@@ -11,7 +11,7 @@ const testRoots = [
   path.join(repoRoot, 'tests/e2e'),
 ];
 
-const STD_ID_PATTERN = /STD-[A-Z0-9]+-\d{3}(?:[A-Z]+)?/g;
+const STD_ID_PATTERN = /STD-[A-Z0-9]+-\d{3}(?:[A-Za-z]+)?/g;
 
 function collectSpecFiles(dirPath: string): string[] {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });

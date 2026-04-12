@@ -8,6 +8,7 @@ import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
 import { Button } from "../client/components/ui/button";
 import { toast } from "../client/hooks/use-toast";
+import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import {
   AssessmentSection,
   AssessmentStudentRow,
@@ -83,7 +84,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
   // --- Manager: start course ---
   const [guardErrors, setGuardErrors] = useState<string[]>([]);
   const [showCapacityModal, setShowCapacityModal] = useState(false);
-  const [startingCourse, setStartingCourse] = useState(false);
 
   // --- Instructor: schedule lesson ---
   const [schedulingLesson, setSchedulingLesson] = useState<CourseLessonDetail | null>(null);
@@ -121,47 +121,74 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
 
   // --- Late enrollment (manager) ---
   const [lateEnrollStudentId, setLateEnrollStudentId] = useState("");
-  const [lateEnrollSubmitting, setLateEnrollSubmitting] = useState(false);
 
   // --- Instructor assignment (manager) ---
   const [assignInstructorId, setAssignInstructorId] = useState("");
   const [assignIsLead, setAssignIsLead] = useState(false);
   const [assignWagePerHour, setAssignWagePerHour] = useState<number | "">("")
-  const [assignInstructorSubmitting, setAssignInstructorSubmitting] = useState(false);
+
 
   const {
     data: course,
     isLoading,
     error,
-    refetch,
   } = useQuery(getCourseDetail, courseId ? { courseId } : undefined, {
     enabled: Boolean(courseId),
   });
 
   // -------------------------------------------------------------------------
+  // Mutations (Change 4)
+  // -------------------------------------------------------------------------
+
+  const startCourseMutation = useWaspMutation(
+    ({ courseId: id, overrideCapacity }: { courseId: string; overrideCapacity?: boolean }) =>
+      startCourse({ courseId: id, overrideCapacity }),
+    {
+      successToast: { title: t("courseDetail.courseStarted") },
+      onSuccess: () => setShowCapacityModal(false),
+      onError: (err) => {
+        const msg = (err as { message?: string }).message ?? String(err);
+        if (msg.includes("overrideCapacity")) {
+          setShowCapacityModal(true);
+        } else {
+          setGuardErrors([msg]);
+          toast({ title: t("courseDetail.startFailed"), variant: "destructive" });
+        }
+      },
+    },
+  );
+
+  const lateEnrollMutation = useWaspMutation(
+    (args: { courseId: string; studentId: string }) => enrollInStartedCourse(args),
+    {
+      successToast: { title: t("courseDetail.lateEnrollSuccess") },
+      errorToast: { title: t("courseDetail.lateEnrollFailed"), fallbackDescription: "An error occurred" },
+      onSuccess: () => setLateEnrollStudentId(""),
+    },
+  );
+
+  const assignInstructorMutation = useWaspMutation(
+    (args: { courseId: string; instructorId: string; isLead: boolean; agreedWagePerHour: number }) =>
+      assignInstructorToCourse(args),
+    {
+      successToast: { title: t("courseDetail.instructorAssigned") },
+      errorToast: { title: t("courseDetail.assignFailed"), fallbackDescription: "An error occurred" },
+      onSuccess: () => {
+        setAssignInstructorId("");
+        setAssignIsLead(false);
+        setAssignWagePerHour("");
+      },
+    },
+  );
+
+  // -------------------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------------------
 
-  const handleStartCourse = async (overrideCapacity?: boolean) => {
+  const handleStartCourse = (overrideCapacity?: boolean) => {
     if (!courseId) return;
-    setStartingCourse(true);
     setGuardErrors([]);
-    try {
-      await startCourse({ courseId, overrideCapacity });
-      setShowCapacityModal(false);
-      await refetch();
-      toast({ title: t("courseDetail.courseStarted") });
-    } catch (err: unknown) {
-      const msg = (err as { message?: string }).message ?? String(err);
-      if (msg.includes("overrideCapacity")) {
-        setShowCapacityModal(true);
-      } else {
-        setGuardErrors([msg]);
-        toast({ title: t("courseDetail.startFailed"), variant: "destructive" });
-      }
-    } finally {
-      setStartingCourse(false);
-    }
+    void startCourseMutation.mutate({ courseId, overrideCapacity });
   };
 
   const openScheduleSheet = (lesson: CourseLessonDetail) => {
@@ -190,7 +217,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
         await scheduleLesson({ courseId, syllabusLessonId: schedulingLesson.syllabusLessonId, date: new Date(sheetDate), location: sheetLocation });
       }
       closeScheduleSheet();
-      await refetch();
       toast({ title: t("courseDetail.lessonScheduled") });
     } catch (err: unknown) {
       setSheetError((err as { message?: string }).message ?? String(err));
@@ -203,7 +229,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setAttendanceSubmitting(courseLessonId);
     try {
       await updateMeetingAttendance({ courseLessonId, status });
-      await refetch();
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
     } finally {
@@ -215,7 +240,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setPresenceSubmitting(courseLessonId);
     try {
       await updateInstructorPresence({ courseLessonId, status });
-      await refetch();
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
     } finally {
@@ -227,7 +251,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setSuggestionSubmitting(courseLessonId);
     try {
       await submitInstructorSuggestion({ courseLessonId, type });
-      await refetch();
       toast({ title: t("courseDetail.suggestionSubmitted") });
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
@@ -240,7 +263,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setApprovalSubmitting(suggestionId);
     try {
       await approveInstructorSuggestion({ suggestionId });
-      await refetch();
       toast({ title: t("courseDetail.suggestionApproved") });
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
@@ -255,7 +277,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setAssessmentSubmitting(key);
     try {
       await submitStudentAssessment({ courseLessonId, studentId, attended: draft.attended, status: draft.status, notes: draft.notes || undefined });
-      await refetch();
       setAssessmentDrafts((prev) => { const next = { ...prev }; delete next[key]; return next; });
       toast({ title: t("courseDetail.assessmentSubmitted") });
     } catch (err: unknown) {
@@ -270,7 +291,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setAbsentSubmitting(key);
     try {
       await markInstructorAbsent({ courseLessonId, instructorId });
-      await refetch();
       toast({ title: t("courseDetail.markedAbsent") });
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
@@ -288,7 +308,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
       await submitRefundRequest({ courseId, reason: refundReason || undefined });
       setRefundModalOpen(false);
       setRefundReason("");
-      await refetch();
       toast({ title: t("courseDetail.refundSubmitted") });
     } catch (err: unknown) {
       setRefundError((err as { message?: string }).message ?? "Error");
@@ -307,7 +326,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setRefundActionSubmitting(refundRequestId);
     try {
       await approveRefund({ refundRequestId, amountMinor });
-      await refetch();
       toast({ title: t("courseDetail.refundApproved") });
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
@@ -320,7 +338,6 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     setRefundActionSubmitting(refundRequestId);
     try {
       await declineRefund({ refundRequestId });
-      await refetch();
       toast({ title: t("courseDetail.refundDeclined") });
     } catch (err: unknown) {
       toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
@@ -329,36 +346,19 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
-  const handleLateEnroll = async () => {
+  const handleLateEnroll = () => {
     if (!courseId || !lateEnrollStudentId) return;
-    setLateEnrollSubmitting(true);
-    try {
-      await enrollInStartedCourse({ courseId, studentId: lateEnrollStudentId });
-      setLateEnrollStudentId("");
-      await refetch();
-      toast({ title: t("courseDetail.lateEnrollSuccess") });
-    } catch (err: unknown) {
-      toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
-    } finally {
-      setLateEnrollSubmitting(false);
-    }
+    void lateEnrollMutation.mutate({ courseId, studentId: lateEnrollStudentId });
   };
 
-  const handleAssignInstructor = async () => {
+  const handleAssignInstructor = () => {
     if (!courseId || !assignInstructorId || assignWagePerHour === "") return;
-    setAssignInstructorSubmitting(true);
-    try {
-      await assignInstructorToCourse({ courseId, instructorId: assignInstructorId, isLead: assignIsLead, agreedWagePerHour: assignWagePerHour });
-      setAssignInstructorId("");
-      setAssignIsLead(false);
-      setAssignWagePerHour("");
-      await refetch();
-      toast({ title: t("courseDetail.instructorAssigned") });
-    } catch (err: unknown) {
-      toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
-    } finally {
-      setAssignInstructorSubmitting(false);
-    }
+    void assignInstructorMutation.mutate({
+      courseId,
+      instructorId: assignInstructorId,
+      isLead: assignIsLead,
+      agreedWagePerHour: assignWagePerHour as number,
+    });
   };
 
   // -------------------------------------------------------------------------
@@ -532,11 +532,11 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   onToggleLead={setAssignIsLead}
                   onWageChange={setAssignWagePerHour}
                   onAssign={handleAssignInstructor}
-                  isSubmitting={assignInstructorSubmitting}
+                  isSubmitting={assignInstructorMutation.isPending}
                 />
                 <CourseDetailActionsBar>
-                  <Button onClick={() => handleStartCourse()} disabled={startingCourse}>
-                    {startingCourse ? t("courseDetail.starting") : t("courseDetail.startCourse")}
+                  <Button onClick={() => handleStartCourse()} disabled={startCourseMutation.isPending}>
+                    {startCourseMutation.isPending ? t("courseDetail.starting") : t("courseDetail.startCourse")}
                   </Button>
                 </CourseDetailActionsBar>
                 {guardErrors.length > 0 && <StartCourseGuardList errors={guardErrors} />}
@@ -544,7 +544,7 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   open={showCapacityModal}
                   onClose={() => setShowCapacityModal(false)}
                   onConfirm={() => handleStartCourse(true)}
-                  isSubmitting={startingCourse}
+                  isSubmitting={startCourseMutation.isPending}
                   enrolledCount={course.enrolledCount}
                   minCapacity={course.minCapacity ?? 0}
                 />
@@ -563,14 +563,14 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   onToggleLead={setAssignIsLead}
                   onWageChange={setAssignWagePerHour}
                   onAssign={handleAssignInstructor}
-                  isSubmitting={assignInstructorSubmitting}
+                  isSubmitting={assignInstructorMutation.isPending}
                 />
                 <LateEnrollmentSection
                   options={course.enrollableStudents ?? []}
                   selectedStudentId={lateEnrollStudentId}
                   onSelectStudent={setLateEnrollStudentId}
                   onEnroll={handleLateEnroll}
-                  isSubmitting={lateEnrollSubmitting}
+                  isSubmitting={lateEnrollMutation.isPending}
                 />
                 {(course.pendingRefundRequests ?? []).length > 0 && (
                   <PendingRefundsSection>

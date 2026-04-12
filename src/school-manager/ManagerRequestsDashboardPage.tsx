@@ -22,7 +22,7 @@ import {
 } from "../client/components/patterns/ManagerRequestsDashboardPatterns";
 import { Button } from "../client/components/ui/button";
 import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
-import { toast } from "../client/hooks/use-toast";
+import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
@@ -115,7 +115,6 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const {
     data: memberRequestsData,
     isLoading: isMemberRequestsLoading,
-    refetch: refetchMemberRequests,
   } = useQuery(getPendingSchoolMemberRequests, {
     schoolId: selectedSchoolId,
   });
@@ -123,7 +122,6 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const {
     data: studentCoursePairsData,
     isLoading: isStudentCoursePairsLoading,
-    refetch: refetchStudentCoursePairs,
   } = useQuery(getManagerStudentCoursePairs, {
     schoolId: selectedSchoolId,
   });
@@ -136,6 +134,87 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [roleFilter, setRoleFilter] = useState<MemberRequestRoleFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<MemberRequestStatusFilter>("ALL");
+
+  // -------------------------------------------------------------------------
+  // Mutations (useWaspMutation — Change 4)
+  // -------------------------------------------------------------------------
+
+  const approveMember = useWaspMutation(
+    (args: { requestId: string; schoolId: string }) => approveSchoolMemberRequest(args),
+    {
+      successToast: {
+        title: t("admin.requestApproved"),
+        description: t("dashboard.theUserHasBeenApproved"),
+      },
+      errorToast: { title: t("admin.approvalFailed"), fallbackDescription: t("admin.approvalError") },
+      onSuccess: () => setIsApprovingId(null),
+      onError: () => setIsApprovingId(null),
+    },
+  );
+
+  const handleApprove = async (requestId: string) => {
+    setIsApprovingId(requestId);
+    await approveMember.mutate({ requestId, schoolId: selectedSchoolId });
+  };
+
+  const rejectMember = useWaspMutation(
+    (args: { requestId: string; schoolId: string; rejectionReason?: string }) =>
+      rejectSchoolMemberRequest(args),
+    {
+      successToast: {
+        title: t("admin.requestRejected"),
+        description: t("dashboard.theRequestHasBeenRejected"),
+      },
+      errorToast: { title: t("admin.rejectionFailed"), fallbackDescription: t("admin.rejectionError") },
+      onSuccess: () => setIsRejectingId(null),
+      onError: () => setIsRejectingId(null),
+    },
+  );
+
+  const handleReject = async (requestId: string) => {
+    setIsRejectingId(requestId);
+    await rejectMember.mutate({
+      requestId,
+      schoolId: selectedSchoolId,
+      rejectionReason: rejectionReasons[requestId],
+    });
+  };
+
+  const approveEnrollment = useWaspMutation(
+    (args: { interestId: string; schoolId: string }) => approveStudentEnrollmentFromInterest(args),
+    {
+      successToast: {
+        title: t("admin.requestApproved"),
+        description: t("admin.studentEnrollmentApproved"),
+      },
+      errorToast: { title: t("admin.approvalFailed"), fallbackDescription: t("admin.approvalError") },
+      onSuccess: () => setIsApprovingEnrollmentId(null),
+      onError: () => setIsApprovingEnrollmentId(null),
+    },
+  );
+
+  const handleApproveEnrollment = async (interestId: string) => {
+    setIsApprovingEnrollmentId(interestId);
+    await approveEnrollment.mutate({ interestId, schoolId: selectedSchoolId });
+  };
+
+  const cancelInterest = useWaspMutation(
+    (args: { interestId: string; schoolId: string }) => cancelCourseInterestForManager(args),
+    {
+      successToast: {
+        title: t("admin.interestCancelled"),
+        description: t("admin.interestCancelledDescription"),
+      },
+      errorToast: { title: t("admin.interestCancelFailed"), fallbackDescription: t("admin.approvalError") },
+      onSuccess: () => setIsCancellingInterestId(null),
+      onError: () => setIsCancellingInterestId(null),
+    },
+  );
+
+  const handleCancelInterest = async (interestId: string) => {
+    setIsCancellingInterestId(interestId);
+    await cancelInterest.mutate({ interestId, schoolId: selectedSchoolId });
+  };
 
   const pageTitle =
     routeRoleScope === "INSTRUCTOR"
@@ -151,10 +230,6 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const isLoading = isStudentsCoursePairsRoute
     ? isStudentCoursePairsLoading
     : isMemberRequestsLoading;
-
-  const refetchCurrentView = isStudentsCoursePairsRoute
-    ? refetchStudentCoursePairs
-    : refetchMemberRequests;
 
   const filteredRequests = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -234,96 +309,6 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   const showStudentSections = routeRoleScope
     ? routeRoleScope === "STUDENT"
     : roleFilter !== "INSTRUCTORS";
-
-  const handleApprove = async (requestId: string) => {
-    setIsApprovingId(requestId);
-    try {
-      await approveSchoolMemberRequest({ requestId, schoolId: selectedSchoolId });
-      await refetchCurrentView();
-      toast({
-        title: t("admin.requestApproved"),
-        description: t("dashboard.theUserHasBeenApproved"),
-      });
-    } catch (error: unknown) {
-      toast({
-        title: t("admin.approvalFailed"),
-        description: error instanceof Error ? error.message : t("admin.approvalError"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsApprovingId(null);
-    }
-  };
-
-  const handleReject = async (requestId: string) => {
-    setIsRejectingId(requestId);
-    try {
-      await rejectSchoolMemberRequest({
-        requestId,
-        schoolId: selectedSchoolId,
-        rejectionReason: rejectionReasons[requestId],
-      });
-      await refetchCurrentView();
-      toast({
-        title: t("admin.requestRejected"),
-        description: t("dashboard.theRequestHasBeenRejected"),
-      });
-    } catch (error: unknown) {
-      toast({
-        title: t("admin.rejectionFailed"),
-        description: error instanceof Error ? error.message : t("admin.rejectionError"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsRejectingId(null);
-    }
-  };
-
-  const handleApproveEnrollment = async (interestId: string) => {
-    setIsApprovingEnrollmentId(interestId);
-    try {
-      await approveStudentEnrollmentFromInterest({
-        interestId,
-        schoolId: selectedSchoolId,
-      });
-      await refetchCurrentView();
-      toast({
-        title: t("admin.requestApproved"),
-        description: t("admin.studentEnrollmentApproved"),
-      });
-    } catch (error: unknown) {
-      toast({
-        title: t("admin.approvalFailed"),
-        description: error instanceof Error ? error.message : t("admin.approvalError"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsApprovingEnrollmentId(null);
-    }
-  };
-
-  const handleCancelInterest = async (interestId: string) => {
-    setIsCancellingInterestId(interestId);
-    try {
-      await cancelCourseInterestForManager({
-        interestId,
-        schoolId: selectedSchoolId,
-      });
-      await refetchCurrentView();
-      toast({
-        title: t("admin.interestCancelled"),
-        description: t("admin.interestCancelledDescription"),
-      });
-    } catch (error: unknown) {
-      toast({
-        title: t("admin.interestCancelFailed"),
-        description: error instanceof Error ? error.message : t("admin.approvalError"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsCancellingInterestId(null);
-    }
-  };
 
   const renderRequestSummary = (request: MemberRequestItem) => (
     <ManagerRequestsSummaryGrid>

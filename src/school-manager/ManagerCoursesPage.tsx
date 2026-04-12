@@ -1,6 +1,9 @@
 import { type CourseInterestStatus } from "@prisma/client";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import { getDefaultCourseStartDate } from "../shared/utils";
@@ -34,7 +37,7 @@ import {
   DialogTitle,
 } from "../client/components/ui/dialog";
 import { SelectItem } from "../client/components/ui/select";
-import { toast } from "../client/hooks/use-toast";
+import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
@@ -125,6 +128,43 @@ type ManagedSchool = {
   defaultHourlyRate: number | null;
 };
 
+// ---------------------------------------------------------------------------
+// Zod schema for the "open course" form
+// ---------------------------------------------------------------------------
+
+const createCourseSchema = z
+  .object({
+    templateVersionId: z.string().min(1),
+    startDate: z.string(),
+    minCapacity: z.string(),
+    maxCapacity: z.string(),
+    hourlyRate: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    const min = data.minCapacity.trim() === "" ? null : Number(data.minCapacity);
+    const max = data.maxCapacity.trim() === "" ? null : Number(data.maxCapacity);
+    const rate = data.hourlyRate.trim() === "" ? null : Number(data.hourlyRate);
+
+    if (min != null && (!Number.isInteger(min) || min <= 0)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["minCapacity"], message: "Must be a positive integer" });
+    }
+    if (max != null && (!Number.isInteger(max) || max <= 0)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["maxCapacity"], message: "Must be a positive integer" });
+    }
+    if (min != null && max != null && min > max) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["minCapacity"], message: "Min cannot exceed max" });
+    }
+    if (rate != null && (!Number.isInteger(rate) || rate <= 0)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["hourlyRate"], message: "Must be a positive integer" });
+    }
+  });
+
+type CreateCourseFormValues = z.infer<typeof createCourseSchema>;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
 
@@ -139,492 +179,255 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const catalog = catalogData as ManagerSyllabusCatalog | undefined;
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
 
-  const {
-    data: coursesForEnrollmentData,
-    refetch: refetchCoursesForEnrollment,
-  } = useQuery(getManagerCoursesForEnrollment, { schoolId: selectedSchoolId });
+  const { data: coursesForEnrollmentData } = useQuery(getManagerCoursesForEnrollment, {
+    schoolId: selectedSchoolId,
+  });
   const coursesForEnrollment = (coursesForEnrollmentData as EnrollmentCourseItem[] | undefined) ?? [];
 
-  const {
-    data: closedCoursesData,
-    refetch: refetchClosedCourses,
-  } = useQuery(getManagerClosedCourses, { schoolId: selectedSchoolId });
+  const { data: closedCoursesData } = useQuery(getManagerClosedCourses, { schoolId: selectedSchoolId });
   const closedCourses = (closedCoursesData as EnrollmentCourseItem[] | undefined) ?? [];
 
-  const {
-    data: studentsForEnrollmentData,
-    refetch: refetchStudentsForEnrollment,
-  } = useQuery(getManagerStudentsForEnrollment, { schoolId: selectedSchoolId });
+  const { data: studentsForEnrollmentData } = useQuery(getManagerStudentsForEnrollment, {
+    schoolId: selectedSchoolId,
+  });
   const studentsForEnrollment = (studentsForEnrollmentData as EnrollmentStudentItem[] | undefined) ?? [];
 
-  const {
-    data: instructorsForAssignmentData,
-    refetch: refetchInstructorsForAssignment,
-  } = useQuery(getManagerInstructorsForAssignment, { schoolId: selectedSchoolId });
+  const { data: instructorsForAssignmentData } = useQuery(getManagerInstructorsForAssignment, {
+    schoolId: selectedSchoolId,
+  });
   const instructorsForAssignment = (instructorsForAssignmentData as AssignmentInstructorItem[] | undefined) ?? [];
 
-  const [selectedEnrollmentCourseId, setSelectedEnrollmentCourseId] = useState<string | null>(null);
-  const [selectedStudentIdToEnroll, setSelectedStudentIdToEnroll] = useState<string>("");
-  const [selectedAssignmentCourseId, setSelectedAssignmentCourseId] = useState<string | null>(null);
-  const [selectedInstructorIdToAssign, setSelectedInstructorIdToAssign] = useState<string>("");
+  // -------------------------------------------------------------------------
+  // Derived selection state (useMemo + override pattern — replaces 4 syncing effects)
+  // -------------------------------------------------------------------------
 
-  const {
-    data: courseEnrollmentDetailsData,
-    refetch: refetchCourseEnrollmentDetails,
-  } = useQuery(getManagerCourseEnrollmentDetails, {
+  const [enrollmentCourseOverride, setEnrollmentCourseOverride] = useState<string | null>(null);
+  const selectedEnrollmentCourseId = useMemo(() => {
+    if (enrollmentCourseOverride && coursesForEnrollment.some((c) => c.courseId === enrollmentCourseOverride))
+      return enrollmentCourseOverride;
+    return coursesForEnrollment[0]?.courseId ?? null;
+  }, [coursesForEnrollment, enrollmentCourseOverride]);
+
+  const [assignmentCourseOverride, setAssignmentCourseOverride] = useState<string | null>(null);
+  const selectedAssignmentCourseId = useMemo(() => {
+    if (assignmentCourseOverride && coursesForEnrollment.some((c) => c.courseId === assignmentCourseOverride))
+      return assignmentCourseOverride;
+    return coursesForEnrollment[0]?.courseId ?? null;
+  }, [coursesForEnrollment, assignmentCourseOverride]);
+
+  const [studentOverride, setStudentOverride] = useState<string>("");
+  const selectedStudentIdToEnroll = useMemo(() => {
+    if (studentOverride && studentsForEnrollment.some((s) => s.studentId === studentOverride))
+      return studentOverride;
+    return studentsForEnrollment[0]?.studentId ?? "";
+  }, [studentsForEnrollment, studentOverride]);
+
+  const [instructorOverride, setInstructorOverride] = useState<string>("");
+  const selectedInstructorIdToAssign = useMemo(() => {
+    if (instructorOverride && instructorsForAssignment.some((i) => i.instructorId === instructorOverride))
+      return instructorOverride;
+    return instructorsForAssignment[0]?.instructorId ?? "";
+  }, [instructorsForAssignment, instructorOverride]);
+
+  // -------------------------------------------------------------------------
+  // Detail queries
+  // -------------------------------------------------------------------------
+
+  const { data: courseEnrollmentDetailsData } = useQuery(getManagerCourseEnrollmentDetails, {
     schoolId: selectedSchoolId,
     courseId: selectedEnrollmentCourseId,
   });
   const courseEnrollmentDetails = courseEnrollmentDetailsData as CourseEnrollmentDetails;
 
-  const {
-    data: courseInstructorDetailsData,
-    refetch: refetchCourseInstructorDetails,
-  } = useQuery(getManagerCourseInstructorDetails, {
+  const { data: courseInstructorDetailsData } = useQuery(getManagerCourseInstructorDetails, {
     schoolId: selectedSchoolId,
     courseId: selectedAssignmentCourseId,
   });
   const courseInstructorDetails = courseInstructorDetailsData as CourseInstructorDetails;
 
   const [selectedInterestsCourseId, setSelectedInterestsCourseId] = useState<string | null>(null);
-
-  const {
-    data: courseInterestsData,
-    refetch: refetchCourseInterests,
-  } = useQuery(getManagerCourseInterests, {
+  const { data: courseInterestsData } = useQuery(getManagerCourseInterests, {
     schoolId: selectedSchoolId,
     courseId: selectedInterestsCourseId,
   });
   const courseInterests = (courseInterestsData as CourseInterestItem[] | undefined) ?? [];
 
-  const [cancellingInterestId, setCancellingInterestId] = useState<string | null>(null);
+  // -------------------------------------------------------------------------
+  // Dialog state (UI only)
+  // -------------------------------------------------------------------------
 
-  async function handleCancelInterest(interestId: string) {
-    if (cancellingInterestId) return;
-    setCancellingInterestId(interestId);
-    try {
-      await cancelCourseInterestForManager({ schoolId: selectedSchoolId, interestId });
-      await refetchCourseInterests();
-      toast({ title: t("admin.interestCancelled") });
-    } catch (err) {
-      toast({
-        title: t("admin.interestCancelFailed"),
-        description: err instanceof Error ? err.message : undefined,
-        variant: "destructive",
-      });
-    } finally {
-      setCancellingInterestId(null);
-    }
-  }
-
-  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
-  const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
-  const [isAssigningInstructor, setIsAssigningInstructor] = useState(false);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
-  const [isClosingCourse, setIsClosingCourse] = useState(false);
-  const [isReopeningCourse, setIsReopeningCourse] = useState(false);
   const [pendingCloseCourse, setPendingCloseCourse] = useState<EnrollmentCourseItem | null>(null);
   const [pendingReopenCourse, setPendingReopenCourse] = useState<EnrollmentCourseItem | null>(null);
-  const [newCourseTemplateVersionId, setNewCourseTemplateVersionId] = useState<string>("");
-  const [newCourseStartDate, setNewCourseStartDate] = useState<string>("");
-  const [newCourseMinCapacity, setNewCourseMinCapacity] = useState<string>("");
-  const [newCourseMaxCapacity, setNewCourseMaxCapacity] = useState<string>("");
-  const [newCourseHourlyRate, setNewCourseHourlyRate] = useState<string>("");
 
-  useEffect(() => {
-    setNewCourseStartDate(getDefaultCourseStartDate());
-  }, []);
+  // -------------------------------------------------------------------------
+  // Create-course form (RHF + Zod — replaces 5 form useState hooks + 2 effects)
+  // -------------------------------------------------------------------------
 
-  useEffect(() => {
-    if (newCourseHourlyRate.trim() !== "") {
-      return;
-    }
+  const form = useForm<CreateCourseFormValues>({
+    resolver: zodResolver(createCourseSchema),
+    defaultValues: {
+      templateVersionId: "",
+      startDate: getDefaultCourseStartDate(),
+      minCapacity: "",
+      maxCapacity: "",
+      hourlyRate: managedSchoolDefaultHourlyRate != null ? String(managedSchoolDefaultHourlyRate) : "",
+    },
+  });
 
-    if (managedSchoolDefaultHourlyRate == null) {
-      return;
-    }
+  // Per-item ID for precise button disabling in the interests list
+  const [cancellingInterestId, setCancellingInterestId] = useState<string | null>(null);
 
-    setNewCourseHourlyRate(String(managedSchoolDefaultHourlyRate));
-  }, [managedSchoolDefaultHourlyRate, newCourseHourlyRate]);
+  // -------------------------------------------------------------------------
+  // Mutations (useWaspMutation — replaces 6 loading flags + try/catch/toast blocks)
+  // -------------------------------------------------------------------------
 
-  useEffect(() => {
-    if (!coursesForEnrollment.length) {
-      setSelectedEnrollmentCourseId(null);
-      return;
-    }
+  const cancelInterest = useWaspMutation(
+    (args: { schoolId: string; interestId: string }) => cancelCourseInterestForManager(args),
+    {
+      successToast: { title: t("admin.interestCancelled") },
+      errorToast: { title: t("admin.interestCancelFailed") },
+      onSuccess: () => setCancellingInterestId(null),
+      onError: () => setCancellingInterestId(null),
+    },
+  );
 
-    if (
-      selectedEnrollmentCourseId &&
-      coursesForEnrollment.some((course) => course.courseId === selectedEnrollmentCourseId)
-    ) {
-      return;
-    }
+  async function handleCancelInterest(interestId: string) {
+    if (cancelInterest.isPending) return;
+    setCancellingInterestId(interestId);
+    await cancelInterest.mutate({ schoolId: selectedSchoolId, interestId });
+  }
 
-    setSelectedEnrollmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
-  }, [coursesForEnrollment, selectedEnrollmentCourseId]);
-
-  useEffect(() => {
-    if (!coursesForEnrollment.length) {
-      setSelectedAssignmentCourseId(null);
-      return;
-    }
-
-    if (
-      selectedAssignmentCourseId &&
-      coursesForEnrollment.some((course) => course.courseId === selectedAssignmentCourseId)
-    ) {
-      return;
-    }
-
-    setSelectedAssignmentCourseId(coursesForEnrollment[0]?.courseId ?? null);
-  }, [coursesForEnrollment, selectedAssignmentCourseId]);
-
-  useEffect(() => {
-    if (!studentsForEnrollment.length) {
-      setSelectedStudentIdToEnroll("");
-      return;
-    }
-
-    if (
-      selectedStudentIdToEnroll &&
-      studentsForEnrollment.some((student) => student.studentId === selectedStudentIdToEnroll)
-    ) {
-      return;
-    }
-
-    setSelectedStudentIdToEnroll(studentsForEnrollment[0]?.studentId ?? "");
-  }, [selectedStudentIdToEnroll, studentsForEnrollment]);
-
-  useEffect(() => {
-    if (!instructorsForAssignment.length) {
-      setSelectedInstructorIdToAssign("");
-      return;
-    }
-
-    if (
-      selectedInstructorIdToAssign &&
-      instructorsForAssignment.some(
-        (instructor) => instructor.instructorId === selectedInstructorIdToAssign,
-      )
-    ) {
-      return;
-    }
-
-    setSelectedInstructorIdToAssign(instructorsForAssignment[0]?.instructorId ?? "");
-  }, [instructorsForAssignment, selectedInstructorIdToAssign]);
-
-  const handleEnrollStudent = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!selectedEnrollmentCourseId) {
-      toast({
-        title: t("syllabus.noCoursSelected"),
-        description: t("syllabus.selectCourseBeforeEnrolling"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!selectedStudentIdToEnroll) {
-      toast({
-        title: t("syllabus.noStudentSelected"),
-        description: t("syllabus.selectStudentToEnroll"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsEnrollingStudent(true);
-    try {
-      await enrollStudentInCourse({
-        schoolId: selectedSchoolId,
-        courseId: selectedEnrollmentCourseId,
-        studentId: selectedStudentIdToEnroll,
-      });
-
-      await Promise.all([
-        refetchCourseEnrollmentDetails(),
-        refetchCoursesForEnrollment(),
-        refetchClosedCourses(),
-        refetchStudentsForEnrollment(),
-      ]);
-
-      setSelectedStudentIdToEnroll("");
-      toast({
-        title: t("syllabus.studentEnrolled"),
-        description: t("syllabus.studentEnrolled_desc"),
-      });
-    } catch (enrollError: unknown) {
-      toast({
-        title: t("syllabus.enrollmentFailed"),
-        description:
-          enrollError instanceof Error ? enrollError.message : t("syllabus.unableEnrollStudent"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsEnrollingStudent(false);
-    }
-  };
-
-  const handleAssignInstructor = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!selectedAssignmentCourseId) {
-      toast({
-        title: t("syllabus.noCoursSelected"),
-        description: t("syllabus.selectCourseBeforeAssigning"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!selectedInstructorIdToAssign) {
-      toast({
-        title: t("syllabus.noInstructorSelected"),
-        description: t("syllabus.selectInstructorToAssign"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAssigningInstructor(true);
-    try {
-      await assignInstructorToCourse({
-        schoolId: selectedSchoolId,
-        courseId: selectedAssignmentCourseId,
-        instructorId: selectedInstructorIdToAssign,
-      });
-
-      await Promise.all([
-        refetchCourseInstructorDetails(),
-        refetchCoursesForEnrollment(),
-        refetchClosedCourses(),
-        refetchInstructorsForAssignment(),
-      ]);
-
-      setSelectedInstructorIdToAssign("");
-
-      toast({
-        title: t("syllabus.instructorAssigned"),
-        description: t("syllabus.instructorAssigned_desc"),
-      });
-    } catch (assignError: unknown) {
-      toast({
-        title: t("syllabus.assignmentFailed"),
-        description:
-          assignError instanceof Error ? assignError.message : t("syllabus.unableAssignInstructor"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsAssigningInstructor(false);
-    }
-  };
-
-  const handleCreateCourse = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!newCourseTemplateVersionId) {
-      toast({
-        title: t("syllabus.missingTemplate"),
-        description: t("syllabus.selectFinalVersion"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const parsedMinCapacity =
-      newCourseMinCapacity.trim() === "" ? null : Number(newCourseMinCapacity);
-    const parsedMaxCapacity =
-      newCourseMaxCapacity.trim() === "" ? null : Number(newCourseMaxCapacity);
-    const parsedHourlyRate =
-      newCourseHourlyRate.trim() === "" ? null : Number(newCourseHourlyRate);
-
-    if (parsedMinCapacity != null && (!Number.isInteger(parsedMinCapacity) || parsedMinCapacity <= 0)) {
-      toast({
-        title: t("syllabus.invalidMinCapacity"),
-        description: t("syllabus.minCapacityPositiveInteger"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (parsedMaxCapacity != null && (!Number.isInteger(parsedMaxCapacity) || parsedMaxCapacity <= 0)) {
-      toast({
-        title: t("syllabus.invalidMaxCapacity"),
-        description: t("syllabus.maxCapacityPositiveInteger"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      parsedMinCapacity != null &&
-      parsedMaxCapacity != null &&
-      parsedMinCapacity > parsedMaxCapacity
-    ) {
-      toast({
-        title: t("syllabus.invalidCapacityRange"),
-        description: t("syllabus.minCannotGreaterThanMax"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      parsedHourlyRate != null &&
-      (!Number.isInteger(parsedHourlyRate) || parsedHourlyRate <= 0)
-    ) {
-      toast({
-        title: t("syllabus.invalidHourlyRate"),
-        description: t("syllabus.hourlyRatePositiveInteger"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (parsedHourlyRate == null && managedSchoolDefaultHourlyRate == null) {
-      toast({
-        title: t("syllabus.missingHourlyRate"),
-        description: t("syllabus.hourlyRateRequired"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreatingCourse(true);
-    try {
-      await createCourseFromFinalSyllabus({
-        schoolId: selectedSchoolId,
-        syllabusVersionId: newCourseTemplateVersionId,
-        startDate: newCourseStartDate
-          ? new Date(`${newCourseStartDate}T00:00:00.000Z`).toISOString()
-          : null,
-        minCapacity: parsedMinCapacity,
-        maxCapacity: parsedMaxCapacity,
-        hourlyRate: parsedHourlyRate,
-      });
-
-      await Promise.all([
-        refetchCoursesForEnrollment(),
-        refetchClosedCourses(),
-        refetchCourseEnrollmentDetails(),
-        refetchCourseInstructorDetails(),
-      ]);
-
-      setNewCourseTemplateVersionId("");
-      setNewCourseStartDate("");
-      setNewCourseMinCapacity("");
-      setNewCourseMaxCapacity("");
-      setNewCourseHourlyRate(managedSchoolDefaultHourlyRate != null ? String(managedSchoolDefaultHourlyRate) : "");
-
-      toast({
+  const createCourse = useWaspMutation(
+    (args: Parameters<typeof createCourseFromFinalSyllabus>[0]) => createCourseFromFinalSyllabus(args),
+    {
+      successToast: {
         title: t("syllabus.courseCreated"),
         description: t("syllabus.courseCreated_desc"),
-      });
-    } catch (createCourseError: unknown) {
-      toast({
+      },
+      errorToast: {
         title: t("syllabus.courseCreationFailed"),
-        description:
-          createCourseError instanceof Error
-            ? createCourseError.message
-            : t("syllabus.unableCreateCourse"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingCourse(false);
-    }
-  };
+        fallbackDescription: t("syllabus.unableCreateCourse"),
+      },
+      onSuccess: () =>
+        form.reset({
+          templateVersionId: "",
+          startDate: getDefaultCourseStartDate(),
+          minCapacity: "",
+          maxCapacity: "",
+          hourlyRate: managedSchoolDefaultHourlyRate != null ? String(managedSchoolDefaultHourlyRate) : "",
+        }),
+    },
+  );
 
-  const handleOpenCloseCourseDialog = (course: EnrollmentCourseItem) => {
-    setPendingCloseCourse(course);
-    setIsCloseDialogOpen(true);
-  };
+  const handleCreateCourse = form.handleSubmit(async (values) => {
+    const parsedMinCapacity = values.minCapacity.trim() === "" ? null : Number(values.minCapacity);
+    const parsedMaxCapacity = values.maxCapacity.trim() === "" ? null : Number(values.maxCapacity);
+    const parsedHourlyRate = values.hourlyRate.trim() === "" ? null : Number(values.hourlyRate);
 
-  const handleOpenReopenCourseDialog = (course: EnrollmentCourseItem) => {
-    setPendingReopenCourse(course);
-    setIsReopenDialogOpen(true);
-  };
-
-  const handleCloseCourse = async () => {
-    if (!pendingCloseCourse) {
+    if (parsedHourlyRate == null && managedSchoolDefaultHourlyRate == null) {
+      form.setError("hourlyRate", { message: t("syllabus.hourlyRateRequired") });
       return;
     }
 
-    setIsClosingCourse(true);
-    try {
-      await closeCourse({
-        schoolId: selectedSchoolId,
-        courseId: pendingCloseCourse.courseId,
-      });
+    await createCourse.mutate({
+      schoolId: selectedSchoolId,
+      syllabusVersionId: values.templateVersionId,
+      startDate: values.startDate ? new Date(`${values.startDate}T00:00:00.000Z`).toISOString() : null,
+      minCapacity: parsedMinCapacity,
+      maxCapacity: parsedMaxCapacity,
+      hourlyRate: parsedHourlyRate,
+    });
+  });
 
-      await Promise.all([
-        refetchCoursesForEnrollment(),
-        refetchClosedCourses(),
-        refetchCourseEnrollmentDetails(),
-        refetchCourseInstructorDetails(),
-      ]);
+  const enrollStudent = useWaspMutation(
+    (args: { schoolId: string; courseId: string; studentId: string }) => enrollStudentInCourse(args),
+    {
+      successToast: {
+        title: t("syllabus.studentEnrolled"),
+        description: t("syllabus.studentEnrolled_desc"),
+      },
+      errorToast: { title: t("syllabus.enrollmentFailed"), fallbackDescription: t("syllabus.unableEnrollStudent") },
+      onSuccess: () => setStudentOverride(""),
+    },
+  );
 
-      toast({
-        title: t("syllabus.courseClosed"),
-        description: t("syllabus.courseClosed_desc"),
-      });
+  async function handleEnrollStudent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedEnrollmentCourseId || !selectedStudentIdToEnroll) return;
+    await enrollStudent.mutate({
+      schoolId: selectedSchoolId,
+      courseId: selectedEnrollmentCourseId,
+      studentId: selectedStudentIdToEnroll,
+    });
+  }
 
-      setIsCloseDialogOpen(false);
-      setPendingCloseCourse(null);
-    } catch (closeCourseError: unknown) {
-      toast({
-        title: t("syllabus.closeCourseFailed"),
-        description:
-          closeCourseError instanceof Error
-            ? closeCourseError.message
-            : t("syllabus.unableCloseCourse"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsClosingCourse(false);
-    }
-  };
+  const assignInstructor = useWaspMutation(
+    (args: { schoolId: string; courseId: string; instructorId: string }) => assignInstructorToCourse(args),
+    {
+      successToast: {
+        title: t("syllabus.instructorAssigned"),
+        description: t("syllabus.instructorAssigned_desc"),
+      },
+      errorToast: {
+        title: t("syllabus.assignmentFailed"),
+        fallbackDescription: t("syllabus.unableAssignInstructor"),
+      },
+      onSuccess: () => setInstructorOverride(""),
+    },
+  );
 
-  const handleReopenCourse = async () => {
-    if (!pendingReopenCourse) {
-      return;
-    }
+  async function handleAssignInstructor(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedAssignmentCourseId || !selectedInstructorIdToAssign) return;
+    await assignInstructor.mutate({
+      schoolId: selectedSchoolId,
+      courseId: selectedAssignmentCourseId,
+      instructorId: selectedInstructorIdToAssign,
+    });
+  }
 
-    setIsReopeningCourse(true);
-    try {
-      await reopenCourse({
-        schoolId: selectedSchoolId,
-        courseId: pendingReopenCourse.courseId,
-      });
+  const closeCourseAction = useWaspMutation(
+    (args: { schoolId: string; courseId: string }) => closeCourse(args),
+    {
+      successToast: { title: t("syllabus.courseClosed"), description: t("syllabus.courseClosed_desc") },
+      errorToast: { title: t("syllabus.closeCourseFailed"), fallbackDescription: t("syllabus.unableCloseCourse") },
+      onSuccess: () => {
+        setIsCloseDialogOpen(false);
+        setPendingCloseCourse(null);
+      },
+    },
+  );
 
-      await Promise.all([
-        refetchCoursesForEnrollment(),
-        refetchClosedCourses(),
-        refetchCourseEnrollmentDetails(),
-        refetchCourseInstructorDetails(),
-      ]);
+  async function handleCloseCourse() {
+    if (!pendingCloseCourse) return;
+    await closeCourseAction.mutate({ schoolId: selectedSchoolId, courseId: pendingCloseCourse.courseId });
+  }
 
-      toast({
-        title: t("syllabus.courseReopened"),
-        description: t("syllabus.courseReopened_desc"),
-      });
-
-      setIsReopenDialogOpen(false);
-      setPendingReopenCourse(null);
-    } catch (reopenCourseError: unknown) {
-      toast({
+  const reopenCourseAction = useWaspMutation(
+    (args: { schoolId: string; courseId: string }) => reopenCourse(args),
+    {
+      successToast: { title: t("syllabus.courseReopened"), description: t("syllabus.courseReopened_desc") },
+      errorToast: {
         title: t("syllabus.reopenCourseFailed"),
-        description:
-          reopenCourseError instanceof Error
-            ? reopenCourseError.message
-            : t("syllabus.unableReopenCourse"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsReopeningCourse(false);
-    }
-  };
+        fallbackDescription: t("syllabus.unableReopenCourse"),
+      },
+      onSuccess: () => {
+        setIsReopenDialogOpen(false);
+        setPendingReopenCourse(null);
+      },
+    },
+  );
+
+  async function handleReopenCourse() {
+    if (!pendingReopenCourse) return;
+    await reopenCourseAction.mutate({ schoolId: selectedSchoolId, courseId: pendingReopenCourse.courseId });
+  }
+
+  // -------------------------------------------------------------------------
+  // Render helpers
+  // -------------------------------------------------------------------------
 
   const renderCourseSelectField = (
     id: string,
@@ -642,9 +445,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
         <SelectItem key={course.courseId} value={course.courseId}>
           {course.syllabusName} (v{course.syllabusVersion}) •{" "}
-          {course.startDate
-            ? new Date(course.startDate).toLocaleDateString()
-            : t("syllabus.noStartDate")}
+          {course.startDate ? new Date(course.startDate).toLocaleDateString() : t("syllabus.noStartDate")}
         </SelectItem>
       ))}
     </LabeledSelectField>
@@ -655,12 +456,10 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     actionButton: ReactNode,
     includeTotalPrice: boolean,
     includeSummaryTestId: boolean,
-    includeDetailLink = false,
   ) => (
     <ManagerCoursesCourseListItem
       key={course.courseId}
       action={actionButton}
-      detailHref={includeDetailLink ? `/school-manager/courses/${course.courseId}` : undefined}
       title={`${course.syllabusName} (v${course.syllabusVersion})`}
       summaryTestId={includeSummaryTestId ? `manager-course-summary-${course.courseId}` : undefined}
       summary={
@@ -668,27 +467,23 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           {t("syllabus.enrolledStudents", { count: course.enrolledCount })} •{" "}
           {includeTotalPrice
             ? course.hourlyRate != null
-              ? t("syllabus.totalPriceValue", {
-                  price: course.hourlyRate * course.enrolledCount,
-                })
+              ? t("syllabus.totalPriceValue", { price: course.hourlyRate * course.enrolledCount })
               : t("syllabus.noTotalPrice")
             : null}
           {includeTotalPrice ? " • " : null}
-          {course.startDate
-            ? new Date(course.startDate).toLocaleDateString()
-            : t("syllabus.startDate")}
+          {course.startDate ? new Date(course.startDate).toLocaleDateString() : t("syllabus.startDate")}
         </>
       }
     />
   );
 
   const renderParticipantRow = (id: string, displayName: string, email: string | null) => (
-    <ManagerCoursesParticipantListItem
-      key={id}
-      displayName={displayName}
-      email={email ?? "—"}
-    />
+    <ManagerCoursesParticipantListItem key={id} displayName={displayName} email={email ?? "—"} />
   );
+
+  // -------------------------------------------------------------------------
+  // JSX
+  // -------------------------------------------------------------------------
 
   return (
     <DefaultLayout user={user}>
@@ -704,63 +499,93 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               <ManagerCoursesLoadingText>{t("syllabus.loadingCatalog")}</ManagerCoursesLoadingText>
             ) : (
               <ManagerCoursesForm onSubmit={handleCreateCourse} variant="compact">
-                <LabeledSelectField
-                  id="create-course-template-version"
-                  label={t("syllabus.selectFinalVersion")}
-                  value={newCourseTemplateVersionId}
-                  onValueChange={setNewCourseTemplateVersionId}
-                  placeholder={t("syllabus.finalTemplatePlaceholder")}
-                >
-                  {finalCandidates.map((item: CatalogItem) => (
-                    <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
-                      {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
-                    </SelectItem>
-                  ))}
-                </LabeledSelectField>
+                <Controller
+                  control={form.control}
+                  name="templateVersionId"
+                  render={({ field }) => (
+                    <LabeledSelectField
+                      id="create-course-template-version"
+                      label={t("syllabus.selectFinalVersion")}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder={t("syllabus.finalTemplatePlaceholder")}
+                    >
+                      {finalCandidates.map((item: CatalogItem) => (
+                        <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
+                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
+                        </SelectItem>
+                      ))}
+                    </LabeledSelectField>
+                  )}
+                />
 
-                <LabeledInputField
-                  id="manager-course-start-date"
-                  label={t("syllabus.startDateLabel")}
-                  type="date"
-                  value={newCourseStartDate}
-                  onChange={setNewCourseStartDate}
+                <Controller
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <LabeledInputField
+                      id="manager-course-start-date"
+                      label={t("syllabus.startDateLabel")}
+                      type="date"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
 
                 <ManagerCoursesTwoColumnFields>
-                  <LabeledInputField
-                    id="manager-course-min-capacity"
-                    label={t("syllabus.minCapacityLabel")}
-                    type="number"
-                    min={1}
-                    value={newCourseMinCapacity}
-                    onChange={setNewCourseMinCapacity}
+                  <Controller
+                    control={form.control}
+                    name="minCapacity"
+                    render={({ field }) => (
+                      <LabeledInputField
+                        id="manager-course-min-capacity"
+                        label={t("syllabus.minCapacityLabel")}
+                        type="number"
+                        min={1}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
                   />
-                  <LabeledInputField
-                    id="manager-course-max-capacity"
-                    label={t("syllabus.maxCapacityLabel")}
-                    type="number"
-                    min={1}
-                    value={newCourseMaxCapacity}
-                    onChange={setNewCourseMaxCapacity}
+                  <Controller
+                    control={form.control}
+                    name="maxCapacity"
+                    render={({ field }) => (
+                      <LabeledInputField
+                        id="manager-course-max-capacity"
+                        label={t("syllabus.maxCapacityLabel")}
+                        type="number"
+                        min={1}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
                   />
                 </ManagerCoursesTwoColumnFields>
 
-                <LabeledInputField
-                  id="manager-course-hourly-rate"
-                  label={
-                    managedSchoolDefaultHourlyRate != null
-                      ? t("syllabus.courseHourlyRateLabel")
-                      : t("syllabus.courseHourlyRateRequiredLabel")
-                  }
-                  type="number"
-                  min={1}
-                  value={newCourseHourlyRate}
-                  onChange={setNewCourseHourlyRate}
-                  required={managedSchoolDefaultHourlyRate == null}
+                <Controller
+                  control={form.control}
+                  name="hourlyRate"
+                  render={({ field }) => (
+                    <LabeledInputField
+                      id="manager-course-hourly-rate"
+                      label={
+                        managedSchoolDefaultHourlyRate != null
+                          ? t("syllabus.courseHourlyRateLabel")
+                          : t("syllabus.courseHourlyRateRequiredLabel")
+                      }
+                      type="number"
+                      min={1}
+                      value={field.value}
+                      onChange={field.onChange}
+                      required={managedSchoolDefaultHourlyRate == null}
+                    />
+                  )}
                 />
 
-                <Button type="submit" disabled={isCreatingCourse || finalCandidates.length === 0}>
-                  {isCreatingCourse ? t("syllabus.creatingCourse") : t("syllabus.createCourseButton")}
+                <Button type="submit" disabled={createCourse.isPending || finalCandidates.length === 0}>
+                  {createCourse.isPending ? t("syllabus.creatingCourse") : t("syllabus.createCourseButton")}
                 </Button>
               </ManagerCoursesForm>
             )}
@@ -776,47 +601,46 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
             ) : (
               <ManagerCoursesList>
-                {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
+                {coursesForEnrollment.map((course: EnrollmentCourseItem) =>
                   renderCourseRow(
                     course,
                     <Button
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleOpenCloseCourseDialog(course)}
+                      onClick={() => { setPendingCloseCourse(course); setIsCloseDialogOpen(true); }}
                     >
                       {t("syllabus.closeCourseButton")}
                     </Button>,
                     true,
                     true,
-                    true,
-                  )
-                ))}
+                  ),
+                )}
               </ManagerCoursesList>
             )}
 
             <ManagerCoursesDisclosure summary={t("syllabus.closedCoursesPanel", { count: closedCourses.length })}>
-                {closedCourses.length === 0 ? (
-                  <ManagerCoursesMutedText>{t("syllabus.noClosedCourses")}</ManagerCoursesMutedText>
-                ) : (
-                  <ManagerCoursesList>
-                    {closedCourses.map((course: EnrollmentCourseItem) => (
-                      renderCourseRow(
-                        course,
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenReopenCourseDialog(course)}
-                        >
-                          {t("syllabus.reopenCourseButton")}
-                        </Button>,
-                        false,
-                        false,
-                      )
-                    ))}
-                  </ManagerCoursesList>
-                )}
+              {closedCourses.length === 0 ? (
+                <ManagerCoursesMutedText>{t("syllabus.noClosedCourses")}</ManagerCoursesMutedText>
+              ) : (
+                <ManagerCoursesList>
+                  {closedCourses.map((course: EnrollmentCourseItem) =>
+                    renderCourseRow(
+                      course,
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setPendingReopenCourse(course); setIsReopenDialogOpen(true); }}
+                      >
+                        {t("syllabus.reopenCourseButton")}
+                      </Button>,
+                      false,
+                      false,
+                    ),
+                  )}
+                </ManagerCoursesList>
+              )}
             </ManagerCoursesDisclosure>
           </ManagerCoursesCardContent>
         </Card>
@@ -833,14 +657,14 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 "enrollment-course-select",
                 t("syllabus.course"),
                 selectedEnrollmentCourseId ?? "",
-                (val) => setSelectedEnrollmentCourseId(val || null),
+                (val) => setEnrollmentCourseOverride(val || null),
               )}
 
               <LabeledSelectField
                 id="enrollment-student-select"
                 label={t("syllabus.student")}
                 value={selectedStudentIdToEnroll}
-                onValueChange={setSelectedStudentIdToEnroll}
+                onValueChange={setStudentOverride}
                 placeholder={t("syllabus.studentPlaceholder")}
               >
                 {studentsForEnrollment.map((student: EnrollmentStudentItem) => (
@@ -850,29 +674,25 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 ))}
               </LabeledSelectField>
 
-              <Button type="submit" disabled={isEnrollingStudent}>
-                {isEnrollingStudent ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
+              <Button type="submit" disabled={enrollStudent.isPending}>
+                {enrollStudent.isPending ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
               </Button>
             </ManagerCoursesForm>
 
             <ManagerCoursesDetailsPanel
-              title={t("syllabus.enrolledStudents", {
-                count: courseEnrollmentDetails?.enrolledCount ?? 0,
-              })}
+              title={t("syllabus.enrolledStudents", { count: courseEnrollmentDetails?.enrolledCount ?? 0 })}
             >
               {!selectedEnrollmentCourseId ? (
-                <ManagerCoursesMutedText>
-                  {t("syllabus.selectCourseToViewEnrolled")}
-                </ManagerCoursesMutedText>
+                <ManagerCoursesMutedText>{t("syllabus.selectCourseToViewEnrolled")}</ManagerCoursesMutedText>
               ) : !courseEnrollmentDetails ? (
                 <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
               ) : courseEnrollmentDetails.enrolledStudents.length === 0 ? (
                 <ManagerCoursesMutedText>{t("syllabus.noStudentsEnrolled")}</ManagerCoursesMutedText>
               ) : (
                 <ManagerCoursesList>
-                  {courseEnrollmentDetails.enrolledStudents.map((student) => (
-                    renderParticipantRow(student.studentId, student.displayName, student.email)
-                  ))}
+                  {courseEnrollmentDetails.enrolledStudents.map((student) =>
+                    renderParticipantRow(student.studentId, student.displayName, student.email),
+                  )}
                 </ManagerCoursesList>
               )}
             </ManagerCoursesDetailsPanel>
@@ -889,14 +709,14 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 "assignment-course-select",
                 t("syllabus.course"),
                 selectedAssignmentCourseId ?? "",
-                (val) => setSelectedAssignmentCourseId(val || null),
+                (val) => setAssignmentCourseOverride(val || null),
               )}
 
               <LabeledSelectField
                 id="assignment-instructor-select"
                 label={t("syllabus.instructor")}
                 value={selectedInstructorIdToAssign}
-                onValueChange={setSelectedInstructorIdToAssign}
+                onValueChange={setInstructorOverride}
                 placeholder={t("syllabus.instructorPlaceholder")}
               >
                 {instructorsForAssignment.map((inst: AssignmentInstructorItem) => (
@@ -906,33 +726,25 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 ))}
               </LabeledSelectField>
 
-              <Button type="submit" disabled={isAssigningInstructor}>
-                {isAssigningInstructor ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
+              <Button type="submit" disabled={assignInstructor.isPending}>
+                {assignInstructor.isPending ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
               </Button>
             </ManagerCoursesForm>
 
             <ManagerCoursesDetailsPanel
-              title={t("syllabus.assignedInstructors", {
-                count: courseInstructorDetails?.assignedCount ?? 0,
-              })}
+              title={t("syllabus.assignedInstructors", { count: courseInstructorDetails?.assignedCount ?? 0 })}
             >
               {!selectedAssignmentCourseId ? (
-                <ManagerCoursesMutedText>
-                  {t("syllabus.selectCourseToViewAssigned")}
-                </ManagerCoursesMutedText>
+                <ManagerCoursesMutedText>{t("syllabus.selectCourseToViewAssigned")}</ManagerCoursesMutedText>
               ) : !courseInstructorDetails ? (
                 <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
               ) : courseInstructorDetails.assignedInstructors.length === 0 ? (
                 <ManagerCoursesMutedText>{t("syllabus.noInstructorsAssigned")}</ManagerCoursesMutedText>
               ) : (
                 <ManagerCoursesList>
-                  {courseInstructorDetails.assignedInstructors.map((instructor) => (
-                    renderParticipantRow(
-                      instructor.instructorId,
-                      instructor.displayName,
-                      instructor.email,
-                    )
-                  ))}
+                  {courseInstructorDetails.assignedInstructors.map((instructor) =>
+                    renderParticipantRow(instructor.instructorId, instructor.displayName, instructor.email),
+                  )}
                 </ManagerCoursesList>
               )}
             </ManagerCoursesDetailsPanel>
@@ -1011,20 +823,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setIsCloseDialogOpen(false);
-                setPendingCloseCourse(null);
-              }}
+              onClick={() => { setIsCloseDialogOpen(false); setPendingCloseCourse(null); }}
             >
               {t("syllabus.cancel")}
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleCloseCourse}
-              disabled={isClosingCourse}
-            >
-              {isClosingCourse ? t("syllabus.closingCourse") : t("syllabus.confirmCloseCourseButton")}
+            <Button type="button" variant="destructive" onClick={handleCloseCourse} disabled={closeCourseAction.isPending}>
+              {closeCourseAction.isPending ? t("syllabus.closingCourse") : t("syllabus.confirmCloseCourseButton")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1046,19 +850,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setIsReopenDialogOpen(false);
-                setPendingReopenCourse(null);
-              }}
+              onClick={() => { setIsReopenDialogOpen(false); setPendingReopenCourse(null); }}
             >
               {t("syllabus.cancel")}
             </Button>
-            <Button
-              type="button"
-              onClick={handleReopenCourse}
-              disabled={isReopeningCourse}
-            >
-              {isReopeningCourse ? t("syllabus.reopeningCourse") : t("syllabus.confirmReopenCourseButton")}
+            <Button type="button" onClick={handleReopenCourse} disabled={reopenCourseAction.isPending}>
+              {reopenCourseAction.isPending ? t("syllabus.reopeningCourse") : t("syllabus.confirmReopenCourseButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

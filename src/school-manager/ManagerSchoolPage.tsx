@@ -9,6 +9,7 @@ import ManagerSchoolPageContent, {
   type ManagedSchoolDraft,
 } from "../client/components/patterns/ManagerSchoolPageContent";
 import { toast } from "../client/hooks/use-toast";
+import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const { getMyManagedSchool, updateMyManagedSchool, useQuery } = operations as any;
@@ -25,13 +26,23 @@ function normalizeWebsiteUrl(value: string): string {
 
 const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
-  const { data, isLoading, error, refetch } = useQuery(getMyManagedSchool);
+  const { data, isLoading, error } = useQuery(getMyManagedSchool);
   const schools = useMemo(() => (data as ManagedSchool[] | undefined) ?? [], [data]);
   const { selectedSchool } = useManagedSchoolSelection(schools);
   const [schoolDraftBySchoolId, setSchoolDraftBySchoolId] = useState<
     Record<string, ManagedSchoolDraft>
   >({});
   const [savingSchoolId, setSavingSchoolId] = useState<string | null>(null);
+
+  const saveSchool = useWaspMutation(
+    (args: Parameters<typeof updateMyManagedSchool>[0]) => updateMyManagedSchool(args),
+    {
+      successToast: { title: t("school.updatedSuccess"), description: t("school.updateSuccessMessage") },
+      errorToast: { title: t("school.updateFailedMessage"), fallbackDescription: t("school.updateErrorMessage") },
+      onSuccess: () => setSavingSchoolId(null),
+      onError: () => setSavingSchoolId(null),
+    },
+  );
 
   const getSchoolDraft = (school: ManagedSchool): ManagedSchoolDraft => {
     const cached = schoolDraftBySchoolId[school.id];
@@ -86,35 +97,18 @@ const ManagerSchoolPage = ({ user }: { user: AuthUser }) => {
     }
 
     setSavingSchoolId(school.id);
-    try {
-      await updateMyManagedSchool({
-        schoolId: school.id,
-        name: draft.name,
-        websiteUrl: draft.websiteUrl,
-        logoUrl: draft.logoUrl,
-        addressLine1: draft.addressLine1,
-        addressLine2: draft.addressLine2,
-        city: draft.city,
-        stateProvince: draft.stateProvince,
-        postalCode: draft.postalCode,
-        defaultHourlyRate: parsedDefaultHourlyRate,
-      });
-
-      await refetch();
-
-      toast({
-        title: t("school.updatedSuccess"),
-        description: t("school.updateSuccessMessage"),
-      });
-    } catch (updateError: unknown) {
-      toast({
-        title: t("school.updateFailedMessage"),
-        description: updateError instanceof Error ? updateError.message : t("school.updateErrorMessage"),
-        variant: "destructive",
-      });
-    } finally {
-      setSavingSchoolId(null);
-    }
+    await saveSchool.mutate({
+      schoolId: school.id,
+      name: draft.name,
+      websiteUrl: draft.websiteUrl,
+      logoUrl: draft.logoUrl,
+      addressLine1: draft.addressLine1,
+      addressLine2: draft.addressLine2,
+      city: draft.city,
+      stateProvince: draft.stateProvince,
+      postalCode: draft.postalCode,
+      defaultHourlyRate: parsedDefaultHourlyRate,
+    });
   };
 
   return (

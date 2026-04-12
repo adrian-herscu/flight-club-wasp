@@ -1346,15 +1346,19 @@ export const assignInstructorToCourse = async (
     });
   }
 
-  await prisma.assignedInstructor.upsert({
+  const existing = await prisma.assignedInstructor.findUnique({
     where: { courseId_instructorId: { courseId, instructorId } },
-    create: {
+    select: { instructorId: true },
+  });
+
+  if (existing) {
+    throw new HttpError(409, "Instructor is already assigned to this course.");
+  }
+
+  await prisma.assignedInstructor.create({
+    data: {
       courseId,
       instructorId,
-      isLead: isLead ?? false,
-      agreedWagePerHour: agreedWagePerHour ?? null,
-    },
-    update: {
       isLead: isLead ?? false,
       agreedWagePerHour: agreedWagePerHour ?? null,
     },

@@ -1,5 +1,8 @@
 import { SyllabusVersionStatus } from "@prisma/client";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
 import { type AuthUser } from "wasp/auth";
@@ -11,6 +14,7 @@ import {
   ManagerSyllabusesPageContent,
 } from "../client/components/patterns/ManagerSyllabusesPagePatterns";
 import { toast } from "../client/hooks/use-toast";
+import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
@@ -80,10 +84,31 @@ const initialLesson = (position = 1): LessonDraft => ({
   durationMinutes: 45,
 });
 
+// ---------------------------------------------------------------------------
+// Zod schemas for the two create forms
+// ---------------------------------------------------------------------------
+
+const createFromTemplateSchema = z.object({
+  templateVersionId: z.string().min(1),
+  newSyllabusName: z.string().min(1),
+});
+
+const createFromScratchSchema = z.object({
+  scratchName: z.string().min(1),
+});
+
+type CreateFromTemplateValues = z.infer<typeof createFromTemplateSchema>;
+type CreateFromScratchValues = z.infer<typeof createFromScratchSchema>;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+
   const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
   const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
   const { selectedSchoolId, setSelectedSchoolId } = useManagedSchoolSelection(managedSchools);
@@ -92,14 +117,12 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     data: catalogData,
     isLoading,
     error,
-    refetch: refetchCatalog,
   } = useQuery(getManagerSyllabusCatalog, { schoolId: selectedSchoolId });
 
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const {
     data: versionDetailsData,
     isLoading: isVersionLoading,
-    refetch: refetchVersion,
   } = useQuery(getSyllabusVersionDetails, {
     schoolId: selectedSchoolId,
     syllabusVersionId: selectedVersionId,
@@ -111,11 +134,11 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
   const editableDrafts = catalog?.editableDrafts ?? [];
 
-  const [templateVersionId, setTemplateVersionId] = useState<string>("");
-  const [newSyllabusName, setNewSyllabusName] = useState("");
-  const [scratchName, setScratchName] = useState("");
   const sectionContentRef = useRef<HTMLDivElement | null>(null);
   const hasChangedSectionRef = useRef(false);
+
+  const syllabusesBasePath =
+    user.isSystemAdmin ? "/system-admin/syllabuses" : "/school-manager/syllabuses";
 
   const activeSection = useMemo<ManagerSyllabusesSection>(() => {
     const section = new URLSearchParams(location.search).get("section");
@@ -125,200 +148,249 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     return "catalog";
   }, [location.search]);
 
-  const [lessonDrafts, setLessonDrafts] = useState<LessonDraft[]>([initialLesson()]);
-  const [isSavingRevision, setIsSavingRevision] = useState(false);
-  const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
-  const [isCreatingFromScratch, setIsCreatingFromScratch] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [draftPendingDelete, setDraftPendingDelete] = useState<CatalogItem | null>(null);
-  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
-  const [isDeletingDraft, setIsDeletingDraft] = useState(false);
-  const [isDeletingAllDrafts, setIsDeletingAllDrafts] = useState(false);
-  const syllabusesBasePath =
-    user.isSystemAdmin ? "/system-admin/syllabuses" : "/school-manager/syllabuses";
-
   const goToSection = (section: ManagerSyllabusesSection) => {
     hasChangedSectionRef.current = true;
     const params = new URLSearchParams(location.search);
     params.set("section", section);
-    navigate(
-      {
-        pathname: syllabusesBasePath,
-        search: `?${params.toString()}`,
-      },
-      { replace: false },
-    );
+    navigate({ pathname: syllabusesBasePath, search: `?${params.toString()}` }, { replace: false });
   };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const section = params.get("section");
-    if (section && validSections.includes(section as ManagerSyllabusesSection)) {
-      return;
-    }
+    if (section && validSections.includes(section as ManagerSyllabusesSection)) return;
 
     params.set("section", "catalog");
-    navigate(
-      {
-        pathname: syllabusesBasePath,
-        search: `?${params.toString()}`,
-      },
-      { replace: true },
-    );
+    navigate({ pathname: syllabusesBasePath, search: `?${params.toString()}` }, { replace: true });
   }, [location.search, navigate, syllabusesBasePath]);
 
   useEffect(() => {
     if (!hasChangedSectionRef.current) return;
-
-    sectionContentRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    sectionContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeSection]);
 
   const selectedSaveSourceId = useMemo(() => {
     if (!versionDetails) return null;
-
     const isEditableStatus =
       versionDetails.status === SyllabusVersionStatus.DRAFT ||
       versionDetails.status === SyllabusVersionStatus.FINAL;
     if (!isEditableStatus) return null;
-
-    if (user.isSystemAdmin && versionDetails.schoolId !== null) {
+    if (user.isSystemAdmin && versionDetails.schoolId !== null) return null;
+    if (!user.isSystemAdmin && (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId))
       return null;
-    }
-
-    if (
-      !user.isSystemAdmin &&
-      (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId)
-    ) {
-      return null;
-    }
-
     return versionDetails.syllabusVersionId;
   }, [selectedSchoolId, user.isSystemAdmin, versionDetails]);
 
   const selectedDraftId = useMemo(() => {
     if (!versionDetails) return null;
     if (versionDetails.status !== SyllabusVersionStatus.DRAFT) return null;
-
-    if (user.isSystemAdmin && versionDetails.schoolId !== null) {
+    if (user.isSystemAdmin && versionDetails.schoolId !== null) return null;
+    if (!user.isSystemAdmin && (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId))
       return null;
-    }
-
-    if (
-      !user.isSystemAdmin &&
-      (versionDetails.schoolId === null || versionDetails.schoolId !== selectedSchoolId)
-    ) {
-      return null;
-    }
-
     return versionDetails.syllabusVersionId;
   }, [selectedSchoolId, user.isSystemAdmin, versionDetails]);
 
-  const handleCreateFromTemplate = async (event: FormEvent) => {
-    event.preventDefault();
+  // -------------------------------------------------------------------------
+  // RHF forms (Change 1 — replaces 3 form-field useState hooks)
+  // -------------------------------------------------------------------------
 
-    if (!templateVersionId || !newSyllabusName.trim()) {
-      toast({
-        title: t("syllabus.missingInput"),
-        description: t("syllabus.chooseTemplate_desc"),
-        variant: "destructive",
-      });
-      return;
-    }
+  const templateForm = useForm<CreateFromTemplateValues>({
+    resolver: zodResolver(createFromTemplateSchema),
+    defaultValues: { templateVersionId: "", newSyllabusName: "" },
+  });
 
-    setIsCreatingFromTemplate(true);
-    try {
-      const created = await createDraftSyllabusFromTemplate({
-        schoolId: selectedSchoolId,
-        templateVersionId,
-        name: newSyllabusName.trim(),
-      });
-      await refetchCatalog();
-      setSelectedVersionId(created.syllabusVersionId);
-      await refetchVersion();
-      goToSection("details");
-      setTemplateVersionId("");
-      setNewSyllabusName("");
-      toast({
-        title: t("syllabus.draftCreated"),
-        description: t("syllabus.draftCreated_desc"),
-      });
-    } catch (creationError: unknown) {
-      toast({
+  const scratchForm = useForm<CreateFromScratchValues>({
+    resolver: zodResolver(createFromScratchSchema),
+    defaultValues: { scratchName: "" },
+  });
+
+  const [lessonDrafts, setLessonDrafts] = useState<LessonDraft[]>([initialLesson()]);
+
+  // Delete dialog UI state
+  const [draftPendingDelete, setDraftPendingDelete] = useState<CatalogItem | null>(null);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
+
+  // -------------------------------------------------------------------------
+  // Mutations (Change 4 — replaces 6 loading-flag state + try/catch/toast)
+  // -------------------------------------------------------------------------
+
+  const createFromTemplate = useWaspMutation(
+    (args: Parameters<typeof createDraftSyllabusFromTemplate>[0]) => createDraftSyllabusFromTemplate(args),
+    {
+      successToast: { title: t("syllabus.draftCreated"), description: t("syllabus.draftCreated_desc") },
+      errorToast: {
         title: t("syllabus.createFromTemplateFailed"),
-        description:
-          creationError instanceof Error
-            ? creationError.message
-            : t("syllabus.missingName"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingFromTemplate(false);
-    }
-  };
+        fallbackDescription: t("syllabus.missingName"),
+      },
+      onSuccess: (created) => {
+        setSelectedVersionId(created.syllabusVersionId);
+        goToSection("details");
+        templateForm.reset();
+      },
+    },
+  );
 
-  const handleCreateFromScratch = async (event: FormEvent) => {
-    event.preventDefault();
+  const handleCreateFromTemplate = templateForm.handleSubmit(async (values) => {
+    await createFromTemplate.mutate({
+      schoolId: selectedSchoolId,
+      templateVersionId: values.templateVersionId,
+      name: values.newSyllabusName.trim(),
+    });
+  });
 
-    if (!scratchName.trim()) {
-      toast({
-        title: t("syllabus.missingName"),
-        description: t("syllabus.provideName"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (lessonDrafts.some((lesson) => !lesson.name.trim())) {
-      toast({
-        title: t("syllabus.missingLessonNames"),
-        description: t("syllabus.eachLessonMustHaveName"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreatingFromScratch(true);
-    try {
-      const created = await createDraftSyllabusFromScratch({
-        schoolId: selectedSchoolId,
-        name: scratchName.trim(),
-        lessons: lessonDrafts.map((lesson, index) => ({
-          ...lesson,
-          position: index + 1,
-          name: lesson.name.trim(),
-          description: lesson.description.trim(),
-        })),
-      });
-      await refetchCatalog();
-      setSelectedVersionId(created.syllabusVersionId);
-      await refetchVersion();
-      goToSection("details");
-      setScratchName("");
-      setLessonDrafts([initialLesson()]);
-      toast({
+  const createFromScratch = useWaspMutation(
+    (args: Parameters<typeof createDraftSyllabusFromScratch>[0]) => createDraftSyllabusFromScratch(args),
+    {
+      successToast: {
         title: t("syllabus.draftCreated"),
         description: t("syllabus.draftCreated_scratch_desc"),
-      });
-    } catch (creationError: unknown) {
-      toast({
+      },
+      errorToast: {
         title: t("syllabus.createFromScratchFailed"),
-        description:
-          creationError instanceof Error
-            ? creationError.message
-            : t("syllabus.unableCreateScratch"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingFromScratch(false);
+        fallbackDescription: t("syllabus.unableCreateScratch"),
+      },
+      onSuccess: (created) => {
+        setSelectedVersionId(created.syllabusVersionId);
+        goToSection("details");
+        scratchForm.reset();
+        setLessonDrafts([initialLesson()]);
+      },
+    },
+  );
+
+  const handleCreateFromScratch = scratchForm.handleSubmit(async (values) => {
+    if (lessonDrafts.some((lesson) => !lesson.name.trim())) {
+      scratchForm.setError("scratchName", { message: t("syllabus.eachLessonMustHaveName") });
+      return;
     }
+    await createFromScratch.mutate({
+      schoolId: selectedSchoolId,
+      name: values.scratchName.trim(),
+      lessons: lessonDrafts.map((lesson, index) => ({
+        ...lesson,
+        position: index + 1,
+        name: lesson.name.trim(),
+        description: lesson.description.trim(),
+      })),
+    });
+  });
+
+  const saveRevision = useWaspMutation(
+    (args: Parameters<typeof saveDraftSyllabusRevision>[0]) => saveDraftSyllabusRevision(args),
+    {
+      errorToast: {
+        title: t("syllabus.saveFailed"),
+        fallbackDescription: t("syllabus.unableSaveRevision"),
+      },
+      onSuccess: (result) => {
+        setSelectedVersionId(result.syllabusVersionId);
+        goToSection("details");
+        toast({
+          title: t("syllabus.draftRevisionSaved"),
+          description: `${t("syllabus.draftRevisionSaved_desc")} ${result.version}.`,
+        });
+      },
+    },
+  );
+
+  const handleSaveRevision = async () => {
+    if (!selectedSaveSourceId) return;
+    if (lessonDrafts.some((lesson) => !lesson.name.trim())) return;
+    await saveRevision.mutate({
+      schoolId: selectedSchoolId,
+      sourceVersionId: selectedSaveSourceId,
+      lessons: lessonDrafts.map((lesson, index) => ({
+        ...lesson,
+        position: index + 1,
+        name: lesson.name.trim(),
+        description: lesson.description.trim(),
+      })),
+    });
   };
+
+  const publish = useWaspMutation(
+    (args: Parameters<typeof publishDraftSyllabusVersion>[0]) => publishDraftSyllabusVersion(args),
+    {
+      errorToast: {
+        title: t("syllabus.publishFailed"),
+        fallbackDescription: t("syllabus.unablePublish"),
+      },
+      onSuccess: (result) => {
+        setSelectedVersionId(result.syllabusVersionId);
+        goToSection("details");
+        toast({
+          title: t("syllabus.published"),
+          description: `${t("syllabus.published_desc")} (${result.version}) ${t("syllabus.isNowAvailableForCourseOpening")}.`,
+        });
+      },
+    },
+  );
+
+  const handlePublish = async () => {
+    if (!selectedDraftId) return;
+    await publish.mutate({ schoolId: selectedSchoolId, sourceVersionId: selectedDraftId });
+  };
+
+  const deleteDraft = useWaspMutation(
+    (args: Parameters<typeof deleteDraftSyllabusVersion>[0]) => deleteDraftSyllabusVersion(args),
+    {
+      successToast: { title: t("syllabus.draftDeleted"), description: t("syllabus.draftDeleted_desc") },
+      errorToast: {
+        title: t("syllabus.deleteDraftFailed"),
+        fallbackDescription: t("syllabus.unableDeleteDraft"),
+      },
+      onSuccess: (result) => {
+        if (selectedVersionId === result.deletedSyllabusVersionId) {
+          setSelectedVersionId(null);
+        }
+        setDraftPendingDelete(null);
+      },
+    },
+  );
+
+  const handleDeleteDraft = async () => {
+    if (!draftPendingDelete) return;
+    await deleteDraft.mutate({
+      schoolId: selectedSchoolId,
+      sourceVersionId: draftPendingDelete.syllabusVersionId,
+    });
+  };
+
+  const deleteAllDrafts = useWaspMutation(
+    (args: Parameters<typeof deleteAllEditableDraftSyllabusVersions>[0]) =>
+      deleteAllEditableDraftSyllabusVersions(args),
+    {
+      errorToast: {
+        title: t("syllabus.deleteAllDraftsFailed"),
+        fallbackDescription: t("syllabus.unableDeleteAllDrafts"),
+      },
+      onSuccess: (result) => {
+        if (selectedVersionId) setSelectedVersionId(null);
+        setIsDeleteAllDialogOpen(false);
+        toast({
+          title: t("syllabus.draftsDeleted"),
+          description:
+            result.skippedInUseCount > 0
+              ? t("syllabus.draftsDeletedWithSkipped_desc", {
+                  deletedCount: result.deletedCount,
+                  skippedCount: result.skippedInUseCount,
+                })
+              : t("syllabus.draftsDeleted_desc", { count: result.deletedCount }),
+        });
+      },
+    },
+  );
+
+  const handleDeleteAllDrafts = async () => {
+    await deleteAllDrafts.mutate({ schoolId: selectedSchoolId });
+  };
+
+  // -------------------------------------------------------------------------
+  // Lesson editor helpers (unchanged — not a form input)
+  // -------------------------------------------------------------------------
 
   const loadLessonsIntoEditor = () => {
     if (!versionDetails) return;
-
     setLessonDrafts(
       versionDetails.lessons.map((lesson) => ({
         position: lesson.position,
@@ -330,185 +402,9 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
     goToSection("editor");
   };
 
-  const handleSaveRevision = async () => {
-    if (!selectedSaveSourceId) {
-      toast({
-        title: t("syllabus.noEditableDraft"),
-        description: t("syllabus.selectDraftBeforeSaving"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (lessonDrafts.some((lesson) => !lesson.name.trim())) {
-      toast({
-        title: t("syllabus.missingLessonNames"),
-        description: t("syllabus.eachLessonMustHaveName"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSavingRevision(true);
-    try {
-      const result = await saveDraftSyllabusRevision({
-        schoolId: selectedSchoolId,
-        sourceVersionId: selectedSaveSourceId,
-        lessons: lessonDrafts.map((lesson, index) => ({
-          ...lesson,
-          position: index + 1,
-          name: lesson.name.trim(),
-          description: lesson.description.trim(),
-        })),
-      });
-
-      await refetchCatalog();
-      setSelectedVersionId(result.syllabusVersionId);
-      await refetchVersion();
-      goToSection("details");
-
-      toast({
-        title: t("syllabus.draftRevisionSaved"),
-        description: `${t("syllabus.draftRevisionSaved_desc")} ${result.version}.`,
-      });
-    } catch (saveError: unknown) {
-      toast({
-        title: t("syllabus.saveFailed"),
-        description:
-          saveError instanceof Error
-            ? saveError.message
-            : t("syllabus.unableSaveRevision"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingRevision(false);
-    }
-  };
-
-  const handlePublish = async () => {
-    if (!selectedDraftId) {
-      toast({
-        title: t("syllabus.noDraftSelected"),
-        description: t("syllabus.chooseDraftBeforePublishing"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsPublishing(true);
-    try {
-      const result = await publishDraftSyllabusVersion({
-        schoolId: selectedSchoolId,
-        sourceVersionId: selectedDraftId,
-      });
-      await refetchCatalog();
-      setSelectedVersionId(result.syllabusVersionId);
-      await refetchVersion();
-      goToSection("details");
-      toast({
-        title: t("syllabus.published"),
-        description: `${t("syllabus.published_desc")} (${result.version}) ${t("syllabus.isNowAvailableForCourseOpening")}.`,
-      });
-    } catch (publishError: unknown) {
-      toast({
-        title: t("syllabus.publishFailed"),
-        description:
-          publishError instanceof Error
-            ? publishError.message
-            : t("syllabus.unablePublish"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  const handleDeleteDraft = async () => {
-    if (!draftPendingDelete) {
-      return;
-    }
-
-    setIsDeletingDraft(true);
-    try {
-      const result = await deleteDraftSyllabusVersion({
-        schoolId: selectedSchoolId,
-        sourceVersionId: draftPendingDelete.syllabusVersionId,
-      });
-
-      await refetchCatalog();
-
-      if (selectedVersionId === result.deletedSyllabusVersionId) {
-        setSelectedVersionId(null);
-        await refetchVersion();
-      }
-
-      setDraftPendingDelete(null);
-
-      toast({
-        title: t("syllabus.draftDeleted"),
-        description: t("syllabus.draftDeleted_desc"),
-      });
-    } catch (deleteError: unknown) {
-      toast({
-        title: t("syllabus.deleteDraftFailed"),
-        description:
-          deleteError instanceof Error
-            ? deleteError.message
-            : t("syllabus.unableDeleteDraft"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingDraft(false);
-    }
-  };
-
-  const handleDeleteAllDrafts = async () => {
-    setIsDeletingAllDrafts(true);
-    try {
-      const result = await deleteAllEditableDraftSyllabusVersions({
-        schoolId: selectedSchoolId,
-      });
-
-      await refetchCatalog();
-
-      if (selectedVersionId) {
-        setSelectedVersionId(null);
-        await refetchVersion();
-      }
-
-      setIsDeleteAllDialogOpen(false);
-
-      toast({
-        title: t("syllabus.draftsDeleted"),
-        description:
-          result.skippedInUseCount > 0
-            ? t("syllabus.draftsDeletedWithSkipped_desc", {
-                deletedCount: result.deletedCount,
-                skippedCount: result.skippedInUseCount,
-              })
-            : t("syllabus.draftsDeleted_desc", {
-                count: result.deletedCount,
-              }),
-      });
-    } catch (deleteError: unknown) {
-      toast({
-        title: t("syllabus.deleteAllDraftsFailed"),
-        description:
-          deleteError instanceof Error
-            ? deleteError.message
-            : t("syllabus.unableDeleteAllDrafts"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingAllDrafts(false);
-    }
-  };
-
   const updateLessonDraft = (index: number, patch: Partial<LessonDraft>) => {
     setLessonDrafts((current) =>
-      current.map((lesson, lessonIndex) =>
-        lessonIndex === index ? { ...lesson, ...patch } : lesson,
-      ),
+      current.map((lesson, lessonIndex) => (lessonIndex === index ? { ...lesson, ...patch } : lesson)),
     );
   };
 
@@ -541,16 +437,16 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
           goToSection("details");
         }}
         onOpenDeleteAllDialog={() => setIsDeleteAllDialogOpen(true)}
-        templateVersionId={templateVersionId}
-        onTemplateVersionChange={setTemplateVersionId}
-        newSyllabusName={newSyllabusName}
-        onNewSyllabusNameChange={setNewSyllabusName}
+        templateVersionId={templateForm.watch("templateVersionId")}
+        onTemplateVersionChange={(v) => templateForm.setValue("templateVersionId", v)}
+        newSyllabusName={templateForm.watch("newSyllabusName")}
+        onNewSyllabusNameChange={(v) => templateForm.setValue("newSyllabusName", v)}
         onCreateFromTemplateSubmit={handleCreateFromTemplate}
-        isCreatingFromTemplate={isCreatingFromTemplate}
-        scratchName={scratchName}
-        onScratchNameChange={setScratchName}
+        isCreatingFromTemplate={createFromTemplate.isPending}
+        scratchName={scratchForm.watch("scratchName")}
+        onScratchNameChange={(v) => scratchForm.setValue("scratchName", v)}
         onCreateFromScratchSubmit={handleCreateFromScratch}
-        isCreatingFromScratch={isCreatingFromScratch}
+        isCreatingFromScratch={createFromScratch.isPending}
         lessonDrafts={lessonDrafts}
         onUpdateLessonDraft={updateLessonDraft}
         onRemoveLessonDraft={removeLessonDraft}
@@ -559,19 +455,19 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
         isVersionLoading={isVersionLoading}
         onLoadLessonsIntoEditor={loadLessonsIntoEditor}
         onSaveRevision={handleSaveRevision}
-        isSavingRevision={isSavingRevision}
+        isSavingRevision={saveRevision.isPending}
         selectedSaveSourceId={selectedSaveSourceId}
         onPublish={handlePublish}
-        isPublishing={isPublishing}
+        isPublishing={publish.isPending}
         selectedDraftId={selectedDraftId}
         draftPendingDelete={draftPendingDelete}
         onDraftPendingDeleteChange={setDraftPendingDelete}
         onDeleteDraft={handleDeleteDraft}
-        isDeletingDraft={isDeletingDraft}
+        isDeletingDraft={deleteDraft.isPending}
         isDeleteAllDialogOpen={isDeleteAllDialogOpen}
         onDeleteAllDialogOpenChange={setIsDeleteAllDialogOpen}
         onDeleteAllDrafts={handleDeleteAllDrafts}
-        isDeletingAllDrafts={isDeletingAllDrafts}
+        isDeletingAllDrafts={deleteAllDrafts.isPending}
       />
     </DefaultLayout>
   );
