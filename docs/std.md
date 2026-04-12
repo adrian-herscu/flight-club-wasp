@@ -305,6 +305,87 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | STD-EXEC-055 | FC-024 | Approving an already-processed refund request is rejected. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `rejects approval of an already-processed request (409, DECLINED)`. |
 | STD-EXEC-056 | FC-024 | Declining an already-approved refund request is rejected. | P0 | Covered (API) | [tests/api/16-refund-lifecycle.spec.ts](../../tests/api/16-refund-lifecycle.spec.ts) — `rejects declining an already-APPROVED request (409)`. |
 
+## 4.16 Course execution lifecycle — E2E UI
+
+### FC-020 Attendance hints — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-010 | FC-020 | Student sees attendance hint (Accept / Decline buttons) on a SCHEDULED future lesson. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-010]` |
+| STD-CRS-010b | FC-020 | Lead instructor sees a reschedule/schedule button but no attendance hint on a SCHEDULED lesson. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-010b]` |
+| STD-CRS-011 | FC-020 | Student can accept attendance on a future SCHEDULED lesson → UI shows "✓ Accepted". | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-011]` |
+| STD-CRS-011b | FC-020 | Student can decline attendance on a future SCHEDULED lesson → UI shows "✗ Declined". | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-011b]` |
+
+### FC-022 Student assessments — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-012 | FC-022 | Lead instructor sees student assessments form on a LESSON_UNDERWAY lesson. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-012]` |
+| STD-CRS-013 | FC-022 | Lead instructor can submit a PASS assessment for an enrolled student. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-013]` |
+| STD-CRS-034 | FC-022 | Lead instructor can submit a FAIL assessment with attended=false for an enrolled student. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-034]` |
+| STD-CRS-035 | FC-023 | Lead instructor can mark a DECLINED co-instructor as ABSENT during LESSON_UNDERWAY. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-035]` |
+
+### FC-024 Refund requests — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-014 | FC-024 | Student can open refund request modal on a STARTED course. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-014]` |
+| STD-CRS-015 | FC-024 | Student can submit a refund request → dialog closes and PENDING label appears. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-015]` |
+| STD-CRS-016 | FC-024 | Manager sees pending refund requests panel with Approve / Decline buttons after student submits request. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-016]` |
+| STD-CRS-017 | FC-024 | Manager can approve a pending refund request → panel disappears and no PENDING items remain. | P0 | Covered | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-017]` |
+
+### FC-018 Start course guards and lifecycle — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-018 | FC-012 | Manager sees late enrollment panel on a STARTED course detail page. | P1 | Partial | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — `[STD-CRS-018]` (page-load assertion only; no enrollment action verified). |
+| STD-CRS-019 | FC-018 | Manager is blocked from starting a course that has no lead instructor (INV-18). | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-019]` |
+| STD-CRS-020 | FC-018 | Manager is blocked from starting a course where an instructor has no agreed wage (INV-18). | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-020]` |
+| STD-CRS-021 | FC-018 | Manager can start an OPEN course that passes all guards → course moves to STARTED. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-021]` |
+| STD-CRS-022 | FC-018 | Manager can close an OPEN course from the course detail page. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-022]` |
+| STD-CRS-023 | FC-018 | Manager can close a STARTED course from the course detail page. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-023]` |
+| STD-CRS-024 | FC-018 | Manager can reopen a CLOSED course from the course detail page. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-024]` |
+
+### FC-019 Lesson scheduling — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-025 | FC-019 | Lead instructor can schedule a CANCELLED lesson by providing a date and location. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-025]` |
+| STD-CRS-026 | FC-019 | Lead instructor can reschedule a SCHEDULED lesson → status resets to SCHEDULED with new date. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-026]` |
+| STD-CRS-027 | FC-019 | Lead instructor sees a reschedule action available on a BELOW_CAPACITY lesson. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-027]` |
+| STD-CRS-028 | FC-019 | Lead instructor can reschedule a BELOW_CAPACITY lesson → lesson moves back to SCHEDULED. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-028]` |
+| STD-CRS-029 | FC-019 / FC-021 | Rescheduling a BELOW_CAPACITY lesson that has a PENDING suggestion supersedes that suggestion. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-029]` |
+| STD-CRS-030 | FC-019 | Lead instructor can reschedule a CONFIRMED lesson before its date → lesson returns to SCHEDULED. | P1 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-030]` |
+
+### FC-020 Non-lead presence hints — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-031 | FC-020 | Non-lead instructor sees presence hint controls on a SCHEDULED future lesson. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-031]` |
+| STD-CRS-032 | FC-020 | Non-lead instructor can confirm availability before the lesson date → presence shows CONFIRMED. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-032]` |
+| STD-CRS-033 | FC-020 | Non-lead instructor can report unavailability before the lesson date → presence shows DECLINED. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-033]` |
+
+### FC-012 Late enrollment — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-036 | FC-012 | Manager can enroll a new student in a STARTED course before the first lesson reaches LESSON_UNDERWAY. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-036]` |
+
+### FC-021 Below-capacity resolution — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-037 | FC-021 | Lead instructor can submit a PROCEED_WITH_PARTIAL suggestion on a BELOW_CAPACITY lesson via UI. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-037]` |
+| STD-CRS-038 | FC-021 | Manager can approve a PROCEED_WITH_PARTIAL suggestion → lesson advances to CONFIRMED. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-038]` |
+| STD-CRS-039 | FC-021 | Lead instructor can submit a CLOSE_COURSE suggestion on a BELOW_CAPACITY lesson via UI. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-039]` |
+| STD-CRS-040 | FC-021 | Manager can approve a CLOSE_COURSE suggestion → lesson CANCELLED and course CLOSED. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-040]` |
+
+### FC-025 Course completion — E2E
+
+| STD ID | PRD Ref | Required test | Priority | Status | Existing E2E link or gap note |
+|---|---|---|---|---|---|
+| STD-CRS-041 | FC-025 | Course auto-transitions to COMPLETED when all enrolled students receive PASS on the final lesson. | P0 | Gap | [tests/e2e/04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts) — empty skeleton `[STD-CRS-041]` |
+
 ## 5. Coverage Summary by PRD Story
 
 | PRD Story | Coverage summary |
@@ -326,14 +407,14 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 | FC-015 Preserve security and authorization boundaries | **Covered (API+E2E)**; approval-action 401/403 role gates remain covered, E2E route denial remains covered, and manager school-scope denial is now API-covered for enrollment/assignment actions. |
 | FC-016 Support localized and RTL manager experiences | Partial; login and one manager page are covered, broader manager workflows are not. |
 | FC-017 Express course interest (course-first student flow) | Covered (API+E2E) for logged-in interest creation, anonymous redirect/continuation, student cancel/reopen toggle behavior, manager pending-interest cancel flow, and enrollment label feedback. Remaining gap: dedicated student dashboard My Interests assertions. |
-| FC-018 Start a course | **Covered (API)**; hard-guard rejections (no lead, no wage, insufficient balance, duplicate STARTED), soft minimum-capacity override, STARTED lifecycle event, and enrolled-student financial charge are all API-covered. |
-| FC-019 Schedule and reschedule a lesson | **Covered (API)**; scheduling, rescheduling, schedule-overlap guard, hint reset on reschedule, and CONFIRMED-state guard are API-covered. |
-| FC-020 Provide advisory attendance hints | **Covered (API)**; student accept/decline, non-lead instructor presence confirmation, date-lock guard (INV-09), lead-blocks-own-presence guard, and hint-does-not-change-lesson-status invariant are all API-covered. |
-| FC-021 Resolve below-capacity lessons | **Covered (API)**; PROCEED_WITH_PARTIAL and CLOSE_COURSE suggestions, duplicate-pending guard (INV-06), manager approval advancing to CONFIRMED or CLOSED, and reschedule-supersedes are all API-covered. |
-| FC-022 Submit student evaluations | **Covered (API)**; PASS/FAIL evaluation, attended=false→FAIL guard (INV-15), LESSON_UNDERWAY precondition (INV-10), lead-only guard (INV-03), duplicate-assessment guard, LESSON_CONCLUDED transition, and instructor pay transactions are all API-covered. |
-| FC-023 Mark co-instructor absent | **Covered (API)**; ABSENT assignment, DECLINED-only guard, and no-pay-for-ABSENT invariant (INV-20) are API-covered. |
-| FC-024 Submit and manage refund requests | **Covered (API)**; student submission, course-status guard, duplicate-PENDING guard (INV-13), manager approval with amount and financial credit, and manager decline are all API-covered. |
-| FC-025 Complete a course | **Covered (API)**; automatic COMPLETED transition when all students resolved and course lifecycle event creation are API-covered (via `submitStudentAssessment` tests in [14-lesson-conclusion.spec.ts](../../tests/api/14-lesson-conclusion.spec.ts)). |
+| FC-018 Start a course | **Covered (API)**; hard-guard rejections (no lead, no wage, insufficient balance, duplicate STARTED), soft minimum-capacity override, STARTED lifecycle event, and enrolled-student financial charge are all API-covered. E2E: STD-CRS-019 to STD-CRS-024 are skeleton gaps in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts). |
+| FC-019 Schedule and reschedule a lesson | **Covered (API)**; scheduling, rescheduling, schedule-overlap guard, hint reset on reschedule, and CONFIRMED-state guard are API-covered. E2E: STD-CRS-025 to STD-CRS-030 are skeleton gaps in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts). |
+| FC-020 Provide advisory attendance hints | **Covered (API+E2E)**; student accept/decline and lead-restricted presence are fully E2E-covered (STD-CRS-010, 010b, 011, 011b). Non-lead presence E2E coverage is skeleton gaps STD-CRS-031 to STD-CRS-033 in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts). |
+| FC-021 Resolve below-capacity lessons | **Covered (API)**; PROCEED_WITH_PARTIAL and CLOSE_COURSE suggestions, duplicate-pending guard (INV-06), manager approval advancing to CONFIRMED or CLOSED, and reschedule-supersedes are all API-covered. E2E: STD-CRS-037 to STD-CRS-040 are skeleton gaps in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts). |
+| FC-022 Submit student evaluations | **Covered (API+E2E)**; PASS evaluation is E2E-covered (STD-CRS-012, 013). FAIL (STD-CRS-034) is a skeleton gap. API covers all invariants. |
+| FC-023 Mark co-instructor absent | **Covered (API)**; ABSENT assignment, DECLINED-only guard, and no-pay-for-ABSENT invariant (INV-20) are API-covered. E2E: STD-CRS-035 is a skeleton gap in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts). |
+| FC-024 Submit and manage refund requests | **Covered (API+E2E)**; student submission (STD-CRS-014, 015), manager approval panel (STD-CRS-016), and manager approval action (STD-CRS-017) are fully E2E-covered. All invariants are API-covered. |
+| FC-025 Complete a course | **Covered (API)**; automatic COMPLETED transition when all students resolved and course lifecycle event creation are API-covered. E2E: STD-CRS-041 is a skeleton gap in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts). |
 
 ## 6. Highest-Priority Gaps to Implement Next
 
@@ -344,7 +425,7 @@ This STD covers PRD user stories FC-001 through FC-016 and focuses on browser-le
 5. Instructor assignment conflict/error-message E2E coverage (schedule and qualification paths).
 6. Broader RTL/localization coverage for manager-critical pages beyond syllabus catalog.
 7. E2E refresh/filter persistence assertions for rejection history visibility (ADM/MGR flows).
-8. E2E coverage for course execution user flows: lesson scheduling, attendance hints, evaluation submission, and refund handling.
+8. E2E coverage for course execution user flows: lesson scheduling (STD-CRS-025–030), non-lead presence hints (STD-CRS-031–033), FAIL assessment (STD-CRS-034), absent co-instructor (STD-CRS-035), late enrollment action (STD-CRS-036), below-capacity resolution (STD-CRS-037–040), start/close/reopen guards (STD-CRS-019–024), and course completion (STD-CRS-041). Skeleton tests exist in [04-18-course-execution-lifecycle.spec.ts](../../tests/e2e/04-18-course-execution-lifecycle.spec.ts).
 9. Registration request-history visibility and status persistence tests.
 10. E2E smoke for course-interest flow: student dashboard list and manager pending-interest approval/cancellation handling.
 

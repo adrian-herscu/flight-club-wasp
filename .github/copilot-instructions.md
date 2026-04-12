@@ -73,6 +73,7 @@
 - Baseline MUST be green before any implementation change (including new features, refactors, and bug fixes): run `npm run wasp:lint` **and** the relevant tests first; for E2E tests, watch the `out/wasp-dev.log` file for errors and fix accordingly.
 - For new implementation (feature/additive behavior): after baseline is green, implement the change, add/update tests as needed, ensure `npm run wasp:lint` passes, then re-run relevant tests to green.
 - For behavior fixes (correcting existing behavior): if baseline is green, add/adjust a test first to reproduce the issue (must fail), then apply the fix, then re-run to green.
+- For frontend features (new or fixed): before writing or updating e2e tests, use Playwright MCP browser tools to explore the running app as a manual tester would (navigate flows, trigger edge cases, observe actual behavior); use those insights to fix application issues first, then write or update e2e tests to reflect the corrected behavior.
 - Scope by impact: for infrastructure/testing-framework changes, run all tests; otherwise prefer focused tests for the affected area first, then expand only as needed.
 - For GUI/navigation changes, add or update a dedicated E2E flow that covers login and opening each visible sidebar menu item per affected user role; this flow must fail before the fix and pass after.
 

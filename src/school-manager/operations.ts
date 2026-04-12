@@ -1346,24 +1346,19 @@ export const assignInstructorToCourse = async (
     });
   }
 
-  try {
-    await prisma.assignedInstructor.create({
-      data: {
-        courseId,
-        instructorId,
-        isLead: isLead ?? false,
-        agreedWagePerHour: agreedWagePerHour ?? null,
-      },
-    });
-  } catch (error: unknown) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      throw new HttpError(409, "Instructor is already assigned to this course.");
-    }
-    throw error;
-  }
+  await prisma.assignedInstructor.upsert({
+    where: { courseId_instructorId: { courseId, instructorId } },
+    create: {
+      courseId,
+      instructorId,
+      isLead: isLead ?? false,
+      agreedWagePerHour: agreedWagePerHour ?? null,
+    },
+    update: {
+      isLead: isLead ?? false,
+      agreedWagePerHour: agreedWagePerHour ?? null,
+    },
+  });
 
   return {
     courseId,

@@ -746,3 +746,896 @@ export const detectLanguageFromText = (text: string): DetectedLanguage => {
 
   return "unknown";
 };
+
+// ---------------------------------------------------------------------------
+// Course-execution lifecycle fixtures
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a STARTED course with an enrolled student, a lead instructor,
+ * and one SCHEDULED future lesson (with a MeetingAttendance NO_RESPONSE for the student).
+ */
+export const createStartedCourseWithLesson = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+}> => {
+  const baseFixture = await createTestCourseWithManager();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const managerUser = await prisma.user.findUnique({
+      where: { email: baseFixture.manager.email },
+      select: { id: true },
+    });
+    if (!managerUser) throw new Error("Manager user not found");
+
+    // Create student (no UserSchoolRole needed — getCourseDetail checks enrolledStudents)
+    const student = await provisionFreshEmailUser();
+    const studentUser = await prisma.user.findUnique({
+      where: { email: student.email },
+      select: { id: true },
+    });
+    if (!studentUser) throw new Error("Student user not found");
+
+    const studentProfile = await prisma.student.create({
+      data: { userId: studentUser.id },
+      select: { id: true },
+    });
+    await prisma.account.create({
+      data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
+    });
+    await prisma.enrolledStudent.create({
+      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+    });
+
+    // Create lead instructor (no UserSchoolRole needed — getCourseDetail checks assignedInstructor)
+    const instructor = await provisionFreshEmailUser();
+    const instructorUser = await prisma.user.findUnique({
+      where: { email: instructor.email },
+      select: { id: true },
+    });
+    if (!instructorUser) throw new Error("Instructor user not found");
+
+    const instructorProfile = await prisma.instructor.create({
+      data: { userId: instructorUser.id },
+      select: { id: true },
+    });
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId: baseFixture.courseId,
+        instructorId: instructorProfile.id,
+        isLead: true,
+        agreedWagePerHour: 5000,
+      },
+    });
+
+    // Transition course to STARTED
+    await prisma.courseLifecycleEvent.create({
+      data: {
+        courseId: baseFixture.courseId,
+        changedByUserId: managerUser.id,
+        status: "STARTED",
+      },
+    });
+
+    // Get first syllabus lesson to schedule
+    const syllabusLesson = await prisma.syllabusLesson.findFirst({
+      where: { syllabusVersionId: baseFixture.syllabusVersionId },
+      orderBy: { position: "asc" },
+      select: { id: true },
+    });
+    if (!syllabusLesson) throw new Error("No syllabus lesson found");
+
+    // Schedule a future lesson
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 14);
+
+    const courseLesson = await prisma.courseLesson.create({
+      data: {
+        courseId: baseFixture.courseId,
+        syllabusLessonId: syllabusLesson.id,
+        date: futureDate,
+        location: "Main training ground",
+        status: "SCHEDULED",
+        proposedById: managerUser.id,
+      },
+      select: { id: true },
+    });
+
+    // Create MeetingAttendance for the student
+    await prisma.meetingAttendance.create({
+      data: {
+        courseLessonId: courseLesson.id,
+        studentId: studentProfile.id,
+        status: "NO_RESPONSE",
+      },
+    });
+
+    return {
+      manager: baseFixture.manager,
+      student,
+      instructor,
+      courseId: baseFixture.courseId,
+      schoolId: baseFixture.schoolId,
+      lessonId: courseLesson.id,
+      syllabusLessonId: syllabusLesson.id,
+      studentId: studentProfile.id,
+      instructorId: instructorProfile.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates a LESSON_UNDERWAY fixture (STARTED course + 1 active lesson in LESSON_UNDERWAY state).
+ * Suitable for testing assessments and refund requests.
+ */
+export const createLessonUnderwayFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+}> => {
+  const base = await createStartedCourseWithLesson();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    // Advance lesson status to LESSON_UNDERWAY directly via DB
+    await prisma.courseLesson.update({
+      where: { id: base.lessonId },
+      data: { status: "LESSON_UNDERWAY", date: new Date(Date.now() - 60_000) },
+    });
+
+    return base;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates an OPEN course with one instructor assigned but with NO lead instructor
+ * (isLead=false). Useful for testing FC-018 start-course guard for missing lead.
+ */
+export const createOpenCourseNoLead = async (): Promise<{
+  manager: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  instructorId: string;
+}> => {
+  const baseFixture = await createTestCourseWithManager();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const instructor = await provisionFreshEmailUser();
+    const instructorUser = await prisma.user.findUnique({
+      where: { email: instructor.email },
+      select: { id: true },
+    });
+    if (!instructorUser) throw new Error("Instructor user not found");
+
+    const instructorProfile = await prisma.instructor.create({
+      data: { userId: instructorUser.id },
+      select: { id: true },
+    });
+    // Assign as non-lead with a wage so the only failing guard is the missing lead
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId: baseFixture.courseId,
+        instructorId: instructorProfile.id,
+        isLead: false,
+        agreedWagePerHour: 5000,
+      },
+    });
+
+    // Enroll one student so the course has minimum capacity
+    const student = await provisionFreshEmailUser();
+    const studentUser = await prisma.user.findUnique({
+      where: { email: student.email },
+      select: { id: true },
+    });
+    if (!studentUser) throw new Error("Student user not found");
+    const studentProfile = await prisma.student.create({
+      data: { userId: studentUser.id },
+      select: { id: true },
+    });
+    await prisma.account.create({
+      data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
+    });
+    await prisma.enrolledStudent.create({
+      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+    });
+
+    return {
+      manager: baseFixture.manager,
+      instructor,
+      courseId: baseFixture.courseId,
+      schoolId: baseFixture.schoolId,
+      instructorId: instructorProfile.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates an OPEN course with a lead instructor but with NO agreedWagePerHour set.
+ * Useful for testing FC-018 start-course guard for missing instructor wage.
+ */
+export const createOpenCourseNoWage = async (): Promise<{
+  manager: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  instructorId: string;
+}> => {
+  const baseFixture = await createTestCourseWithManager();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const instructor = await provisionFreshEmailUser();
+    const instructorUser = await prisma.user.findUnique({
+      where: { email: instructor.email },
+      select: { id: true },
+    });
+    if (!instructorUser) throw new Error("Instructor user not found");
+
+    const instructorProfile = await prisma.instructor.create({
+      data: { userId: instructorUser.id },
+      select: { id: true },
+    });
+    // Lead instructor with null wage — triggers INV-18 wage guard
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId: baseFixture.courseId,
+        instructorId: instructorProfile.id,
+        isLead: true,
+        agreedWagePerHour: null,
+      },
+    });
+
+    // Enroll one student
+    const student = await provisionFreshEmailUser();
+    const studentUser = await prisma.user.findUnique({
+      where: { email: student.email },
+      select: { id: true },
+    });
+    if (!studentUser) throw new Error("Student user not found");
+    const studentProfile = await prisma.student.create({
+      data: { userId: studentUser.id },
+      select: { id: true },
+    });
+    await prisma.account.create({
+      data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
+    });
+    await prisma.enrolledStudent.create({
+      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+    });
+
+    return {
+      manager: baseFixture.manager,
+      instructor,
+      courseId: baseFixture.courseId,
+      schoolId: baseFixture.schoolId,
+      instructorId: instructorProfile.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates a STARTED course with a BELOW_CAPACITY lesson (lesson date in the past,
+ * status set to BELOW_CAPACITY directly). Suitable for testing FC-019 reschedule
+ * and FC-021 below-capacity resolution UI flows.
+ */
+export const createBelowCapacityFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+}> => {
+  const base = await createStartedCourseWithLesson();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    // Set lesson date to past and status to BELOW_CAPACITY
+    await prisma.courseLesson.update({
+      where: { id: base.lessonId },
+      data: { status: "BELOW_CAPACITY", date: new Date(Date.now() - 3_600_000) },
+    });
+
+    // PROCEED_WITH_PARTIAL requires at least one ACCEPTED meeting attendance
+    await prisma.meetingAttendance.updateMany({
+      where: { courseLessonId: base.lessonId, studentId: base.studentId },
+      data: { status: "ACCEPTED" },
+    });
+
+    return base;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates a STARTED course with a CONFIRMED future lesson. Suitable for testing
+ * that a CONFIRMED lesson can be rescheduled before its date (FC-019).
+ */
+export const createConfirmedLessonFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+}> => {
+  const base = await createStartedCourseWithLesson();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    // Advance lesson status to CONFIRMED (future date, capacity met)
+    await prisma.courseLesson.update({
+      where: { id: base.lessonId },
+      data: { status: "CONFIRMED" },
+    });
+
+    return base;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+/**
+ * Creates a STARTED course with TWO instructors: one lead and one non-lead co-instructor.
+ * Suitable for testing FC-020 non-lead presence hints and FC-023 mark-absent flows.
+ */
+export const createCourseWithNonLeadInstructor = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  coInstructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+  coInstructorId: string;
+}> => {
+  const base = await createStartedCourseWithLesson();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    // Create a second instructor (non-lead co-instructor)
+    const coInstructor = await provisionFreshEmailUser();
+    const coInstructorUser = await prisma.user.findUnique({
+      where: { email: coInstructor.email },
+      select: { id: true },
+    });
+    if (!coInstructorUser) throw new Error("Co-instructor user not found");
+
+    const coInstructorProfile = await prisma.instructor.create({
+      data: { userId: coInstructorUser.id },
+      select: { id: true },
+    });
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId: base.courseId,
+        instructorId: coInstructorProfile.id,
+        isLead: false,
+        agreedWagePerHour: 4000,
+      },
+    });
+
+    // Create InstructorLessonPresence for non-lead (EXPECTED = awaiting response)
+    await prisma.instructorLessonPresence.create({
+      data: {
+        courseLessonId: base.lessonId,
+        instructorId: coInstructorProfile.id,
+        status: "EXPECTED",
+      },
+    });
+
+    return {
+      ...base,
+      coInstructor,
+      coInstructorId: coInstructorProfile.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// createReadyToStartCourse — OPEN course that passes all start guards
+// Lead instructor with wage + enrolled student. Suitable for FC-018 happy path.
+// ---------------------------------------------------------------------------
+
+export const createReadyToStartCourse = async (): Promise<{
+  manager: User;
+  instructor: User;
+  student: User;
+  courseId: string;
+  schoolId: string;
+}> => {
+  const baseFixture = await createTestCourseWithManager();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const instructor = await provisionFreshEmailUser();
+    const instructorUser = await prisma.user.findUnique({
+      where: { email: instructor.email },
+      select: { id: true },
+    });
+    if (!instructorUser) throw new Error("Instructor user not found");
+
+    const instructorProfile = await prisma.instructor.create({
+      data: { userId: instructorUser.id },
+      select: { id: true },
+    });
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId: baseFixture.courseId,
+        instructorId: instructorProfile.id,
+        isLead: true,
+        agreedWagePerHour: 5000,
+      },
+    });
+
+    const student = await provisionFreshEmailUser();
+    const studentUser = await prisma.user.findUnique({
+      where: { email: student.email },
+      select: { id: true },
+    });
+    if (!studentUser) throw new Error("Student user not found");
+
+    const studentProfile = await prisma.student.create({
+      data: { userId: studentUser.id },
+      select: { id: true },
+    });
+    await prisma.account.create({
+      data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
+    });
+    await prisma.enrolledStudent.create({
+      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+    });
+
+    return {
+      manager: baseFixture.manager,
+      instructor,
+      student,
+      courseId: baseFixture.courseId,
+      schoolId: baseFixture.schoolId,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// createClosedCourseFixture — CLOSED course (for FC-018 reopen test)
+// ---------------------------------------------------------------------------
+
+export const createClosedCourseFixture = async (): Promise<{
+  manager: User;
+  courseId: string;
+  schoolId: string;
+}> => {
+  const baseFixture = await createTestCourseWithManager();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const managerUser = await prisma.user.findUnique({
+      where: { email: baseFixture.manager.email },
+      select: { id: true },
+    });
+    if (!managerUser) throw new Error("Manager user not found");
+
+    await prisma.courseLifecycleEvent.create({
+      data: {
+        courseId: baseFixture.courseId,
+        changedByUserId: managerUser.id,
+        status: "CLOSED",
+      },
+    });
+
+    return {
+      manager: baseFixture.manager,
+      courseId: baseFixture.courseId,
+      schoolId: baseFixture.schoolId,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// createDeclinedPresenceUnderwayFixture — LESSON_UNDERWAY + co-instructor DECLINED
+// Suitable for testing FC-023 mark-absent flow.
+// ---------------------------------------------------------------------------
+
+export const createDeclinedPresenceUnderwayFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  coInstructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+  coInstructorId: string;
+}> => {
+  const base = await createCourseWithNonLeadInstructor();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    // Advance lesson to LESSON_UNDERWAY with a past date
+    await prisma.courseLesson.update({
+      where: { id: base.lessonId },
+      data: { status: "LESSON_UNDERWAY", date: new Date(Date.now() - 60_000) },
+    });
+
+    // Set co-instructor presence to DECLINED
+    await prisma.instructorLessonPresence.updateMany({
+      where: { courseLessonId: base.lessonId, instructorId: base.coInstructorId },
+      data: { status: "DECLINED" },
+    });
+
+    return base;
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// createLateEnrollmentFixture — STARTED course + an enrollable school student
+// The enrollable student has a UserSchoolRole + Student profile + Account balance.
+// Suitable for testing FC-012 late enrollment.
+// ---------------------------------------------------------------------------
+
+export const createLateEnrollmentFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  enrollableStudent: User;
+  enrollableStudentId: string;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+}> => {
+  const base = await createStartedCourseWithLesson();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const enrollableStudent = await provisionFreshEmailUser();
+    const enrollableStudentUser = await prisma.user.findUnique({
+      where: { email: enrollableStudent.email },
+      select: { id: true },
+    });
+    if (!enrollableStudentUser) throw new Error("Enrollable student user not found");
+
+    const enrollableStudentProfile = await prisma.student.create({
+      data: { userId: enrollableStudentUser.id },
+      select: { id: true },
+    });
+
+    // Account with sufficient balance to cover enrollment fee (hourlyRate=100, 105 mins = 175 minor units)
+    await prisma.account.create({
+      data: {
+        userId: enrollableStudentUser.id,
+        schoolId: base.schoolId,
+        currency: "USD",
+        balanceMinor: 10_000,
+      },
+    });
+
+    // School role required so getCourseDetail includes this student in enrollableStudents.
+    // The trigger requires sourceRegistrationRequestId; create a request first.
+    const regRequest = await prisma.registrationRequest.create({
+      data: {
+        requesterId: enrollableStudentUser.id,
+        requestedRole: "STUDENT",
+        targetSchoolId: base.schoolId,
+        status: "APPROVED",
+        approvedSchoolId: base.schoolId,
+      },
+      select: { id: true },
+    });
+    await prisma.userSchoolRole.create({
+      data: {
+        userId: enrollableStudentUser.id,
+        schoolId: base.schoolId,
+        role: "STUDENT",
+        sourceRegistrationRequestId: regRequest.id,
+      },
+    });
+
+    return {
+      ...base,
+      enrollableStudent,
+      enrollableStudentId: enrollableStudentProfile.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// createBelowCapacityWithSuggestionFixture — BELOW_CAPACITY lesson + PENDING suggestion
+// Suitable for testing FC-021 manager approval of PROCEED_WITH_PARTIAL.
+// ---------------------------------------------------------------------------
+
+export const createBelowCapacityWithSuggestionFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+  suggestionId: string;
+}> => {
+  const base = await createBelowCapacityFixture();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const suggestion = await prisma.instructorSuggestion.create({
+      data: {
+        courseLessonId: base.lessonId,
+        proposedByInstructorId: base.instructorId,
+        type: "PROCEED_WITH_PARTIAL",
+        status: "PENDING",
+      },
+      select: { id: true },
+    });
+
+    return {
+      ...base,
+      suggestionId: suggestion.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// createFinalLessonUnderwayFixture — STARTED course + FINAL lesson in LESSON_UNDERWAY
+// The final syllabus lesson (highest position) is set to LESSON_UNDERWAY.
+// Suitable for testing FC-025 course completion.
+// ---------------------------------------------------------------------------
+
+export const createFinalLessonUnderwayFixture = async (): Promise<{
+  manager: User;
+  student: User;
+  instructor: User;
+  courseId: string;
+  schoolId: string;
+  lessonId: string;
+  finalLessonId: string;
+  syllabusLessonId: string;
+  studentId: string;
+  instructorId: string;
+}> => {
+  const base = await createStartedCourseWithLesson();
+
+  const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
+    import("@prisma/client"),
+    import("dotenv"),
+    import("path"),
+  ]);
+
+  config({
+    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    override: false,
+  });
+
+  const prisma = new PrismaClient();
+
+  try {
+    const managerUser = await prisma.user.findUnique({
+      where: { email: base.manager.email },
+      select: { id: true },
+    });
+    if (!managerUser) throw new Error("Manager user not found");
+
+    // Get the final syllabus lesson (highest position)
+    const finalSyllabusLesson = await prisma.syllabusLesson.findFirst({
+      where: { syllabusVersionId: (await prisma.course.findUnique({ where: { id: base.courseId }, select: { syllabusVersionId: true } }))!.syllabusVersionId },
+      orderBy: { position: "desc" },
+      select: { id: true },
+    });
+    if (!finalSyllabusLesson) throw new Error("Final syllabus lesson not found");
+
+    // Create a CourseLesson for the final lesson in LESSON_UNDERWAY state
+    const finalLesson = await prisma.courseLesson.create({
+      data: {
+        courseId: base.courseId,
+        syllabusLessonId: finalSyllabusLesson.id,
+        date: new Date(Date.now() - 60_000),
+        location: "Final flight site",
+        status: "LESSON_UNDERWAY",
+        proposedById: managerUser.id,
+      },
+      select: { id: true },
+    });
+
+    return {
+      ...base,
+      finalLessonId: finalLesson.id,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+};

@@ -655,10 +655,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     actionButton: ReactNode,
     includeTotalPrice: boolean,
     includeSummaryTestId: boolean,
+    includeDetailLink = false,
   ) => (
     <ManagerCoursesCourseListItem
       key={course.courseId}
       action={actionButton}
+      detailHref={includeDetailLink ? `/school-manager/courses/${course.courseId}` : undefined}
       title={`${course.syllabusName} (v${course.syllabusVersion})`}
       summaryTestId={includeSummaryTestId ? `manager-course-summary-${course.courseId}` : undefined}
       summary={
@@ -785,6 +787,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                     >
                       {t("syllabus.closeCourseButton")}
                     </Button>,
+                    true,
                     true,
                     true,
                   )

@@ -30,6 +30,10 @@
         "--config",
         ".vscode/playwright-mcp.config.json"
       ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
     }
   }
 }

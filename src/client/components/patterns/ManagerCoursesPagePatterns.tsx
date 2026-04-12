@@ -1,4 +1,5 @@
 import { type FormEvent, type ReactNode } from "react";
+import { Link } from "wasp/client/router";
 import { CardContent } from "../ui/card";
 
 type GridVariant = "top" | "bottom";
@@ -76,11 +77,13 @@ export const ManagerCoursesList = ({ children }: { children: ReactNode }) => {
 
 export const ManagerCoursesCourseListItem = ({
   action,
+  detailHref,
   summary,
   summaryTestId,
   title,
 }: {
   action: ReactNode;
+  detailHref?: string;
   summary: ReactNode;
   summaryTestId?: string;
   title: ReactNode;
@@ -88,7 +91,15 @@ export const ManagerCoursesCourseListItem = ({
   return (
     <li className="rounded-md border p-3">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium">{title}</p>
+        <div className="flex items-center gap-2">
+          {detailHref ? (
+            <Link to={detailHref as any} className="text-sm font-medium hover:underline">
+              {title}
+            </Link>
+          ) : (
+            <p className="text-sm font-medium">{title}</p>
+          )}
+        </div>
         {action}
       </div>
       <p className="text-muted-foreground text-xs" data-testid={summaryTestId}>

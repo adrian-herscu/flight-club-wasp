@@ -1536,7 +1536,7 @@ export const declineRefund = async (
 };
 
 // ---------------------------------------------------------------------------
-// Query: getCourseDetail — read layer shared across all roles (Phase 1)
+// Query: getCourseDetail — read layer shared across all roles (Phase 1+)
 // ---------------------------------------------------------------------------
 
 export type CourseLessonDetail = {
@@ -1548,6 +1548,25 @@ export type CourseLessonDetail = {
   date: Date | null;
   location: string | null;
   status: string; // CourseLessonStatus or 'UNSCHEDULED'
+  // FC-020 attendance/presence hints
+  myAttendanceStatus: string | null;  // for enrolled students (NO_RESPONSE/ACCEPTED/DECLINED)
+  myPresenceStatus: string | null;    // for non-lead instructors (EXPECTED/DECLINED/ABSENT)
+  // FC-021 below-capacity suggestion
+  pendingSuggestion: { id: string; type: string } | null;
+  // FC-022 student assessments (for lead instructor, LESSON_UNDERWAY)
+  enrolledActiveStudents: {
+    studentId: string;
+    displayName: string;
+    hasEvaluation: boolean;
+    evaluationStatus: string | null;
+    evaluationAttended: boolean | null;
+  }[];
+  // FC-023 co-instructor presence (for lead instructor)
+  coInstructorPresences: {
+    instructorId: string;
+    displayName: string;
+    presenceStatus: string;
+  }[];
 };
 
 export type CourseDetailResult = {
@@ -1562,6 +1581,16 @@ export type CourseDetailResult = {
   maxCapacity: number | null;
   enrolledCount: number;
   isLeadInstructor: boolean;
+  isNonLeadInstructor: boolean;
+  // FC-024 refund (student's own request)
+  myRefundRequest: { id: string; status: string } | null;
+  // FC-024 refund (manager sees pending requests)
+  pendingRefundRequests: { id: string; studentName: string; reason: string | null; createdAt: Date }[];
+  // Late enrollment (manager, STARTED course)
+  enrollableStudents: { studentId: string; displayName: string }[];
+  // Instructor assignment (manager, OPEN/STARTED course)
+  assignedInstructorsList: { instructorId: string; displayName: string; isLead: boolean }[];
+  assignableInstructors: { instructorId: string; displayName: string }[];
   lessons: CourseLessonDetail[];
 };
 
@@ -1586,6 +1615,7 @@ export const getCourseDetail = async (
       minCapacity: true,
       maxCapacity: true,
       schoolId: true,
+      syllabusVersionId: true,
       school: { select: { name: true } },
       syllabusVersion: {
         select: {
@@ -1598,7 +1628,13 @@ export const getCourseDetail = async (
         },
       },
       courseLessons: {
-        select: { id: true, syllabusLessonId: true, date: true, location: true, status: true },
+        select: {
+          id: true,
+          syllabusLessonId: true,
+          date: true,
+          location: true,
+          status: true,
+        },
         orderBy: { date: 'asc' },
       },
       lifecycleEvents: {
@@ -1606,8 +1642,20 @@ export const getCourseDetail = async (
         orderBy: { createdAt: 'desc' },
         take: 1,
       },
-      assignedInstructors: { select: { instructorId: true, isLead: true } },
-      enrolledStudents: { select: { student: { select: { userId: true } } } },
+      assignedInstructors: {
+        select: {
+          instructorId: true,
+          isLead: true,
+          instructor: { select: { user: { select: { fullName: true, email: true } } } },
+        },
+      },
+      enrolledStudents: {
+        select: {
+          studentId: true,
+          status: true,
+          student: { select: { userId: true, user: { select: { fullName: true, email: true } } } },
+        },
+      },
     },
   });
 
@@ -1615,6 +1663,9 @@ export const getCourseDetail = async (
     throw new HttpError(404, 'Course not found.');
   }
 
+  // ---------------------------------------------------------------------------
+  // Role determination
+  // ---------------------------------------------------------------------------
   const isManager = await prisma.userSchoolRole.findFirst({
     where: {
       userId: context.user.id,
@@ -1626,26 +1677,260 @@ export const getCourseDetail = async (
   });
 
   let isLeadInstructor = false;
+  let isNonLeadInstructor = false;
+  let myInstructorId: string | null = null;
+  let myStudentId: string | null = null;
 
   if (!isManager) {
     const instructor = await prisma.instructor.findUnique({
       where: { userId: context.user.id },
       select: { id: true },
     });
-    const isInstructor =
-      instructor !== null &&
-      course.assignedInstructors.some((ai) => ai.instructorId === instructor.id);
-    isLeadInstructor =
-      instructor !== null &&
-      course.assignedInstructors.some((ai) => ai.instructorId === instructor.id && ai.isLead);
-    const isStudent = course.enrolledStudents.some(
+    const assignedEntry = instructor !== null
+      ? course.assignedInstructors.find((ai) => ai.instructorId === instructor.id)
+      : undefined;
+    isLeadInstructor = assignedEntry?.isLead === true;
+    isNonLeadInstructor = assignedEntry !== undefined && !assignedEntry.isLead;
+    if (instructor && assignedEntry) myInstructorId = instructor.id;
+
+    const studentEnrollment = course.enrolledStudents.find(
       (es) => es.student.userId === context.user!.id,
     );
-    if (!isInstructor && !isStudent) {
+    if (studentEnrollment) {
+      myStudentId = studentEnrollment.studentId;
+    }
+
+    if (!assignedEntry && !studentEnrollment) {
       throw new HttpError(403, 'You do not have access to this course.');
     }
   }
 
+  const lifecycleStatus = course.lifecycleEvents[0]?.status ?? 'OPEN';
+  const courseLessonIds = course.courseLessons.map((cl) => cl.id);
+
+  // ---------------------------------------------------------------------------
+  // Bulk data fetches — keyed for lesson enrichment
+  // ---------------------------------------------------------------------------
+
+  // FC-020: student attendance hints (all lessons for this student)
+  const attendanceMap = new Map<string, string>();
+  if (myStudentId && courseLessonIds.length > 0) {
+    const attendances = await prisma.meetingAttendance.findMany({
+      where: { courseLessonId: { in: courseLessonIds }, studentId: myStudentId },
+      select: { courseLessonId: true, status: true },
+    });
+    for (const a of attendances) attendanceMap.set(a.courseLessonId, a.status);
+  }
+
+  // FC-020: non-lead instructor presence hints
+  const presenceMap = new Map<string, string>();
+  if (myInstructorId && isNonLeadInstructor && courseLessonIds.length > 0) {
+    const presences = await prisma.instructorLessonPresence.findMany({
+      where: { courseLessonId: { in: courseLessonIds }, instructorId: myInstructorId },
+      select: { courseLessonId: true, status: true },
+    });
+    for (const p of presences) presenceMap.set(p.courseLessonId, p.status);
+  }
+
+  // FC-021: pending suggestions per lesson
+  const suggestionMap = new Map<string, { id: string; type: string }>();
+  if (courseLessonIds.length > 0) {
+    const suggestions = await prisma.instructorSuggestion.findMany({
+      where: {
+        courseLessonId: { in: courseLessonIds },
+        status: InstructorSuggestionStatus.PENDING,
+      },
+      select: { id: true, courseLessonId: true, type: true },
+    });
+    for (const s of suggestions) suggestionMap.set(s.courseLessonId, { id: s.id, type: s.type });
+  }
+
+  // FC-022 + FC-023: per-lesson student assessments and co-instructor presences
+  // Only fetch when viewer is lead instructor (expensive relational data)
+  const lessonStudentsMap = new Map<
+    string,
+    {
+      studentId: string;
+      displayName: string;
+      hasEvaluation: boolean;
+      evaluationStatus: string | null;
+      evaluationAttended: boolean | null;
+    }[]
+  >();
+  const lessonCoInstructorsMap = new Map<
+    string,
+    { instructorId: string; displayName: string; presenceStatus: string }[]
+  >();
+
+  if (isLeadInstructor && courseLessonIds.length > 0) {
+    // Active enrolled students with their evaluations
+    const [allEnrollments, allEvaluations, allPresences] = await Promise.all([
+      prisma.enrolledStudent.findMany({
+        where: { courseId, status: EnrolledStudentStatus.ACTIVE },
+        select: {
+          studentId: true,
+          student: { select: { user: { select: { fullName: true, email: true } } } },
+        },
+      }),
+      prisma.studentLessonEvaluation.findMany({
+        where: { courseLessonId: { in: courseLessonIds } },
+        select: { courseLessonId: true, studentId: true, status: true, attended: true },
+      }),
+      prisma.instructorLessonPresence.findMany({
+        where: { courseLessonId: { in: courseLessonIds } },
+        select: {
+          courseLessonId: true,
+          instructorId: true,
+          status: true,
+          instructor: { select: { user: { select: { fullName: true, email: true } } } },
+        },
+      }),
+    ]);
+
+    const evalsByLesson = new Map<string, typeof allEvaluations>();
+    for (const ev of allEvaluations) {
+      const list = evalsByLesson.get(ev.courseLessonId) ?? [];
+      list.push(ev);
+      evalsByLesson.set(ev.courseLessonId, list);
+    }
+
+    const presencesByLesson = new Map<string, typeof allPresences>();
+    for (const p of allPresences) {
+      const list = presencesByLesson.get(p.courseLessonId) ?? [];
+      list.push(p);
+      presencesByLesson.set(p.courseLessonId, list);
+    }
+
+    for (const cl of course.courseLessons) {
+      // Only populate student list for LESSON_UNDERWAY lessons (needed for assessment form)
+      if (cl.status === CourseLessonStatus.LESSON_UNDERWAY) {
+        const evals = evalsByLesson.get(cl.id) ?? [];
+        const evalMap = new Map(evals.map((e) => [e.studentId, e]));
+        lessonStudentsMap.set(
+          cl.id,
+          allEnrollments.map((en) => {
+            const ev = evalMap.get(en.studentId);
+            return {
+              studentId: en.studentId,
+              displayName: en.student.user.fullName ?? en.student.user.email ?? en.studentId,
+              hasEvaluation: ev !== undefined,
+              evaluationStatus: ev?.status ?? null,
+              evaluationAttended: ev?.attended ?? null,
+            };
+          }),
+        );
+      }
+
+      // Co-instructor presences for all scheduled lessons
+      const presences = presencesByLesson.get(cl.id) ?? [];
+      lessonCoInstructorsMap.set(
+        cl.id,
+        presences.map((p) => ({
+          instructorId: p.instructorId,
+          displayName: p.instructor.user.fullName ?? p.instructor.user.email ?? p.instructorId,
+          presenceStatus: p.status,
+        })),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // FC-024: refund data
+  // ---------------------------------------------------------------------------
+  let myRefundRequest: CourseDetailResult['myRefundRequest'] = null;
+  let pendingRefundRequests: CourseDetailResult['pendingRefundRequests'] = [];
+
+  if (myStudentId) {
+    const rr = await prisma.refundRequest.findFirst({
+      where: { courseId, studentId: myStudentId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, status: true },
+    });
+    if (rr) myRefundRequest = { id: rr.id, status: rr.status };
+  }
+
+  if (isManager) {
+    const rrs = await prisma.refundRequest.findMany({
+      where: { courseId, status: RefundRequestStatus.PENDING },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        reason: true,
+        createdAt: true,
+        student: { select: { user: { select: { fullName: true, email: true } } } },
+      },
+    });
+    pendingRefundRequests = rrs.map((r) => ({
+      id: r.id,
+      studentName: r.student.user.fullName ?? r.student.user.email ?? r.id,
+      reason: r.reason,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Late enrollment: enrollable students (manager, STARTED course)
+  // ---------------------------------------------------------------------------
+  let enrollableStudents: CourseDetailResult['enrollableStudents'] = [];
+  if (isManager && lifecycleStatus === CourseLifecycleStatus.STARTED) {
+    const alreadyEnrolledIds = new Set(course.enrolledStudents.map((es) => es.studentId));
+    const schoolStudents = await prisma.userSchoolRole.findMany({
+      where: { schoolId: course.schoolId, role: 'STUDENT', revokedAt: null },
+      select: { user: { select: { id: true, fullName: true, email: true } } },
+    });
+    for (const sr of schoolStudents) {
+      const student = await prisma.student.findUnique({
+        where: { userId: sr.user.id },
+        select: { id: true },
+      });
+      if (student && !alreadyEnrolledIds.has(student.id)) {
+        enrollableStudents.push({
+          studentId: student.id,
+          displayName: sr.user.fullName ?? sr.user.email ?? sr.user.id,
+        });
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Instructor assignment data (manager, OPEN/STARTED course)
+  // ---------------------------------------------------------------------------
+  const assignedInstructorsList: CourseDetailResult['assignedInstructorsList'] = [];
+  let assignableInstructors: CourseDetailResult['assignableInstructors'] = [];
+
+  if (isManager) {
+    const alreadyAssignedIds = new Set(course.assignedInstructors.map((ai) => ai.instructorId));
+    for (const ai of course.assignedInstructors) {
+      assignedInstructorsList.push({
+        instructorId: ai.instructorId,
+        displayName: ai.instructor.user.fullName ?? ai.instructor.user.email ?? ai.instructorId,
+        isLead: ai.isLead,
+      });
+    }
+
+    if (lifecycleStatus !== CourseLifecycleStatus.COMPLETED && lifecycleStatus !== CourseLifecycleStatus.CLOSED) {
+      const schoolInstructors = await prisma.userSchoolRole.findMany({
+        where: { schoolId: course.schoolId, role: 'INSTRUCTOR', revokedAt: null },
+        select: { user: { select: { id: true, fullName: true, email: true } } },
+      });
+      for (const sr of schoolInstructors) {
+        const instructorProfile = await prisma.instructor.findUnique({
+          where: { userId: sr.user.id },
+          select: { id: true },
+        });
+        if (instructorProfile) {
+          assignableInstructors.push({
+            instructorId: instructorProfile.id,
+            displayName: sr.user.fullName ?? sr.user.email ?? sr.user.id,
+          });
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build lesson list with enriched per-role data
+  // ---------------------------------------------------------------------------
   const lessonMap = new Map<string, (typeof course.courseLessons)[number]>();
   for (const cl of course.courseLessons) {
     lessonMap.set(cl.syllabusLessonId, cl);
@@ -1662,6 +1947,11 @@ export const getCourseDetail = async (
       date: cl?.date ?? null,
       location: cl?.location ?? null,
       status: cl?.status ?? 'UNSCHEDULED',
+      myAttendanceStatus: cl ? (attendanceMap.get(cl.id) ?? null) : null,
+      myPresenceStatus: cl ? (presenceMap.get(cl.id) ?? null) : null,
+      pendingSuggestion: cl ? (suggestionMap.get(cl.id) ?? null) : null,
+      enrolledActiveStudents: cl ? (lessonStudentsMap.get(cl.id) ?? []) : [],
+      coInstructorPresences: cl ? (lessonCoInstructorsMap.get(cl.id) ?? []) : [],
     };
   });
 
@@ -1670,13 +1960,19 @@ export const getCourseDetail = async (
     syllabusName: course.syllabusVersion.syllabus.name,
     syllabusVersion: course.syllabusVersion.version,
     schoolName: course.school.name,
-    lifecycleStatus: course.lifecycleEvents[0]?.status ?? 'OPEN',
+    lifecycleStatus,
     startDate: course.startDate,
     hourlyRate: course.hourlyRate,
     minCapacity: course.minCapacity,
     maxCapacity: course.maxCapacity,
     enrolledCount: course.enrolledStudents.length,
     isLeadInstructor,
+    isNonLeadInstructor,
+    myRefundRequest,
+    pendingRefundRequests,
+    enrollableStudents,
+    assignedInstructorsList,
+    assignableInstructors,
     lessons,
   };
 };
