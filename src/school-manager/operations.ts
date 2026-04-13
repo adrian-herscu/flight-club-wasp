@@ -377,6 +377,20 @@ async function isCourseClosed(courseId: string) {
   return latestEvent?.status === CourseLifecycleStatus.CLOSED;
 }
 
+/** Performs the auth + school lookup prefix shared by most school-manager mutations. */
+async function getSchoolManagerContext(
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<{
+  user: { id: string; isSystemAdmin?: boolean | null | undefined };
+  school: Awaited<ReturnType<typeof getManagedSchoolForUserId>>;
+}> {
+  const user = await ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  return { user, school };
+}
+
 export const getMyManagedSchool = async (
   _args: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
@@ -1128,9 +1142,7 @@ export const enrollStudentInCourse = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ courseId: string; studentId: string }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
   const { courseId, studentId } = ensureArgsSchemaOrThrowHttpError(
     enrollStudentInCourseSchema,
     rawArgs,
@@ -1289,9 +1301,7 @@ export const assignInstructorToCourse = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ courseId: string; instructorId: string }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
   const { courseId, instructorId, isLead, agreedWagePerHour } = ensureArgsSchemaOrThrowHttpError(
     assignInstructorToCourseSchema,
     rawArgs,
@@ -1374,9 +1384,7 @@ export const createCourseFromFinalSyllabus = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ courseId: string }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
   const {
     syllabusVersionId,
     startDate,
@@ -1448,9 +1456,7 @@ export const closeCourse = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     closeCourseSchema,
     rawArgs,
@@ -1500,9 +1506,7 @@ export const reopenCourse = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ courseId: string; status: CourseLifecycleStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
   const { courseId } = ensureArgsSchemaOrThrowHttpError(
     reopenCourseSchema,
     rawArgs,
@@ -1638,9 +1642,7 @@ export const getManagerStudentCoursePairs = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<ManagerStudentCoursePairItem[]> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
 
   const args = ensureArgsSchemaOrThrowHttpError(
     managerStudentCoursePairsSchema,
@@ -1716,9 +1718,7 @@ export const approveStudentEnrollmentFromInterest = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ interestId: string; status: CourseInterestStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
 
   const { interestId } = ensureArgsSchemaOrThrowHttpError(
     approveStudentEnrollmentFromInterestSchema,
@@ -1863,9 +1863,7 @@ export const getManagerCourseInterests = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<ManagerInterestItem[]> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
 
   const args = ensureArgsSchemaOrThrowHttpError(
     managerCourseInterestsSchema,
@@ -1937,9 +1935,7 @@ export const cancelCourseInterestForManager = async (
   rawArgs: unknown,
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ id: string; status: CourseInterestStatus }> => {
-  const user = await ensureSchoolManager(context);
-  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
-  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
 
   const { interestId } = ensureArgsSchemaOrThrowHttpError(
     cancelCourseInterestForManagerSchema,

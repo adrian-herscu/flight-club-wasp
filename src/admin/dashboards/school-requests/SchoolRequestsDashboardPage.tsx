@@ -23,8 +23,7 @@ import {
 } from "../../../client/components/patterns/SchoolRequestsDashboardPatterns";
 import { Button } from "../../../client/components/ui/button";
 import { Card, CardHeader, CardTitle } from "../../../client/components/ui/card";
-import { toast } from "../../../client/hooks/use-toast";
-import { useWaspMutation } from "../../../client/hooks/useWaspMutation";
+import { usePerItemMutation } from "../../../client/hooks/usePerItemMutation";
 
 const {
   approveSchoolManagerRequest,
@@ -76,40 +75,24 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
 
   const { data, isLoading } = useQuery(getPendingSchoolManagerRequests);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
-  const [isRejectingId, setIsRejectingId] = useState<string | null>(null);
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<SchoolRequestStatusFilter>("ALL");
 
-  const approveRequest = useWaspMutation(
-    (args: { requestId: string }) => approveSchoolManagerRequest(args),
+  const [handleApprove, isApprovingId] = usePerItemMutation(
+    (id) => approveSchoolManagerRequest({ requestId: id }),
     {
       successToast: { title: t("admin.requestApproved"), description: t("admin.approvalSuccess") },
       errorToast: { title: t("admin.approvalFailed"), fallbackDescription: t("admin.approvalError") },
-      onSuccess: () => setIsApprovingId(null),
-      onError: () => setIsApprovingId(null),
     },
   );
 
-  const rejectRequest = useWaspMutation(
-    (args: { requestId: string; rejectionReason?: string }) => rejectSchoolManagerRequest(args),
+  const [handleReject, isRejectingId] = usePerItemMutation(
+    (id) => rejectSchoolManagerRequest({ requestId: id, rejectionReason: rejectionReasons[id] }),
     {
       successToast: { title: t("admin.requestRejected"), description: t("admin.rejectionSuccess") },
       errorToast: { title: t("admin.rejectionFailed"), fallbackDescription: t("admin.rejectionError") },
-      onSuccess: () => setIsRejectingId(null),
-      onError: () => setIsRejectingId(null),
     },
   );
-
-  const handleApprove = async (requestId: string) => {
-    setIsApprovingId(requestId);
-    await approveRequest.mutate({ requestId });
-  };
-
-  const handleReject = async (requestId: string) => {
-    setIsRejectingId(requestId);
-    await rejectRequest.mutate({ requestId, rejectionReason: rejectionReasons[requestId] });
-  };
 
   const requests = (data as SchoolRequestItem[] | undefined) ?? [];
 

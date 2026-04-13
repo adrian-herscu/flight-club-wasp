@@ -606,7 +606,7 @@ test.describe("4.18.F FC-021 below-capacity resolution", () => {
     });
     await page.getByRole("button", { name: /^Approve$/i }).first().click();
 
-    await expect(page.getByText(/suggestion approved/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/suggestion approved/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test("[STD-CRS-039] lead instructor can submit a CLOSE_COURSE suggestion on a BELOW_CAPACITY lesson via UI", async ({
@@ -647,7 +647,7 @@ test.describe("4.18.F FC-021 below-capacity resolution", () => {
     });
     await page.getByRole("button", { name: /^Approve$/i }).first().click();
 
-    await expect(page.getByText(/suggestion approved/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/suggestion approved/i).first()).toBeVisible({ timeout: 5000 });
   });
 });
 

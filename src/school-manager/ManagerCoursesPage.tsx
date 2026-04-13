@@ -37,6 +37,7 @@ import {
   DialogTitle,
 } from "../client/components/ui/dialog";
 import { SelectItem } from "../client/components/ui/select";
+import { usePerItemMutation } from "../client/hooks/usePerItemMutation";
 import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
@@ -276,28 +277,17 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     },
   });
 
-  // Per-item ID for precise button disabling in the interests list
-  const [cancellingInterestId, setCancellingInterestId] = useState<string | null>(null);
-
   // -------------------------------------------------------------------------
   // Mutations (useWaspMutation — replaces 6 loading flags + try/catch/toast blocks)
   // -------------------------------------------------------------------------
 
-  const cancelInterest = useWaspMutation(
-    (args: { schoolId: string; interestId: string }) => cancelCourseInterestForManager(args),
+  const [handleCancelInterest, cancellingInterestId] = usePerItemMutation(
+    (id) => cancelCourseInterestForManager({ schoolId: selectedSchoolId, interestId: id }),
     {
       successToast: { title: t("admin.interestCancelled") },
       errorToast: { title: t("admin.interestCancelFailed") },
-      onSuccess: () => setCancellingInterestId(null),
-      onError: () => setCancellingInterestId(null),
     },
   );
-
-  async function handleCancelInterest(interestId: string) {
-    if (cancelInterest.isPending) return;
-    setCancellingInterestId(interestId);
-    await cancelInterest.mutate({ schoolId: selectedSchoolId, interestId });
-  }
 
   const createCourse = useWaspMutation(
     (args: Parameters<typeof createCourseFromFinalSyllabus>[0]) => createCourseFromFinalSyllabus(args),

@@ -22,7 +22,7 @@ import {
 } from "../client/components/patterns/ManagerRequestsDashboardPatterns";
 import { Button } from "../client/components/ui/button";
 import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
-import { useWaspMutation } from "../client/hooks/useWaspMutation";
+import { usePerItemMutation } from "../client/hooks/usePerItemMutation";
 import { useManagedSchoolSelection } from "./useManagedSchoolSelection";
 
 const {
@@ -127,94 +127,58 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
-  const [isRejectingId, setIsRejectingId] = useState<string | null>(null);
-  const [isApprovingEnrollmentId, setIsApprovingEnrollmentId] = useState<string | null>(null);
-  const [isCancellingInterestId, setIsCancellingInterestId] = useState<string | null>(null);
+
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [roleFilter, setRoleFilter] = useState<MemberRequestRoleFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<MemberRequestStatusFilter>("ALL");
 
   // -------------------------------------------------------------------------
-  // Mutations (useWaspMutation — Change 4)
+  // Mutations
   // -------------------------------------------------------------------------
 
-  const approveMember = useWaspMutation(
-    (args: { requestId: string; schoolId: string }) => approveSchoolMemberRequest(args),
+  const [handleApprove, isApprovingId] = usePerItemMutation(
+    (id) => approveSchoolMemberRequest({ requestId: id, schoolId: selectedSchoolId }),
     {
       successToast: {
         title: t("admin.requestApproved"),
         description: t("dashboard.theUserHasBeenApproved"),
       },
       errorToast: { title: t("admin.approvalFailed"), fallbackDescription: t("admin.approvalError") },
-      onSuccess: () => setIsApprovingId(null),
-      onError: () => setIsApprovingId(null),
     },
   );
 
-  const handleApprove = async (requestId: string) => {
-    setIsApprovingId(requestId);
-    await approveMember.mutate({ requestId, schoolId: selectedSchoolId });
-  };
-
-  const rejectMember = useWaspMutation(
-    (args: { requestId: string; schoolId: string; rejectionReason?: string }) =>
-      rejectSchoolMemberRequest(args),
+  const [handleReject, isRejectingId] = usePerItemMutation(
+    (id) => rejectSchoolMemberRequest({ requestId: id, schoolId: selectedSchoolId, rejectionReason: rejectionReasons[id] }),
     {
       successToast: {
         title: t("admin.requestRejected"),
         description: t("dashboard.theRequestHasBeenRejected"),
       },
       errorToast: { title: t("admin.rejectionFailed"), fallbackDescription: t("admin.rejectionError") },
-      onSuccess: () => setIsRejectingId(null),
-      onError: () => setIsRejectingId(null),
     },
   );
 
-  const handleReject = async (requestId: string) => {
-    setIsRejectingId(requestId);
-    await rejectMember.mutate({
-      requestId,
-      schoolId: selectedSchoolId,
-      rejectionReason: rejectionReasons[requestId],
-    });
-  };
-
-  const approveEnrollment = useWaspMutation(
-    (args: { interestId: string; schoolId: string }) => approveStudentEnrollmentFromInterest(args),
+  const [handleApproveEnrollment, isApprovingEnrollmentId] = usePerItemMutation(
+    (id) => approveStudentEnrollmentFromInterest({ interestId: id, schoolId: selectedSchoolId }),
     {
       successToast: {
         title: t("admin.requestApproved"),
         description: t("admin.studentEnrollmentApproved"),
       },
       errorToast: { title: t("admin.approvalFailed"), fallbackDescription: t("admin.approvalError") },
-      onSuccess: () => setIsApprovingEnrollmentId(null),
-      onError: () => setIsApprovingEnrollmentId(null),
     },
   );
 
-  const handleApproveEnrollment = async (interestId: string) => {
-    setIsApprovingEnrollmentId(interestId);
-    await approveEnrollment.mutate({ interestId, schoolId: selectedSchoolId });
-  };
-
-  const cancelInterest = useWaspMutation(
-    (args: { interestId: string; schoolId: string }) => cancelCourseInterestForManager(args),
+  const [handleCancelInterest, isCancellingInterestId] = usePerItemMutation(
+    (id) => cancelCourseInterestForManager({ interestId: id, schoolId: selectedSchoolId }),
     {
       successToast: {
         title: t("admin.interestCancelled"),
         description: t("admin.interestCancelledDescription"),
       },
       errorToast: { title: t("admin.interestCancelFailed"), fallbackDescription: t("admin.approvalError") },
-      onSuccess: () => setIsCancellingInterestId(null),
-      onError: () => setIsCancellingInterestId(null),
     },
   );
-
-  const handleCancelInterest = async (interestId: string) => {
-    setIsCancellingInterestId(interestId);
-    await cancelInterest.mutate({ interestId, schoolId: selectedSchoolId });
-  };
 
   const pageTitle =
     routeRoleScope === "INSTRUCTOR"

@@ -8,6 +8,7 @@ import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
 import { Button } from "../client/components/ui/button";
 import { toast } from "../client/hooks/use-toast";
+import { usePerItemMutation } from "../client/hooks/usePerItemMutation";
 import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import {
   AssessmentSection,
@@ -100,14 +101,9 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
 
   // --- FC-021: below-capacity suggestion ---
   const [suggestionSubmitting, setSuggestionSubmitting] = useState<string | null>(null);
-  const [approvalSubmitting, setApprovalSubmitting] = useState<string | null>(null);
 
   // --- FC-022: student assessments (lead instructor) ---
   const [assessmentDrafts, setAssessmentDrafts] = useState<Record<string, AssessmentDraft>>({});
-  const [assessmentSubmitting, setAssessmentSubmitting] = useState<string | null>(null);
-
-  // --- FC-023: mark co-instructor absent ---
-  const [absentSubmitting, setAbsentSubmitting] = useState<string | null>(null);
 
   // --- FC-024: refund (student) ---
   const [refundModalOpen, setRefundModalOpen] = useState(false);
@@ -259,45 +255,43 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
     }
   };
 
-  const handleApproveSuggestion = async (suggestionId: string) => {
-    setApprovalSubmitting(suggestionId);
-    try {
-      await approveInstructorSuggestion({ suggestionId });
-      toast({ title: t("courseDetail.suggestionApproved") });
-    } catch (err: unknown) {
-      toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
-    } finally {
-      setApprovalSubmitting(null);
-    }
-  };
+  const [handleApproveSuggestion, approvalSubmitting] = usePerItemMutation(
+    (id) => approveInstructorSuggestion({ suggestionId: id }),
+    {
+      successToast: { title: t("courseDetail.suggestionApproved") },
+      errorToast: { title: "Error" },
+    },
+  );
 
-  const handleSubmitAssessment = async (courseLessonId: string, studentId: string) => {
-    const key = `${courseLessonId}:${studentId}`;
-    const draft = assessmentDrafts[key] ?? { attended: true, status: "PASS" as const, notes: "" };
-    setAssessmentSubmitting(key);
-    try {
-      await submitStudentAssessment({ courseLessonId, studentId, attended: draft.attended, status: draft.status, notes: draft.notes || undefined });
-      setAssessmentDrafts((prev) => { const next = { ...prev }; delete next[key]; return next; });
-      toast({ title: t("courseDetail.assessmentSubmitted") });
-    } catch (err: unknown) {
-      toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
-    } finally {
-      setAssessmentSubmitting(null);
-    }
-  };
+  const [handleSubmitAssessmentByKey, assessmentSubmitting] = usePerItemMutation(
+    (key) => {
+      const sep = key.indexOf(":");
+      const courseLessonId = key.slice(0, sep);
+      const studentId = key.slice(sep + 1);
+      const draft = assessmentDrafts[key] ?? { attended: true, status: "PASS" as const, notes: "" };
+      return submitStudentAssessment({ courseLessonId, studentId, attended: draft.attended, status: draft.status, notes: draft.notes || undefined });
+    },
+    {
+      successToast: { title: t("courseDetail.assessmentSubmitted") },
+      errorToast: { title: "Error" },
+      onSuccess: (key) => setAssessmentDrafts((prev) => { const next = { ...prev }; delete next[key]; return next; }),
+    },
+  );
+  const handleSubmitAssessment = (courseLessonId: string, studentId: string) =>
+    handleSubmitAssessmentByKey(`${courseLessonId}:${studentId}`);
 
-  const handleMarkAbsent = async (courseLessonId: string, instructorId: string) => {
-    const key = `${courseLessonId}:${instructorId}`;
-    setAbsentSubmitting(key);
-    try {
-      await markInstructorAbsent({ courseLessonId, instructorId });
-      toast({ title: t("courseDetail.markedAbsent") });
-    } catch (err: unknown) {
-      toast({ title: (err as { message?: string }).message ?? "Error", variant: "destructive" });
-    } finally {
-      setAbsentSubmitting(null);
-    }
-  };
+  const [handleMarkAbsentByKey, absentSubmitting] = usePerItemMutation(
+    (key) => {
+      const sep = key.indexOf(":");
+      return markInstructorAbsent({ courseLessonId: key.slice(0, sep), instructorId: key.slice(sep + 1) });
+    },
+    {
+      successToast: { title: t("courseDetail.markedAbsent") },
+      errorToast: { title: "Error" },
+    },
+  );
+  const handleMarkAbsent = (courseLessonId: string, instructorId: string) =>
+    handleMarkAbsentByKey(`${courseLessonId}:${instructorId}`);
 
   const handleSubmitRefund = async (e: FormEvent) => {
     e.preventDefault();
