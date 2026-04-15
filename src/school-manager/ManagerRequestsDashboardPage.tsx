@@ -8,14 +8,14 @@ import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
 import LabeledInputField from "../client/components/patterns/LabeledInputField";
 import {
-  ManagerRequestsFilterGroup,
-  ManagerRequestsRejectionReasonField,
   ManagerRequestsSummaryColumn,
 } from "../client/components/patterns/ManagerRequestsDashboardPatterns";
 import {
   EndActionsRow,
+  FilterGroup,
   MutedText,
   PrimaryText,
+  RejectionReasonField,
   SmallText,
   SpacedCardContent,
   SummaryGrid,
@@ -379,14 +379,14 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
           <SpacedCardContent variant="loose">
             {renderRequestSummary(request)}
 
-            <ManagerRequestsRejectionReasonField
+            <RejectionReasonField
               id={`reason-${request.id}`}
               label={t("admin.rejectionReason")}
               value={rejectionReasons[request.id] ?? ""}
-              onChange={(event) =>
+              onChange={(value) =>
                 setRejectionReasons((prev) => ({
                   ...prev,
-                  [request.id]: event.target.value,
+                  [request.id]: value,
                 }))
               }
             />
@@ -455,7 +455,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
             placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
           />
 
-          <ManagerRequestsFilterGroup label={t("admin.filterByStatus")}>
+          <FilterGroup label={t("admin.filterByStatus")}>
               <Button
                 type="button"
                 variant={statusFilter === "ALL" ? "default" : "outline"}
@@ -480,10 +480,10 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               >
                 {t("admin.filterApproved")}
               </Button>
-          </ManagerRequestsFilterGroup>
+          </FilterGroup>
 
           {!routeRoleScope && (
-            <ManagerRequestsFilterGroup label={t("admin.filterByRole")}>
+            <FilterGroup label={t("admin.filterByRole")}>
                 <Button
                   type="button"
                   variant={roleFilter === "ALL" ? "default" : "outline"}
@@ -508,7 +508,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
                 >
                   {t("admin.filterStudents")}
                 </Button>
-            </ManagerRequestsFilterGroup>
+            </FilterGroup>
           )}
 
           {isLoading && <MutedText>{t("admin.loadingRequests")}</MutedText>}

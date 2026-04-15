@@ -9,16 +9,16 @@ import LabeledInputField from "../../../client/components/patterns/LabeledInputF
 import {
   SchoolRequestsDetailsLogoRow,
   SchoolRequestsExpandableDetails,
-  SchoolRequestsFilterGroup,
-  SchoolRequestsRejectionReasonField,
   SchoolRequestsRequesterSummary,
   SchoolRequestsSnapshot,
 } from "../../../client/components/patterns/SchoolRequestsDashboardPatterns";
 import {
   DetailRow,
   EndActionsRow,
+  FilterGroup,
   MutedText,
   PrimaryText,
+  RejectionReasonField,
   SpacedCardContent,
   TitledSection,
 } from "../../../client/components/patterns/PagePrimitives";
@@ -155,7 +155,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
             placeholder={t("admin.searchByRequesterNameEmailOrPhone")}
           />
 
-          <SchoolRequestsFilterGroup label={t("admin.filterByStatus")}>
+          <FilterGroup label={t("admin.filterByStatus")}>
               <Button
                 type="button"
                 variant={statusFilter === "ALL" ? "default" : "outline"}
@@ -180,7 +180,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
               >
                 {t("admin.filterApproved")}
               </Button>
-          </SchoolRequestsFilterGroup>
+          </FilterGroup>
 
           {isLoading && (
             <MutedText>{t("admin.loadingRequests")}</MutedText>
@@ -224,7 +224,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                     currency={request.requestedCurrency ?? "-"}
                   />
 
-                  <SchoolRequestsRejectionReasonField
+                  <RejectionReasonField
                     id={`reason-${request.id}`}
                     label={t("admin.rejectionReason")}
                     value={rejectionReasons[request.id] ?? ""}

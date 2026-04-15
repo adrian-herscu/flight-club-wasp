@@ -9,7 +9,6 @@ type LabeledSelectFieldProps = {
   onValueChange: (value: string) => void;
   placeholder?: string;
   children: ReactNode;
-  className?: string;
 };
 
 const LabeledSelectField = ({
@@ -19,10 +18,9 @@ const LabeledSelectField = ({
   onValueChange,
   placeholder,
   children,
-  className = "space-y-2",
 }: LabeledSelectFieldProps) => {
   return (
-    <div className={className}>
+    <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger id={id}>

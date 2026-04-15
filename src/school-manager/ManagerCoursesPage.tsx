@@ -12,7 +12,6 @@ import DefaultLayout from "../admin/layout/DefaultLayout";
 import LabeledInputField from "../client/components/patterns/LabeledInputField";
 import LabeledSelectField from "../client/components/patterns/LabeledSelectField";
 import {
-  ManagerCoursesCardContent,
   ManagerCoursesDetailsPanel,
   ManagerCoursesDisclosure,
   ManagerCoursesForm,
@@ -23,11 +22,12 @@ import {
   LoadingText,
   MutedText,
   SimpleList,
+  SpacedCardContent,
   TopSpacing,
   TwoColumnFields,
 } from "../client/components/patterns/PagePrimitives";
 import { Button } from "../client/components/ui/button";
-import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../client/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -484,7 +484,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           <CardHeader>
             <CardTitle>{t("syllabus.openCourseFromFinalSyllabus")}</CardTitle>
           </CardHeader>
-          <ManagerCoursesCardContent>
+          <CardContent>
             {isCatalogLoading ? (
               <LoadingText>{t("syllabus.loadingCatalog")}</LoadingText>
             ) : (
@@ -579,14 +579,14 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 </Button>
               </ManagerCoursesForm>
             )}
-          </ManagerCoursesCardContent>
+          </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>{t("admin.courses")}</CardTitle>
           </CardHeader>
-          <ManagerCoursesCardContent>
+          <CardContent>
             {coursesForEnrollment.length === 0 ? (
               <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
             ) : (
@@ -632,7 +632,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 </SimpleList>
               )}
             </ManagerCoursesDisclosure>
-          </ManagerCoursesCardContent>
+          </CardContent>
         </Card>
       </ManagerCoursesGrid>
 
@@ -641,7 +641,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           <CardHeader>
             <CardTitle>{t("syllabus.workflowSingleStudentEnrollment")}</CardTitle>
           </CardHeader>
-          <ManagerCoursesCardContent variant="spacious">
+          <SpacedCardContent>
             <ManagerCoursesForm onSubmit={handleEnrollStudent} variant="spacious">
               {renderCourseSelectField(
                 "enrollment-course-select",
@@ -686,14 +686,14 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 </SimpleList>
               )}
             </ManagerCoursesDetailsPanel>
-          </ManagerCoursesCardContent>
+          </SpacedCardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.workflowInstructorAssignment")}</CardTitle>
           </CardHeader>
-          <ManagerCoursesCardContent variant="spacious">
+          <SpacedCardContent>
             <ManagerCoursesForm onSubmit={handleAssignInstructor} variant="spacious">
               {renderCourseSelectField(
                 "assignment-course-select",
@@ -738,7 +738,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 </SimpleList>
               )}
             </ManagerCoursesDetailsPanel>
-          </ManagerCoursesCardContent>
+          </SpacedCardContent>
         </Card>
       </ManagerCoursesGrid>
 
@@ -747,7 +747,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           <CardHeader>
             <CardTitle>{t("student.courseInterests")}</CardTitle>
           </CardHeader>
-          <ManagerCoursesCardContent>
+          <CardContent>
             <TwoColumnFields>
               <LabeledSelectField
                 id="interests-course-select"
@@ -794,7 +794,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                 ))}
               </SimpleList>
             )}
-          </ManagerCoursesCardContent>
+          </CardContent>
         </Card>
       </TopSpacing>
 

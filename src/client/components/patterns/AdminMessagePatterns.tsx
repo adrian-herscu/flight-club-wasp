@@ -73,9 +73,4 @@ export const MessageNotificationBadge = () => {
   );
 };
 
-/**
- * Messages page text wrapper
- */
-export const MessagesPageText = ({ children }: { children: ReactNode }) => {
-  return <div>{children}</div>;
-};
+

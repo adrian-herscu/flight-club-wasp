@@ -1,5 +1,7 @@
 import { type ReactNode } from "react";
 import { CardContent } from "../ui/card";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
 
 // ---------------------------------------------------------------------------
 // Text atoms
@@ -202,4 +204,38 @@ export const TopSpacing = ({ children }: { children: ReactNode }) => (
 
 export const SummaryGrid = ({ children }: { children: ReactNode }) => (
   <div className="grid gap-3 md:grid-cols-3">{children}</div>
+);
+
+// ---------------------------------------------------------------------------
+// Form helpers  (shared filter / rejection patterns)
+// ---------------------------------------------------------------------------
+
+export const FilterGroup = ({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label?: ReactNode;
+}) => (
+  <div className="space-y-2">
+    {label ? <Label>{label}</Label> : null}
+    <div className="flex flex-wrap gap-2">{children}</div>
+  </div>
+);
+
+export const RejectionReasonField = ({
+  id,
+  label,
+  onChange,
+  value,
+}: {
+  id: string;
+  label: ReactNode;
+  onChange: (value: string) => void;
+  value: string;
+}) => (
+  <div className="space-y-2">
+    <Label htmlFor={id}>{label}</Label>
+    <Textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} />
+  </div>
 );

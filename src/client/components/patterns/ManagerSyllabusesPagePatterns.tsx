@@ -405,7 +405,7 @@ const CreateSection = ({
               value={templateVersionId}
               onValueChange={onTemplateVersionChange}
               placeholder={t("syllabus.finalTemplatePlaceholder")}
-              className="space-y-2"
+
             >
               {finalCandidates.map((item) => (
                 <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
@@ -421,7 +421,6 @@ const CreateSection = ({
                 value={newSyllabusName}
                 onChange={onNewSyllabusNameChange}
                 placeholder={t("syllabus.newSyllabusNamePlaceholder")}
-                className="space-y-2"
               />
             </div>
 
@@ -445,7 +444,6 @@ const CreateSection = ({
                 value={scratchName}
                 onChange={onScratchNameChange}
                 placeholder={t("syllabus.syllabusNamePlaceholder")}
-                className="space-y-2"
               />
             </div>
 

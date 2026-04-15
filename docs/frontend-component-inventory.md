@@ -57,7 +57,7 @@ Page-component rows: 238
 | AdminSchoolRequestsPage | SchoolRequestsRejectionReasonField | domain specific | consolidate → ManagerRequestsRejectionReasonField |
 | AdminSchoolRequestsPage | SchoolRequestsRequesterSummary | domain specific | keep |
 | AdminSchoolRequestsPage | SchoolRequestsSnapshot | domain specific | keep |
-| AdminSchoolRequestsPage | SpacedCardContent | generic | delete |
+| AdminSchoolRequestsPage | SpacedCardContent | generic | keep |
 | AdminSchoolRequestsPage | TitledSection | generic | keep |
 | AdminSettings | Breadcrumb | generic | keep |
 | AdminSettings | Button | generic | keep |
@@ -207,7 +207,7 @@ Page-component rows: 238
 | ManagerRequestsPage | MutedText | generic | keep |
 | ManagerRequestsPage | PrimaryText | generic | keep |
 | ManagerRequestsPage | SmallText | generic | keep |
-| ManagerRequestsPage | SpacedCardContent | generic | delete |
+| ManagerRequestsPage | SpacedCardContent | generic | keep |
 | ManagerRequestsPage | SummaryGrid | generic | keep |
 | ManagerRequestsPage | TitledSection | generic | keep |
 | ManagerSchoolPage | Breadcrumb | generic | keep |
@@ -241,8 +241,8 @@ Page-component rows: 238
 | RegistrationPage | SchoolSelectOptionContent | generic | keep |
 | RegistrationPage | SelectItem | generic | keep |
 | RegistrationPage | Stack | generic | keep |
-| RegistrationPage | SurfaceCard | generic | delete |
-| RegistrationPage | SurfaceCardContent | generic | delete |
+| RegistrationPage | SurfaceCard | generic | keep |
+| RegistrationPage | SurfaceCardContent | generic | keep |
 | RegistrationPage | SurfaceCardHeader | generic | keep |
 | RegistrationPage | WebsiteList | generic | keep |
 | RegistrationPage | WebsiteListItem | generic | keep |

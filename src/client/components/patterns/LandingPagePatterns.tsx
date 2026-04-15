@@ -151,10 +151,6 @@ export const LandingSchoolLogoPlaceholder = ({
 
 export const LandingSchoolTextColumn = ({ children }: { children: ReactNode }) => <div>{children}</div>;
 
-export const LandingSchoolName = ({ children }: { children: ReactNode }) => (
-  <h2 className="text-xl font-semibold">{children}</h2>
-);
-
 export const LandingSchoolLocation = ({ children }: { children: ReactNode }) => (
   <p className="text-sm text-muted-foreground">{children}</p>
 );
@@ -200,10 +196,6 @@ export const LandingContactItem = ({ children, testId }: { children: ReactNode; 
   </li>
 );
 
-export const LandingContactName = ({ children }: { children: ReactNode }) => (
-  <p className="text-sm font-medium">{children}</p>
-);
-
 export const LandingContactMeta = ({ children }: { children: ReactNode }) => (
   <p className="text-xs text-muted-foreground">{children}</p>
 );
@@ -223,10 +215,6 @@ export const LandingCourseItem = ({ children }: { children: ReactNode }) => (
 
 export const LandingCourseTitle = ({ children }: { children: ReactNode }) => (
   <p className="font-medium">{children}</p>
-);
-
-export const LandingCourseMeta = ({ children }: { children: ReactNode }) => (
-  <p className="text-sm text-muted-foreground">{children}</p>
 );
 
 export const LandingCourseActionsRow = ({ children }: { children: ReactNode }) => (

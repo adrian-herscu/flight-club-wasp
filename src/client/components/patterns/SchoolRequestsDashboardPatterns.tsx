@@ -1,41 +1,5 @@
 import { type ReactNode } from "react";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
 import SafeImage from "./SafeImage";
-
-export const SchoolRequestsFilterGroup = ({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label?: ReactNode;
-}) => {
-  return (
-    <div className="space-y-2">
-      {label ? <Label>{label}</Label> : null}
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-};
-
-export const SchoolRequestsRejectionReasonField = ({
-  id,
-  label,
-  onChange,
-  value,
-}: {
-  id: string;
-  label: ReactNode;
-  onChange: (value: string) => void;
-  value: string;
-}) => {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} />
-    </div>
-  );
-};
 
 export const SchoolRequestsRequesterSummary = ({
   requester,

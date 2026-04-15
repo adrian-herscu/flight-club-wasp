@@ -1,5 +1,4 @@
 import { type FormEvent, type ReactNode } from "react";
-import { CardContent } from "../ui/card";
 
 type GridVariant = "top" | "bottom";
 
@@ -16,23 +15,6 @@ export const ManagerCoursesGrid = ({
   variant: GridVariant;
 }) => {
   return <div className={gridClasses[variant]}>{children}</div>;
-};
-
-type CardContentVariant = "default" | "spacious";
-
-const cardContentClasses: Record<CardContentVariant, string | undefined> = {
-  default: undefined,
-  spacious: "space-y-4",
-};
-
-export const ManagerCoursesCardContent = ({
-  children,
-  variant = "default",
-}: {
-  children: ReactNode;
-  variant?: CardContentVariant;
-}) => {
-  return <CardContent className={cardContentClasses[variant]}>{children}</CardContent>;
 };
 
 type FormVariant = "compact" | "spacious";

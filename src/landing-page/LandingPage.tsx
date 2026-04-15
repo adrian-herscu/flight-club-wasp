@@ -8,7 +8,6 @@ import {
   LandingContactItem,
   LandingContactList,
   LandingContactMeta,
-  LandingContactName,
   LandingCourseContactSection,
   LandingContactSectionTitle,
   LandingCountryOption,
@@ -17,7 +16,6 @@ import {
   LandingCourseEnrolledLabel,
   LandingCourseItem,
   LandingCourseList,
-  LandingCourseMeta,
   LandingCourseTitle,
   LandingFilterBar,
   LandingFilterInput,
@@ -34,11 +32,11 @@ import {
   LandingSchoolLocation,
   LandingSchoolLogo,
   LandingSchoolLogoPlaceholder,
-  LandingSchoolName,
   LandingSchoolTextColumn,
   LandingSchoolWebsite,
   LandingStatusText,
 } from "../client/components/patterns/LandingPagePatterns";
+import { MutedText, PrimaryText, SectionTitle } from "../client/components/patterns/PagePrimitives";
 import { Button } from "../client/components/ui/button";
 import { toast } from "../client/hooks/use-toast";
 
@@ -423,7 +421,7 @@ export default function LandingPage() {
                       </LandingSchoolLogoPlaceholder>
                     )}
                     <LandingSchoolTextColumn>
-                      <LandingSchoolName>{school.name}</LandingSchoolName>
+                      <SectionTitle>{school.name}</SectionTitle>
                       <LandingSchoolLocation>
                         {school.city}, {school.country}
                       </LandingSchoolLocation>
@@ -440,7 +438,7 @@ export default function LandingPage() {
                     <LandingContactList>
                       {school.managerContacts.map((contact) => (
                         <LandingContactItem key={contact.userId} testId="landing-school-manager-contact-item">
-                          <LandingContactName>{contact.displayName}</LandingContactName>
+                          <PrimaryText>{contact.displayName}</PrimaryText>
                           <LandingContactMeta>{contact.email}</LandingContactMeta>
                           {contact.phone ? <LandingContactMeta>{contact.phone}</LandingContactMeta> : null}
                         </LandingContactItem>
@@ -453,13 +451,13 @@ export default function LandingPage() {
                   {school.courses.map((course) => (
                     <LandingCourseItem key={course.id}>
                       <LandingCourseTitle>{course.title}</LandingCourseTitle>
-                      <LandingCourseMeta>
+                      <MutedText>
                         {t("landing.startsLabel")} {formatDate(course.startDate, i18n.language, t("landing.dateToBeAnnounced"))}
-                      </LandingCourseMeta>
+                      </MutedText>
                       {(course.minCapacity !== null || course.maxCapacity !== null) && (
-                        <LandingCourseMeta>
+                        <MutedText>
                           {t("landing.capacityLabel")} {course.minCapacity ?? "?"} - {course.maxCapacity ?? "?"}
-                        </LandingCourseMeta>
+                        </MutedText>
                       )}
                       {user && course.instructorContacts.length > 0 && (
                         <LandingCourseContactSection testId="landing-course-instructor-contacts">
@@ -470,7 +468,7 @@ export default function LandingPage() {
                                 key={`${course.id}-${contact.userId}`}
                                 testId="landing-course-instructor-contact-item"
                               >
-                                <LandingContactName>{contact.displayName}</LandingContactName>
+                              <PrimaryText>{contact.displayName}</PrimaryText>
                                 <LandingContactMeta>{contact.email}</LandingContactMeta>
                                 {contact.phone ? <LandingContactMeta>{contact.phone}</LandingContactMeta> : null}
                               </LandingContactItem>
