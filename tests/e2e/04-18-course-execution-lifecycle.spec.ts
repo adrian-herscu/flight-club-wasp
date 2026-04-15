@@ -363,7 +363,7 @@ test.describe("4.18.B FC-019 lesson scheduling", () => {
     await page.fill("#lesson-location", "Training field B");
     await page.getByRole("button", { name: /^Save$/i }).click();
 
-    await expect(page.getByText(/lesson scheduled/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Lesson scheduled", { exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test("[STD-CRS-026] lead instructor can reschedule a SCHEDULED lesson → lesson status resets to SCHEDULED with new date", async ({
@@ -381,7 +381,7 @@ test.describe("4.18.B FC-019 lesson scheduling", () => {
     await page.fill("#lesson-location", "Airfield North");
     await page.getByRole("button", { name: /^Save$/i }).click();
 
-    await expect(page.getByText(/lesson scheduled/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Lesson scheduled", { exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test("[STD-CRS-027] lead instructor sees reschedule action available on a BELOW_CAPACITY lesson", async ({
@@ -413,7 +413,7 @@ test.describe("4.18.B FC-019 lesson scheduling", () => {
     await page.fill("#lesson-location", "Hillside LZ");
     await page.getByRole("button", { name: /^Save$/i }).click();
 
-    await expect(page.getByText(/lesson scheduled/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Lesson scheduled", { exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test("[STD-CRS-029] rescheduling a BELOW_CAPACITY lesson that has a PENDING suggestion supersedes that suggestion", async ({
@@ -436,7 +436,7 @@ test.describe("4.18.B FC-019 lesson scheduling", () => {
     await page.fill("#lesson-location", "East meadow");
     await page.getByRole("button", { name: /^Save$/i }).click();
 
-    await expect(page.getByText(/lesson scheduled/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Lesson scheduled", { exact: true })).toBeVisible({ timeout: 5000 });
     // After reschedule: suggestion superseded, status back to SCHEDULED, no more "awaiting" text
     await expect(page.getByText(/awaiting manager approval/i)).not.toBeVisible({ timeout: 3000 });
   });
@@ -456,7 +456,7 @@ test.describe("4.18.B FC-019 lesson scheduling", () => {
     await page.fill("#lesson-location", "West ridge");
     await page.getByRole("button", { name: /^Save$/i }).click();
 
-    await expect(page.getByText(/lesson scheduled/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Lesson scheduled", { exact: true })).toBeVisible({ timeout: 5000 });
   });
 });
 
