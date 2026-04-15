@@ -7,20 +7,21 @@ import Breadcrumb from "../../layout/Breadcrumb";
 import DefaultLayout from "../../layout/DefaultLayout";
 import LabeledInputField from "../../../client/components/patterns/LabeledInputField";
 import {
-  SchoolRequestsActionsRow,
-  SchoolRequestsDashboardCardContent,
   SchoolRequestsDetailsLogoRow,
-  SchoolRequestsDetailsRow,
   SchoolRequestsExpandableDetails,
   SchoolRequestsFilterGroup,
-  SchoolRequestsMutedText,
-  SchoolRequestsPrimaryText,
   SchoolRequestsRejectionReasonField,
-  SchoolRequestsRequestCardBody,
   SchoolRequestsRequesterSummary,
-  SchoolRequestsSection,
   SchoolRequestsSnapshot,
 } from "../../../client/components/patterns/SchoolRequestsDashboardPatterns";
+import {
+  DetailRow,
+  EndActionsRow,
+  MutedText,
+  PrimaryText,
+  SpacedCardContent,
+  TitledSection,
+} from "../../../client/components/patterns/PagePrimitives";
 import { Button } from "../../../client/components/ui/button";
 import { Card, CardHeader, CardTitle } from "../../../client/components/ui/card";
 import { usePerItemMutation } from "../../../client/hooks/usePerItemMutation";
@@ -145,7 +146,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
         <CardHeader>
           <CardTitle>{t("admin.schoolsPageTitle")}</CardTitle>
         </CardHeader>
-        <SchoolRequestsDashboardCardContent>
+        <SpacedCardContent>
           <LabeledInputField
             id="school-request-search"
             label={t("admin.filterByNameOrPhone")}
@@ -182,26 +183,26 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
           </SchoolRequestsFilterGroup>
 
           {isLoading && (
-            <SchoolRequestsMutedText>{t("admin.loadingRequests")}</SchoolRequestsMutedText>
+            <MutedText>{t("admin.loadingRequests")}</MutedText>
           )}
 
           {!isLoading && filteredRequests.length === 0 && (
-            <SchoolRequestsMutedText>{t("admin.noMatchingRequests")}</SchoolRequestsMutedText>
+            <MutedText>{t("admin.noMatchingRequests")}</MutedText>
           )}
 
           {showPendingSection && (
-          <SchoolRequestsSection
+          <TitledSection
             testId="schools-panel-pending-section"
             title={t("admin.pendingSchoolManagerRequests")}
           >
 
             {pendingRequests.length === 0 && !isLoading && (
-              <SchoolRequestsMutedText>{t("admin.noPendingSchoolRequests")}</SchoolRequestsMutedText>
+              <MutedText>{t("admin.noPendingSchoolRequests")}</MutedText>
             )}
 
             {pendingRequests.map((request) => (
               <Card key={request.id} data-testid="school-request-card">
-                <SchoolRequestsRequestCardBody>
+                <SpacedCardContent variant="loose">
                   {renderRequesterSummary(request, t("admin.submitted"))}
 
                   <SchoolRequestsSnapshot
@@ -235,7 +236,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                     }
                   />
 
-                  <SchoolRequestsActionsRow>
+                  <EndActionsRow>
                     <Button
                       variant="outline"
                       disabled={isRejectingId === request.id}
@@ -249,37 +250,37 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                     >
                       {isApprovingId === request.id ? t("admin.approving") : t("admin.approve")}
                     </Button>
-                  </SchoolRequestsActionsRow>
-                </SchoolRequestsRequestCardBody>
+                  </EndActionsRow>
+                </SpacedCardContent>
               </Card>
             ))}
-          </SchoolRequestsSection>
+          </TitledSection>
           )}
 
           {showApprovedSection && (
-          <SchoolRequestsSection
+          <TitledSection
             testId="schools-panel-approved-section"
             title={t("admin.approvedSchoolRequests")}
           >
 
             {approvedRequests.length === 0 && !isLoading && (
-              <SchoolRequestsMutedText>{t("admin.noApprovedSchoolRequests")}</SchoolRequestsMutedText>
+              <MutedText>{t("admin.noApprovedSchoolRequests")}</MutedText>
             )}
 
             {approvedRequests.map((request) => (
               <Card key={request.id} data-testid="school-request-card">
-                <SchoolRequestsRequestCardBody>
+                <SpacedCardContent variant="loose">
                   {renderRequesterSummary(request, t("dashboard.approved"))}
 
-                  <SchoolRequestsPrimaryText>
+                  <PrimaryText>
                     {request.approvedSchool?.name ?? request.requestedSchoolName ?? "-"}
-                  </SchoolRequestsPrimaryText>
+                  </PrimaryText>
 
                   <SchoolRequestsExpandableDetails summary={t("admin.schoolDetails")}>
-                    <SchoolRequestsDetailsRow label={t("admin.approvedSchoolDetails")}>
+                    <DetailRow label={t("admin.approvedSchoolDetails")}>
                       {request.approvedSchool?.name ?? "-"}
-                    </SchoolRequestsDetailsRow>
-                    <SchoolRequestsDetailsRow label={t("admin.address")}>
+                    </DetailRow>
+                    <DetailRow label={t("admin.address")}>
                       {[
                         request.approvedSchool?.addressLine1,
                         request.approvedSchool?.addressLine2,
@@ -290,7 +291,7 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                       ]
                         .filter(Boolean)
                         .join(", ") || "-"}
-                    </SchoolRequestsDetailsRow>
+                    </DetailRow>
                     {request.approvedSchool?.logoUrl && (
                       <SchoolRequestsDetailsLogoRow
                         label="Logo"
@@ -298,16 +299,16 @@ const SchoolRequestsDashboardPage = ({ user }: { user: AuthUser }) => {
                         logoUrl={request.approvedSchool.logoUrl}
                       />
                     )}
-                    <SchoolRequestsDetailsRow label={t("admin.currency")}>
+                    <DetailRow label={t("admin.currency")}>
                       {request.approvedSchool?.currency ?? "-"}
-                    </SchoolRequestsDetailsRow>
+                    </DetailRow>
                   </SchoolRequestsExpandableDetails>
-                </SchoolRequestsRequestCardBody>
+                </SpacedCardContent>
               </Card>
             ))}
-          </SchoolRequestsSection>
+          </TitledSection>
           )}
-        </SchoolRequestsDashboardCardContent>
+        </SpacedCardContent>
       </Card>
     </DefaultLayout>
   );

@@ -8,18 +8,19 @@ import Breadcrumb from "../admin/layout/Breadcrumb";
 import DefaultLayout from "../admin/layout/DefaultLayout";
 import LabeledInputField from "../client/components/patterns/LabeledInputField";
 import {
-  ManagerRequestsActionsRow,
-  ManagerRequestsCardBody,
-  ManagerRequestsDashboardCardContent,
   ManagerRequestsFilterGroup,
-  ManagerRequestsMutedText,
-  ManagerRequestsPrimaryText,
   ManagerRequestsRejectionReasonField,
-  ManagerRequestsSection,
   ManagerRequestsSummaryColumn,
-  ManagerRequestsSummaryGrid,
-  ManagerRequestsText,
 } from "../client/components/patterns/ManagerRequestsDashboardPatterns";
+import {
+  EndActionsRow,
+  MutedText,
+  PrimaryText,
+  SmallText,
+  SpacedCardContent,
+  SummaryGrid,
+  TitledSection,
+} from "../client/components/patterns/PagePrimitives";
 import { Button } from "../client/components/ui/button";
 import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
 import { usePerItemMutation } from "../client/hooks/usePerItemMutation";
@@ -275,42 +276,42 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     : roleFilter !== "INSTRUCTORS";
 
   const renderRequestSummary = (request: MemberRequestItem) => (
-    <ManagerRequestsSummaryGrid>
+    <SummaryGrid>
       <ManagerRequestsSummaryColumn label={t("dashboard.requestedRole")}>
-        <ManagerRequestsPrimaryText>{request.requestedRole}</ManagerRequestsPrimaryText>
+        <PrimaryText>{request.requestedRole}</PrimaryText>
       </ManagerRequestsSummaryColumn>
       <ManagerRequestsSummaryColumn label={t("dashboard.requesterName")}>
-        <ManagerRequestsPrimaryText>
+        <PrimaryText>
           {request.requester.fullName ?? request.requester.email ?? t("common.unknown")}
-        </ManagerRequestsPrimaryText>
-        <ManagerRequestsMutedText>{request.requester.email ?? "-"}</ManagerRequestsMutedText>
-        <ManagerRequestsMutedText>{request.requester.phone ?? "-"}</ManagerRequestsMutedText>
+        </PrimaryText>
+        <MutedText>{request.requester.email ?? "-"}</MutedText>
+        <MutedText>{request.requester.phone ?? "-"}</MutedText>
       </ManagerRequestsSummaryColumn>
       <ManagerRequestsSummaryColumn label={t("dashboard.submittedDate")}>
-        <ManagerRequestsText>{new Date(request.createdAt).toLocaleString()}</ManagerRequestsText>
-        <ManagerRequestsMutedText>
+        <SmallText>{new Date(request.createdAt).toLocaleString()}</SmallText>
+        <MutedText>
           {t("dashboard.schoolName")}: {request.targetSchool?.name ?? "-"}
-        </ManagerRequestsMutedText>
+        </MutedText>
       </ManagerRequestsSummaryColumn>
-    </ManagerRequestsSummaryGrid>
+    </SummaryGrid>
   );
 
   const renderStudentCoursePairSummary = (pair: StudentCoursePairItem) => (
-    <ManagerRequestsSummaryGrid>
+    <SummaryGrid>
       <ManagerRequestsSummaryColumn label={t("dashboard.requesterName")}>
-        <ManagerRequestsPrimaryText>
+        <PrimaryText>
           {pair.student.fullName ?? pair.student.email ?? t("common.unknown")}
-        </ManagerRequestsPrimaryText>
-        <ManagerRequestsMutedText>{pair.student.email ?? "-"}</ManagerRequestsMutedText>
-        <ManagerRequestsMutedText>{pair.student.phone ?? "-"}</ManagerRequestsMutedText>
+        </PrimaryText>
+        <MutedText>{pair.student.email ?? "-"}</MutedText>
+        <MutedText>{pair.student.phone ?? "-"}</MutedText>
       </ManagerRequestsSummaryColumn>
       <ManagerRequestsSummaryColumn label={t("admin.courseTitle")}>
-        <ManagerRequestsPrimaryText>{pair.course.title}</ManagerRequestsPrimaryText>
+        <PrimaryText>{pair.course.title}</PrimaryText>
       </ManagerRequestsSummaryColumn>
       <ManagerRequestsSummaryColumn label={t("dashboard.status")}>
-        <ManagerRequestsPrimaryText>{pair.status}</ManagerRequestsPrimaryText>
+        <PrimaryText>{pair.status}</PrimaryText>
       </ManagerRequestsSummaryColumn>
-    </ManagerRequestsSummaryGrid>
+    </SummaryGrid>
   );
 
   const renderStudentCoursePairsSection = (
@@ -319,18 +320,18 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     pairs: StudentCoursePairItem[],
     isPendingSection: boolean,
   ) => (
-    <ManagerRequestsSection testId={sectionTestId} title={title}>
+    <TitledSection testId={sectionTestId} title={title}>
       {pairs.length === 0 && !isLoading && (
-        <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+        <MutedText>{t("admin.noMatchingRequests")}</MutedText>
       )}
 
       {pairs.map((pair) => (
         <Card key={pair.interestId} data-testid="manager-member-request-card">
-          <ManagerRequestsCardBody>
+          <SpacedCardContent variant="loose">
             {renderStudentCoursePairSummary(pair)}
 
             {isPendingSection && (
-              <ManagerRequestsActionsRow>
+              <EndActionsRow>
                 <Button
                   variant="outline"
                   disabled={
@@ -354,12 +355,12 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
                     ? t("admin.approvingEnrollment")
                     : t("admin.approveEnrollment")}
                 </Button>
-              </ManagerRequestsActionsRow>
+              </EndActionsRow>
             )}
-          </ManagerRequestsCardBody>
+          </SpacedCardContent>
         </Card>
       ))}
-    </ManagerRequestsSection>
+    </TitledSection>
   );
 
   const renderPendingSection = (
@@ -367,15 +368,15 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     title: string,
     sectionRequests: MemberRequestItem[],
   ) => (
-    <ManagerRequestsSection testId={sectionTestId} title={title}>
+    <TitledSection testId={sectionTestId} title={title}>
 
       {sectionRequests.length === 0 && !isLoading && (
-        <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+        <MutedText>{t("admin.noMatchingRequests")}</MutedText>
       )}
 
       {sectionRequests.map((request) => (
         <Card key={request.id} data-testid="manager-member-request-card">
-          <ManagerRequestsCardBody>
+          <SpacedCardContent variant="loose">
             {renderRequestSummary(request)}
 
             <ManagerRequestsRejectionReasonField
@@ -390,7 +391,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               }
             />
 
-            <ManagerRequestsActionsRow>
+            <EndActionsRow>
               <Button
                 variant="outline"
                 disabled={isRejectingId === request.id}
@@ -401,11 +402,11 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               <Button disabled={isApprovingId === request.id} onClick={() => handleApprove(request.id)}>
                 {isApprovingId === request.id ? t("admin.approving") : t("admin.approve")}
               </Button>
-            </ManagerRequestsActionsRow>
-          </ManagerRequestsCardBody>
+            </EndActionsRow>
+          </SpacedCardContent>
         </Card>
       ))}
-    </ManagerRequestsSection>
+    </TitledSection>
   );
 
   const renderApprovedSection = (
@@ -413,20 +414,20 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
     title: string,
     sectionRequests: MemberRequestItem[],
   ) => (
-    <ManagerRequestsSection testId={sectionTestId} title={title}>
+    <TitledSection testId={sectionTestId} title={title}>
 
       {sectionRequests.length === 0 && !isLoading && (
-        <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+        <MutedText>{t("admin.noMatchingRequests")}</MutedText>
       )}
 
       {sectionRequests.map((request) => (
         <Card key={request.id} data-testid="manager-member-request-card">
-          <ManagerRequestsCardBody>
+          <SpacedCardContent variant="loose">
             {renderRequestSummary(request)}
-          </ManagerRequestsCardBody>
+          </SpacedCardContent>
         </Card>
       ))}
-    </ManagerRequestsSection>
+    </TitledSection>
   );
 
   return (
@@ -437,13 +438,13 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
         <CardHeader>
           <CardTitle>{pageTitle}</CardTitle>
         </CardHeader>
-        <ManagerRequestsDashboardCardContent>
+        <SpacedCardContent>
 
 
           {!isLoading && selectedSchool && (
-            <ManagerRequestsMutedText>
+            <MutedText>
               {t("dashboard.schoolName")}: {selectedSchool.name}
-            </ManagerRequestsMutedText>
+            </MutedText>
           )}
 
           <LabeledInputField
@@ -510,14 +511,14 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
             </ManagerRequestsFilterGroup>
           )}
 
-          {isLoading && <ManagerRequestsMutedText>{t("admin.loadingRequests")}</ManagerRequestsMutedText>}
+          {isLoading && <MutedText>{t("admin.loadingRequests")}</MutedText>}
 
           {!isLoading && !isStudentsCoursePairsRoute && filteredRequests.length === 0 && (
-            <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+            <MutedText>{t("admin.noMatchingRequests")}</MutedText>
           )}
 
           {!isLoading && isStudentsCoursePairsRoute && filteredStudentCoursePairs.length === 0 && (
-            <ManagerRequestsMutedText>{t("admin.noMatchingRequests")}</ManagerRequestsMutedText>
+            <MutedText>{t("admin.noMatchingRequests")}</MutedText>
           )}
 
           {!isStudentsCoursePairsRoute &&
@@ -573,7 +574,7 @@ const ManagerRequestsPage = ({ user }: { user: AuthUser }) => {
               studentsApprovedPairs,
               false,
             )}
-        </ManagerRequestsDashboardCardContent>
+        </SpacedCardContent>
       </Card>
     </DefaultLayout>
   );

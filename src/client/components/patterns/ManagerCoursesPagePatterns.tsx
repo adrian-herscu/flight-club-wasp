@@ -1,5 +1,4 @@
 import { type FormEvent, type ReactNode } from "react";
-import { Link } from "wasp/client/router";
 import { CardContent } from "../ui/card";
 
 type GridVariant = "top" | "bottom";
@@ -59,71 +58,6 @@ export const ManagerCoursesForm = ({
   );
 };
 
-export const ManagerCoursesTwoColumnFields = ({ children }: { children: ReactNode }) => {
-  return <div className="grid grid-cols-2 gap-2">{children}</div>;
-};
-
-export const ManagerCoursesMutedText = ({ children }: { children: ReactNode }) => {
-  return <p className="text-muted-foreground text-sm">{children}</p>;
-};
-
-export const ManagerCoursesLoadingText = ({ children }: { children: ReactNode }) => {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
-};
-
-export const ManagerCoursesList = ({ children }: { children: ReactNode }) => {
-  return <ul className="space-y-2">{children}</ul>;
-};
-
-export const ManagerCoursesCourseListItem = ({
-  action,
-  detailHref,
-  summary,
-  summaryTestId,
-  title,
-}: {
-  action: ReactNode;
-  detailHref?: string;
-  summary: ReactNode;
-  summaryTestId?: string;
-  title: ReactNode;
-}) => {
-  return (
-    <li className="rounded-md border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {detailHref ? (
-            <Link to={detailHref as any} className="text-sm font-medium hover:underline">
-              {title}
-            </Link>
-          ) : (
-            <p className="text-sm font-medium">{title}</p>
-          )}
-        </div>
-        {action}
-      </div>
-      <p className="text-muted-foreground text-xs" data-testid={summaryTestId}>
-        {summary}
-      </p>
-    </li>
-  );
-};
-
-export const ManagerCoursesParticipantListItem = ({
-  displayName,
-  email,
-}: {
-  displayName: ReactNode;
-  email: ReactNode;
-}) => {
-  return (
-    <li className="rounded-md border p-3 text-sm">
-      <p className="font-medium">{displayName}</p>
-      <p className="text-muted-foreground text-xs">{email}</p>
-    </li>
-  );
-};
-
 export const ManagerCoursesDisclosure = ({
   children,
   summary,
@@ -154,31 +88,3 @@ export const ManagerCoursesDetailsPanel = ({
   );
 };
 
-export const ManagerCoursesSectionTopSpacing = ({ children }: { children: ReactNode }) => {
-  return <div className="mt-6">{children}</div>;
-};
-
-export const ManagerCoursesInterestListItem = ({
-  action,
-  displayName,
-  email,
-  status,
-}: {
-  action?: ReactNode;
-  displayName: ReactNode;
-  email?: ReactNode;
-  status: ReactNode;
-}) => {
-  return (
-    <li className="rounded-md border p-3 text-sm flex items-center gap-3">
-      <div className="flex-1">
-        <p className="font-medium">{displayName}</p>
-        {email ? <p className="text-muted-foreground text-xs">{email}</p> : null}
-      </div>
-      <p className="text-muted-foreground text-xs mr-2" data-testid="interest-status-badge">
-        {status}
-      </p>
-      {action}
-    </li>
-  );
-};

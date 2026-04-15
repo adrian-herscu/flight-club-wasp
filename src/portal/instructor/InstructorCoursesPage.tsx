@@ -3,13 +3,13 @@ import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../../admin/layout/Breadcrumb";
 import DefaultLayout from "../../admin/layout/DefaultLayout";
+import { ListItem } from "../../client/components/patterns/ListItem";
 import {
-  InstructorCourseListItem,
-  InstructorCoursesEmptyText,
-  InstructorCoursesList,
-  InstructorCoursesLoadingText,
-  InstructorCoursesPageRoot,
-} from "../../client/components/patterns/InstructorCoursesPagePatterns";
+  EmptyText,
+  LoadingText,
+  PageRoot,
+  SimpleList,
+} from "../../client/components/patterns/PagePrimitives";
 import { useInstructorSchoolSelection } from "./useInstructorSchoolSelection";
 
 const { getInstructorSchools, getInstructorAssignedCourses, useQuery } = operations as any;
@@ -40,21 +40,21 @@ const InstructorCoursesPage = ({ user }: { user: AuthUser }) => {
   return (
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.courses")} />
-      <InstructorCoursesPageRoot testId="instructor-courses-page">
+      <PageRoot testId="instructor-courses-page">
         {isLoading ? (
-          <InstructorCoursesLoadingText>{t("admin.loading")}</InstructorCoursesLoadingText>
+          <LoadingText>{t("admin.loading")}</LoadingText>
         ) : courses.length === 0 ? (
-          <InstructorCoursesEmptyText>
+          <EmptyText>
             {t("instructor.noAssignedCourses")}
-          </InstructorCoursesEmptyText>
+          </EmptyText>
         ) : (
-          <InstructorCoursesList>
+          <SimpleList>
             {courses.map((course) => {
               const startLabel = course.startDate
                 ? new Date(course.startDate).toLocaleDateString()
                 : "—";
               return (
-                <InstructorCourseListItem
+                <ListItem
                   key={course.courseId}
                   href={`/instructor/courses/${course.courseId}`}
                   title={`${course.syllabusName} v${course.syllabusVersion}`}
@@ -63,9 +63,9 @@ const InstructorCoursesPage = ({ user }: { user: AuthUser }) => {
                 />
               );
             })}
-          </InstructorCoursesList>
+          </SimpleList>
         )}
-      </InstructorCoursesPageRoot>
+      </PageRoot>
     </DefaultLayout>
   );
 };

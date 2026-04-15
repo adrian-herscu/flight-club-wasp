@@ -1,12 +1,7 @@
 import { type ReactNode } from "react";
-import { CardContent } from "../ui/card";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import SafeImage from "./SafeImage";
-
-export const SchoolRequestsDashboardCardContent = ({ children }: { children: ReactNode }) => {
-  return <CardContent className="space-y-4">{children}</CardContent>;
-};
 
 export const SchoolRequestsFilterGroup = ({
   children,
@@ -21,35 +16,6 @@ export const SchoolRequestsFilterGroup = ({
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
-};
-
-export const SchoolRequestsMutedText = ({ children }: { children: ReactNode }) => {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
-};
-
-export const SchoolRequestsSection = ({
-  children,
-  testId,
-  title,
-}: {
-  children: ReactNode;
-  testId: string;
-  title: ReactNode;
-}) => {
-  return (
-    <div className="space-y-3" data-testid={testId}>
-      <h3 className="text-sm font-semibold">{title}</h3>
-      {children}
-    </div>
-  );
-};
-
-export const SchoolRequestsRequestCardBody = ({ children }: { children: ReactNode }) => {
-  return <CardContent className="space-y-3 pt-6">{children}</CardContent>;
-};
-
-export const SchoolRequestsPrimaryText = ({ children }: { children: ReactNode }) => {
-  return <p className="text-sm font-medium">{children}</p>;
 };
 
 export const SchoolRequestsRejectionReasonField = ({
@@ -69,10 +35,6 @@ export const SchoolRequestsRejectionReasonField = ({
       <Textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} />
     </div>
   );
-};
-
-export const SchoolRequestsActionsRow = ({ children }: { children: ReactNode }) => {
-  return <div className="flex flex-wrap justify-end gap-2">{children}</div>;
 };
 
 export const SchoolRequestsRequesterSummary = ({
@@ -150,21 +112,6 @@ export const SchoolRequestsExpandableDetails = ({
       <summary className="cursor-pointer text-sm font-medium">{summary}</summary>
       <div className="mt-3 space-y-1 text-sm text-muted-foreground">{children}</div>
     </details>
-  );
-};
-
-export const SchoolRequestsDetailsRow = ({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label: ReactNode;
-}) => {
-  return (
-    <p>
-      <span className="font-medium text-foreground">{label}: </span>
-      {children}
-    </p>
   );
 };
 

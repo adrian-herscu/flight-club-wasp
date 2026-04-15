@@ -11,37 +11,37 @@ import { toast } from "../client/hooks/use-toast";
 import { usePerItemMutation } from "../client/hooks/usePerItemMutation";
 import { useWaspMutation } from "../client/hooks/useWaspMutation";
 import {
-  AssessmentSection,
   AssessmentStudentRow,
   AttendanceHintRow,
   BelowCapacityLeadBar,
   BelowCapacityManagerBar,
   CoInstructorAbsenceRow,
-  CoInstructorSection,
-  CourseDetailActionsBar,
-  CourseDetailErrorText,
-  CourseDetailHeaderSection,
-  CourseDetailLoadingText,
-  CourseDetailMetaItem,
-  CourseDetailMetaRow,
-  CourseDetailPageRoot,
-  CourseDetailTitle,
   CourseLessonListItem,
-  CourseLessonsList,
-  CourseLessonsSection,
-  CourseLessonsSectionHeading,
   CourseLifecycleStatusBadge,
   InstructorAssignmentSection,
   LateEnrollmentSection,
   PendingRefundItem,
-  PendingRefundsSection,
   PresenceHintRow,
   RefundRequestModal,
   RefundRequestSection,
   ScheduleLessonSheet,
-  StartCourseCapacityModal,
   StartCourseGuardList,
 } from "../client/components/patterns/CourseDetailPagePatterns";
+import { ConfirmDialog } from "../client/components/patterns/DialogPrimitives";
+import {
+  ActionsBar,
+  ErrorText,
+  HeaderSection,
+  LoadingText,
+  MetaItem,
+  MetaRow,
+  PageRoot,
+  SectionHeading,
+  SectionTitle,
+  SimpleList,
+  StackSection,
+  SubSection,
+} from "../client/components/patterns/PagePrimitives";
 
 const {
   approveInstructorSuggestion,
@@ -411,7 +411,7 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
       if (isUnderway && lesson.lessonId) {
         if (lesson.coInstructorPresences.length > 0) {
           parts.push(
-            <CoInstructorSection key="co-instructors">
+            <SubSection key="co-instructors" heading="Co-instructors" variant="compact">
               {lesson.coInstructorPresences.map((p) => (
                 <CoInstructorAbsenceRow
                   key={p.instructorId}
@@ -421,13 +421,13 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   onMarkAbsent={() => handleMarkAbsent(lesson.lessonId!, p.instructorId)}
                 />
               ))}
-            </CoInstructorSection>
+            </SubSection>
           );
         }
 
         if (lesson.enrolledActiveStudents.length > 0) {
           parts.push(
-            <AssessmentSection key="assessments">
+            <SubSection key="assessments" heading="Student Assessments">
               {lesson.enrolledActiveStudents.map((s) => {
                 const draftKey = `${lesson.lessonId}:${s.studentId}`;
                 const draft = assessmentDrafts[draftKey] ?? { attended: true, status: "PASS" as const, notes: "" };
@@ -453,7 +453,7 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   />
                 );
               })}
-            </AssessmentSection>
+            </SubSection>
           );
         }
       }
@@ -482,37 +482,32 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
   return (
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.courses")} />
-      <CourseDetailPageRoot testId="course-detail-page">
+      <PageRoot testId="course-detail-page">
         {isLoading ? (
-          <CourseDetailLoadingText>{t("admin.loading")}</CourseDetailLoadingText>
+          <LoadingText>{t("admin.loading")}</LoadingText>
         ) : error ? (
-          <CourseDetailErrorText>{String(error.message ?? error)}</CourseDetailErrorText>
+          <ErrorText>{String(error.message ?? error)}</ErrorText>
         ) : course ? (
           <>
-            <CourseDetailHeaderSection>
-              <CourseDetailTitle>
+            <HeaderSection>
+              <SectionTitle>
                 {course.syllabusName} v{course.syllabusVersion}
-              </CourseDetailTitle>
-              <CourseDetailMetaRow>
-                <CourseDetailMetaItem label={t("admin.school")} value={course.schoolName} />
-                <CourseDetailMetaItem
-                  label={t("admin.status")}
-                  value={<CourseLifecycleStatusBadge status={course.lifecycleStatus} />}
-                />
+              </SectionTitle>
+              <MetaRow>
+                <MetaItem label={t("admin.school")}>{course.schoolName}</MetaItem>
+                <MetaItem label={t("admin.status")}>
+                  <CourseLifecycleStatusBadge status={course.lifecycleStatus} />
+                </MetaItem>
                 {course.startDate && (
-                  <CourseDetailMetaItem
-                    label={t("admin.startDate")}
-                    value={new Date(course.startDate).toLocaleDateString()}
-                  />
+                  <MetaItem label={t("admin.startDate")}>
+                    {new Date(course.startDate).toLocaleDateString()}
+                  </MetaItem>
                 )}
                 {course.hourlyRate != null && (
-                  <CourseDetailMetaItem
-                    label={t("admin.hourlyRate")}
-                    value={`${course.hourlyRate}`}
-                  />
+                  <MetaItem label={t("admin.hourlyRate")}>{`${course.hourlyRate}`}</MetaItem>
                 )}
-              </CourseDetailMetaRow>
-            </CourseDetailHeaderSection>
+              </MetaRow>
+            </HeaderSection>
 
             {viewerRole === "manager" && (course.lifecycleStatus === "OPEN" || course.lifecycleStatus === "REOPENED") && (
               <>
@@ -528,19 +523,20 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   onAssign={handleAssignInstructor}
                   isSubmitting={assignInstructorMutation.isPending}
                 />
-                <CourseDetailActionsBar>
+                <ActionsBar>
                   <Button onClick={() => handleStartCourse()} disabled={startCourseMutation.isPending}>
                     {startCourseMutation.isPending ? t("courseDetail.starting") : t("courseDetail.startCourse")}
                   </Button>
-                </CourseDetailActionsBar>
+                </ActionsBar>
                 {guardErrors.length > 0 && <StartCourseGuardList errors={guardErrors} />}
-                <StartCourseCapacityModal
+                <ConfirmDialog
                   open={showCapacityModal}
                   onClose={() => setShowCapacityModal(false)}
                   onConfirm={() => handleStartCourse(true)}
                   isSubmitting={startCourseMutation.isPending}
-                  enrolledCount={course.enrolledCount}
-                  minCapacity={course.minCapacity ?? 0}
+                  title="Start course below minimum capacity?"
+                  description={`${course.enrolledCount} student${course.enrolledCount !== 1 ? "s" : ""} enrolled, minimum is ${course.minCapacity ?? 0}. You can still start the course — confirm to proceed.`}
+                  confirmLabel={startCourseMutation.isPending ? "Starting…" : "Start anyway"}
                 />
               </>
             )}
@@ -567,7 +563,7 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                   isSubmitting={lateEnrollMutation.isPending}
                 />
                 {(course.pendingRefundRequests ?? []).length > 0 && (
-                  <PendingRefundsSection>
+                  <SubSection heading="Pending Refund Requests" variant="wide">
                     {(course.pendingRefundRequests ?? []).map((r: { id: string; studentName: string; reason: string | null; createdAt: Date }) => (
                       <PendingRefundItem
                         key={r.id}
@@ -581,7 +577,7 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                         isSubmitting={refundActionSubmitting === r.id}
                       />
                     ))}
-                  </PendingRefundsSection>
+                  </SubSection>
                 )}
               </>
             )}
@@ -604,9 +600,9 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
               </>
             )}
 
-            <CourseLessonsSection>
-              <CourseLessonsSectionHeading>{t("admin.lessons")}</CourseLessonsSectionHeading>
-              <CourseLessonsList>
+            <StackSection>
+              <SectionHeading>{t("admin.lessons")}</SectionHeading>
+              <SimpleList>
                 {course.lessons.map((lesson: CourseLessonDetail) => (
                   <CourseLessonListItem
                     key={lesson.syllabusLessonId}
@@ -634,8 +630,8 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
                     extra={renderLessonExtra(lesson)}
                   />
                 ))}
-              </CourseLessonsList>
-            </CourseLessonsSection>
+              </SimpleList>
+            </StackSection>
 
             {viewerRole === "instructor" && course.isLeadInstructor && (
               <ScheduleLessonSheet
@@ -653,7 +649,7 @@ const CourseDetailPage = ({ user }: { user: AuthUser }) => {
             )}
           </>
         ) : null}
-      </CourseDetailPageRoot>
+      </PageRoot>
     </DefaultLayout>
   );
 };

@@ -3,13 +3,13 @@ import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import Breadcrumb from "../../admin/layout/Breadcrumb";
 import DefaultLayout from "../../admin/layout/DefaultLayout";
+import { ListItem } from "../../client/components/patterns/ListItem";
 import {
-  StudentCourseListItem,
-  StudentCoursesEmptyText,
-  StudentCoursesList,
-  StudentCoursesLoadingText,
-  StudentCoursesPageRoot,
-} from "../../client/components/patterns/StudentCoursesPagePatterns";
+  EmptyText,
+  LoadingText,
+  PageRoot,
+  SimpleList,
+} from "../../client/components/patterns/PagePrimitives";
 import { useStudentSchoolSelection } from "./useStudentSchoolSelection";
 
 const { getStudentSchools, getStudentEnrolledCourses, useQuery } = operations as any;
@@ -40,20 +40,20 @@ const StudentCoursesPage = ({ user }: { user: AuthUser }) => {
   return (
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.courses")} />
-      <StudentCoursesPageRoot testId="student-courses-page">
+      <PageRoot testId="student-courses-page">
         {isLoading ? (
-          <StudentCoursesLoadingText>{t("admin.loading")}</StudentCoursesLoadingText>
+          <LoadingText>{t("admin.loading")}</LoadingText>
         ) : courses.length === 0 ? (
-          <StudentCoursesEmptyText>{t("student.noEnrolledCourses")}</StudentCoursesEmptyText>
+          <EmptyText>{t("student.noEnrolledCourses")}</EmptyText>
         ) : (
-          <StudentCoursesList>
+          <SimpleList>
             {courses.map((course) => {
               const startLabel = course.startDate
                 ? new Date(course.startDate).toLocaleDateString()
                 : "—";
 
               return (
-                <StudentCourseListItem
+                <ListItem
                   key={course.courseId}
                   href={`/student/courses/${course.courseId}`}
                   title={`${course.syllabusName} v${course.syllabusVersion}`}
@@ -61,9 +61,9 @@ const StudentCoursesPage = ({ user }: { user: AuthUser }) => {
                 />
               );
             })}
-          </StudentCoursesList>
+          </SimpleList>
         )}
-      </StudentCoursesPageRoot>
+      </PageRoot>
     </DefaultLayout>
   );
 };

@@ -5,63 +5,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
 import { Button } from "../ui/button";
-
-// ---------------------------------------------------------------------------
-// Layout primitives
-// ---------------------------------------------------------------------------
-
-export const CourseDetailPageRoot = ({
-  testId,
-  children,
-}: {
-  testId: string;
-  children: ReactNode;
-}) => <div data-testid={testId}>{children}</div>;
-
-export const CourseDetailLoadingText = ({ children }: { children: ReactNode }) => (
-  <p className="text-muted-foreground text-sm py-2">{children}</p>
-);
-
-export const CourseDetailErrorText = ({ children }: { children: ReactNode }) => (
-  <p className="text-destructive text-sm py-4">{children}</p>
-);
-
-// ---------------------------------------------------------------------------
-// Course header
-// ---------------------------------------------------------------------------
-
-export const CourseDetailHeaderSection = ({ children }: { children: ReactNode }) => (
-  <div className="mb-6 space-y-1">{children}</div>
-);
-
-export const CourseDetailTitle = ({ children }: { children: ReactNode }) => (
-  <h2 className="text-xl font-semibold">{children}</h2>
-);
-
-export const CourseDetailMetaRow = ({ children }: { children: ReactNode }) => (
-  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{children}</div>
-);
-
-export const CourseDetailMetaItem = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) => (
-  <span>
-    <span className="font-medium text-foreground">{label}:</span> {value}
-  </span>
-);
+import { FormDialog } from "./DialogPrimitives";
 
 // ---------------------------------------------------------------------------
 // Lifecycle status badge for the course
@@ -82,24 +27,6 @@ export const CourseLifecycleStatusBadge = ({ status }: { status: string }) => (
   >
     {status}
   </span>
-);
-
-// ---------------------------------------------------------------------------
-// Lesson list
-// ---------------------------------------------------------------------------
-
-export const CourseLessonsSection = ({ children }: { children: ReactNode }) => (
-  <div className="space-y-2">{children}</div>
-);
-
-export const CourseLessonsSectionHeading = ({ children }: { children: ReactNode }) => (
-  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-    {children}
-  </h3>
-);
-
-export const CourseLessonsList = ({ children }: { children: ReactNode }) => (
-  <ul className="space-y-2">{children}</ul>
 );
 
 // ---------------------------------------------------------------------------
@@ -171,14 +98,6 @@ export const CourseLessonListItem = ({
 );
 
 // ---------------------------------------------------------------------------
-// Actions bar (below header, above lesson list)
-// ---------------------------------------------------------------------------
-
-export const CourseDetailActionsBar = ({ children }: { children: ReactNode }) => (
-  <div className="flex flex-wrap gap-2 mb-4">{children}</div>
-);
-
-// ---------------------------------------------------------------------------
 // Start course — hard guard error list
 // ---------------------------------------------------------------------------
 
@@ -191,46 +110,6 @@ export const StartCourseGuardList = ({ errors }: { errors: string[] }) => (
       </li>
     ))}
   </ul>
-);
-
-// ---------------------------------------------------------------------------
-// Start course — soft capacity confirmation modal
-// ---------------------------------------------------------------------------
-
-export const StartCourseCapacityModal = ({
-  open,
-  onClose,
-  onConfirm,
-  isSubmitting,
-  enrolledCount,
-  minCapacity,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  isSubmitting: boolean;
-  enrolledCount: number;
-  minCapacity: number;
-}) => (
-  <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Start course below minimum capacity?</DialogTitle>
-        <DialogDescription>
-          {enrolledCount} student{enrolledCount !== 1 ? "s" : ""} enrolled, minimum is{" "}
-          {minCapacity}. You can still start the course — confirm to proceed.
-        </DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button onClick={onConfirm} disabled={isSubmitting}>
-          {isSubmitting ? "Starting…" : "Start anyway"}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
 );
 
 // ---------------------------------------------------------------------------
@@ -470,15 +349,8 @@ export const BelowCapacityManagerBar = ({
 );
 
 // ---------------------------------------------------------------------------
-// FC-022 — Student assessment section (lead instructor, LESSON_UNDERWAY)
+// FC-022 — Student assessment row (lead instructor, LESSON_UNDERWAY)
 // ---------------------------------------------------------------------------
-
-export const AssessmentSection = ({ children }: { children: ReactNode }) => (
-  <div className="mt-3 space-y-2">
-    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Student Assessments</p>
-    {children}
-  </div>
-);
 
 export const AssessmentStudentRow = ({
   displayName,
@@ -560,13 +432,6 @@ export const AssessmentStudentRow = ({
 // FC-023 — Co-instructor absence row (lead instructor, LESSON_UNDERWAY)
 // ---------------------------------------------------------------------------
 
-export const CoInstructorSection = ({ children }: { children: ReactNode }) => (
-  <div className="mt-2 space-y-1">
-    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Co-instructors</p>
-    {children}
-  </div>
-);
-
 export const CoInstructorAbsenceRow = ({
   displayName,
   presenceStatus,
@@ -631,28 +496,24 @@ export const RefundRequestModal = ({
   isSubmitting: boolean;
   errorMessage: string | null;
 }) => (
-  <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Request a Refund</DialogTitle>
-        <DialogDescription>Optionally describe why you are requesting a refund.</DialogDescription>
-      </DialogHeader>
-      <form onSubmit={onSubmit} className="space-y-3 mt-2">
-        <textarea
-          value={reason}
-          onChange={(e) => onReasonChange(e.target.value)}
-          placeholder="Reason (optional)"
-          rows={3}
-          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        />
-        {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Submitting…" : "Submit"}</Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  </Dialog>
+  <FormDialog
+    open={open}
+    onClose={onClose}
+    onSubmit={onSubmit}
+    isSubmitting={isSubmitting}
+    title="Request a Refund"
+    description="Optionally describe why you are requesting a refund."
+    confirmLabel="Submit"
+    errorMessage={errorMessage}
+  >
+    <textarea
+      value={reason}
+      onChange={(e) => onReasonChange(e.target.value)}
+      placeholder="Reason (optional)"
+      rows={3}
+      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    />
+  </FormDialog>
 );
 
 // ---------------------------------------------------------------------------
@@ -697,13 +558,6 @@ export const PendingRefundItem = ({
         Decline
       </Button>
     </div>
-  </div>
-);
-
-export const PendingRefundsSection = ({ children }: { children: ReactNode }) => (
-  <div className="mt-4 space-y-2">
-    <p className="text-sm font-semibold">Pending Refund Requests</p>
-    {children}
   </div>
 );
 

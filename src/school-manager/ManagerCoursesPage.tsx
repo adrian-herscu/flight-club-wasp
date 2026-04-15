@@ -13,19 +13,19 @@ import LabeledInputField from "../client/components/patterns/LabeledInputField";
 import LabeledSelectField from "../client/components/patterns/LabeledSelectField";
 import {
   ManagerCoursesCardContent,
-  ManagerCoursesCourseListItem,
   ManagerCoursesDetailsPanel,
   ManagerCoursesDisclosure,
   ManagerCoursesForm,
   ManagerCoursesGrid,
-  ManagerCoursesInterestListItem,
-  ManagerCoursesList,
-  ManagerCoursesLoadingText,
-  ManagerCoursesMutedText,
-  ManagerCoursesParticipantListItem,
-  ManagerCoursesSectionTopSpacing,
-  ManagerCoursesTwoColumnFields,
 } from "../client/components/patterns/ManagerCoursesPagePatterns";
+import { ListItem } from "../client/components/patterns/ListItem";
+import {
+  LoadingText,
+  MutedText,
+  SimpleList,
+  TopSpacing,
+  TwoColumnFields,
+} from "../client/components/patterns/PagePrimitives";
 import { Button } from "../client/components/ui/button";
 import { Card, CardHeader, CardTitle } from "../client/components/ui/card";
 import {
@@ -447,12 +447,12 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     includeTotalPrice: boolean,
     includeSummaryTestId: boolean,
   ) => (
-    <ManagerCoursesCourseListItem
+    <ListItem
       key={course.courseId}
       action={actionButton}
       title={`${course.syllabusName} (v${course.syllabusVersion})`}
-      summaryTestId={includeSummaryTestId ? `manager-course-summary-${course.courseId}` : undefined}
-      summary={
+      subtitleTestId={includeSummaryTestId ? `manager-course-summary-${course.courseId}` : undefined}
+      subtitle={
         <>
           {t("syllabus.enrolledStudents", { count: course.enrolledCount })} •{" "}
           {includeTotalPrice
@@ -468,7 +468,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   );
 
   const renderParticipantRow = (id: string, displayName: string, email: string | null) => (
-    <ManagerCoursesParticipantListItem key={id} displayName={displayName} email={email ?? "—"} />
+    <ListItem key={id} title={displayName} subtitle={email ?? "—"} />
   );
 
   // -------------------------------------------------------------------------
@@ -486,7 +486,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           </CardHeader>
           <ManagerCoursesCardContent>
             {isCatalogLoading ? (
-              <ManagerCoursesLoadingText>{t("syllabus.loadingCatalog")}</ManagerCoursesLoadingText>
+              <LoadingText>{t("syllabus.loadingCatalog")}</LoadingText>
             ) : (
               <ManagerCoursesForm onSubmit={handleCreateCourse} variant="compact">
                 <Controller
@@ -523,7 +523,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                   )}
                 />
 
-                <ManagerCoursesTwoColumnFields>
+                <TwoColumnFields>
                   <Controller
                     control={form.control}
                     name="minCapacity"
@@ -552,7 +552,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                       />
                     )}
                   />
-                </ManagerCoursesTwoColumnFields>
+                </TwoColumnFields>
 
                 <Controller
                   control={form.control}
@@ -588,9 +588,9 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
           </CardHeader>
           <ManagerCoursesCardContent>
             {coursesForEnrollment.length === 0 ? (
-              <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
+              <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
             ) : (
-              <ManagerCoursesList>
+              <SimpleList>
                 {coursesForEnrollment.map((course: EnrollmentCourseItem) =>
                   renderCourseRow(
                     course,
@@ -606,14 +606,14 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                     true,
                   ),
                 )}
-              </ManagerCoursesList>
+              </SimpleList>
             )}
 
             <ManagerCoursesDisclosure summary={t("syllabus.closedCoursesPanel", { count: closedCourses.length })}>
               {closedCourses.length === 0 ? (
-                <ManagerCoursesMutedText>{t("syllabus.noClosedCourses")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.noClosedCourses")}</MutedText>
               ) : (
-                <ManagerCoursesList>
+                <SimpleList>
                   {closedCourses.map((course: EnrollmentCourseItem) =>
                     renderCourseRow(
                       course,
@@ -629,7 +629,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                       false,
                     ),
                   )}
-                </ManagerCoursesList>
+                </SimpleList>
               )}
             </ManagerCoursesDisclosure>
           </ManagerCoursesCardContent>
@@ -673,17 +673,17 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               title={t("syllabus.enrolledStudents", { count: courseEnrollmentDetails?.enrolledCount ?? 0 })}
             >
               {!selectedEnrollmentCourseId ? (
-                <ManagerCoursesMutedText>{t("syllabus.selectCourseToViewEnrolled")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.selectCourseToViewEnrolled")}</MutedText>
               ) : !courseEnrollmentDetails ? (
-                <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
               ) : courseEnrollmentDetails.enrolledStudents.length === 0 ? (
-                <ManagerCoursesMutedText>{t("syllabus.noStudentsEnrolled")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.noStudentsEnrolled")}</MutedText>
               ) : (
-                <ManagerCoursesList>
+                <SimpleList>
                   {courseEnrollmentDetails.enrolledStudents.map((student) =>
                     renderParticipantRow(student.studentId, student.displayName, student.email),
                   )}
-                </ManagerCoursesList>
+                </SimpleList>
               )}
             </ManagerCoursesDetailsPanel>
           </ManagerCoursesCardContent>
@@ -725,30 +725,30 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
               title={t("syllabus.assignedInstructors", { count: courseInstructorDetails?.assignedCount ?? 0 })}
             >
               {!selectedAssignmentCourseId ? (
-                <ManagerCoursesMutedText>{t("syllabus.selectCourseToViewAssigned")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.selectCourseToViewAssigned")}</MutedText>
               ) : !courseInstructorDetails ? (
-                <ManagerCoursesMutedText>{t("syllabus.noDetailsAvailable")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
               ) : courseInstructorDetails.assignedInstructors.length === 0 ? (
-                <ManagerCoursesMutedText>{t("syllabus.noInstructorsAssigned")}</ManagerCoursesMutedText>
+                <MutedText>{t("syllabus.noInstructorsAssigned")}</MutedText>
               ) : (
-                <ManagerCoursesList>
+                <SimpleList>
                   {courseInstructorDetails.assignedInstructors.map((instructor) =>
                     renderParticipantRow(instructor.instructorId, instructor.displayName, instructor.email),
                   )}
-                </ManagerCoursesList>
+                </SimpleList>
               )}
             </ManagerCoursesDetailsPanel>
           </ManagerCoursesCardContent>
         </Card>
       </ManagerCoursesGrid>
 
-      <ManagerCoursesSectionTopSpacing>
+      <TopSpacing>
         <Card>
           <CardHeader>
             <CardTitle>{t("student.courseInterests")}</CardTitle>
           </CardHeader>
           <ManagerCoursesCardContent>
-            <ManagerCoursesTwoColumnFields>
+            <TwoColumnFields>
               <LabeledSelectField
                 id="interests-course-select"
                 label={t("syllabus.coursePlaceholder")}
@@ -762,20 +762,21 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                   </SelectItem>
                 ))}
               </LabeledSelectField>
-            </ManagerCoursesTwoColumnFields>
+            </TwoColumnFields>
 
             {courseInterests.length === 0 ? (
-              <ManagerCoursesMutedText data-testid="no-course-interests">
+              <MutedText testId="no-course-interests">
                 {t("student.noInterestsForCourse")}
-              </ManagerCoursesMutedText>
+              </MutedText>
             ) : (
-              <ManagerCoursesList>
+              <SimpleList>
                 {courseInterests.map((interest: CourseInterestItem) => (
-                  <ManagerCoursesInterestListItem
+                  <ListItem
                     key={interest.id}
-                    displayName={interest.user.fullName ?? interest.user.email ?? interest.user.id}
-                    email={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
+                    title={interest.user.fullName ?? interest.user.email ?? interest.user.id}
+                    subtitle={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
                     status={interest.status}
+                    statusTestId="interest-status-badge"
                     action={
                       <Button
                         size="sm"
@@ -791,11 +792,11 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                     }
                   />
                 ))}
-              </ManagerCoursesList>
+              </SimpleList>
             )}
           </ManagerCoursesCardContent>
         </Card>
-      </ManagerCoursesSectionTopSpacing>
+      </TopSpacing>
 
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>
