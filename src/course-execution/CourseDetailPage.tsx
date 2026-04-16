@@ -4,12 +4,12 @@ import { useLocation, useParams } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import { type CourseLessonDetail } from "./operations";
-import Breadcrumb from "../admin/layout/Breadcrumb";
-import DefaultLayout from "../admin/layout/DefaultLayout";
+import Breadcrumb from "../areas/system-admin/layout/Breadcrumb";
+import DefaultLayout from "../areas/system-admin/layout/DefaultLayout";
 import { Button } from "../client/components/ui/button";
-import { toast } from "../client/hooks/use-toast";
-import { usePerItemMutation } from "../client/hooks/usePerItemMutation";
-import { useWaspMutation } from "../client/hooks/useWaspMutation";
+import { toast } from "../shared/hooks/use-toast";
+import { usePerItemMutation } from "../shared/hooks/usePerItemMutation";
+import { useWaspMutation } from "../shared/hooks/useWaspMutation";
 import {
   AssessmentStudentRow,
   AttendanceHintRow,

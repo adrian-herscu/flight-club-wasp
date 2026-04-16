@@ -1,113 +1,92 @@
-%% Flight Club – Site Navigation Wireframe
-%% One node per page. Line breaks via <br/>. Subgraphs group by role.
+%% Flight Club - Site Navigation Wireframe
+%% Reflects current route structure in main.wasp.
 
 flowchart TD
 
-    LANDING["/ Landing<br/>Menu: Login, Sign Up<br/>Content: marketing shell"]
-    LOGIN["/login Login<br/>Form: email, password, Google sign-in<br/>Links: Sign Up, Forgot password<br/>Action: Sign In"]
-    SIGNUP["/signup Sign Up<br/>Form: email, password<br/>Link: Log In<br/>Action: Create account"]
-    VERIFY["/email-verification Verify Email<br/>Form: verification code<br/>Action: Verify"]
-    REQ_RESET["/request-password-reset Forgot Password<br/>Form: email<br/>Action: Send reset link"]
-    RESET["/password-reset Reset Password<br/>Form: new password, confirm<br/>Action: Reset password"]
+    LANDING["/ Landing"]
+    LOGIN["/login"]
+    SIGNUP["/signup"]
+    VERIFY["/email-verification"]
+    REQ_RESET["/request-password-reset"]
+    RESET["/password-reset"]
+    REG["/registration"]
+    ACCOUNT["/account"]
+    NOT_FOUND["* -> 404"]
 
-    ROLE_GATE{{"Role Gate<br/>USER to /registration<br/>Other roles to /admin"}}
+    ROLE_GATE{{"Post-login role routing"}}
 
-    REG["/registration Registration Request<br/>Form: full name, phone, role selector<br/>Manager: school name, address, city, country, currency<br/>Instructor + Student: pick school from list<br/>Action: Submit request"]
-    REG_PENDING["/registration Pending<br/>Info: submitted details read-only<br/>Status: PENDING, awaiting approval"]
-
-    subgraph SYSTEM_ADMIN["SYSTEM_ADMIN"]
+    subgraph SYSTEM_ADMIN["SYSTEM_ADMIN (/system-admin)"]
         direction TB
-        SYS_HOME["/admin System Admin Home<br/>Sidebar: Dashboard, Users, School Requests,<br/>Syllabuses, Calendar, Messages, Settings, UI"]
-        SCH_REQ["/admin/school-requests School Requests<br/>List: requester name, email, phone, school details<br/>Field: rejection reason<br/>Actions: Approve, Reject"]
-        SYS_SYL["/admin/syllabuses Syllabuses<br/>Sections: Catalog, Draft Editor, Courses, Enrollment<br/>Actions: create draft, publish, create course, enroll"]
+        SA_HOME["/system-admin Dashboard"]
+        SA_USERS["/system-admin/users"]
+        SA_SCHOOL_REQ["/system-admin/school-requests"]
+        SA_SYL["/system-admin/syllabuses?section=..."]
+        SA_SETTINGS["/system-admin/settings"]
+        SA_MESSAGES["/system-admin/messages"]
     end
 
-    subgraph SCHOOL_MANAGER["SCHOOL_MANAGER"]
+    subgraph SCHOOL_MANAGER["SCHOOL_MANAGER (/school-manager)"]
         direction TB
-        MGR_HOME["/admin School Manager Home<br/>Sidebar: Dashboard, Users, Member Requests,<br/>My School, Syllabuses, Calendar, Messages, Settings, UI"]
-        MBR_REQ["/admin/member-requests Member Requests<br/>List: requester name, email, phone, role, school<br/>Field: rejection reason<br/>Actions: Approve, Reject"]
-        MY_SCHOOL["/admin/school My School<br/>Form: name, website, address, city, state, postal, country<br/>Info: account balances read-only<br/>Action: Save"]
-        MGR_SYL["/admin/syllabuses Syllabuses<br/>Sections: Catalog, Draft Editor, Courses, Enrollment, Instructors<br/>Actions: save draft, publish, enroll student, assign instructor"]
+        SM_HOME["/school-manager Dashboard"]
+        SM_REQ_I["/school-manager/member-requests/instructors"]
+        SM_REQ_S["/school-manager/member-requests/students"]
+        SM_SCHOOL["/school-manager/school"]
+        SM_COURSES["/school-manager/courses"]
+        SM_COURSE_DETAIL["/school-manager/courses/:courseId"]
+        SM_SYL["/school-manager/syllabuses?section=..."]
     end
 
-    subgraph INSTRUCTOR_STUDENT["INSTRUCTOR and STUDENT"]
+    subgraph INSTRUCTOR["INSTRUCTOR (/instructor)"]
         direction TB
-        BASIC_HOME["/admin Basic Role Home<br/>Sidebar: Dashboard, Users, Calendar, UI Buttons, Account<br/>Info: no dedicated workflow pages yet"]
+        I_HOME["/instructor Dashboard"]
+        I_COURSES["/instructor/courses"]
+        I_COURSE_DETAIL["/instructor/courses/:courseId"]
     end
 
-    subgraph SHARED_AUTH["Shared Authenticated Pages"]
+    subgraph STUDENT["STUDENT (/student)"]
         direction TB
-        AUTH_DASH["/admin Dashboard<br/>Content: under construction"]
-        AUTH_USERS["/admin/users Users<br/>List: paginated users, role, admin toggle<br/>Actions: search, toggle admin"]
-        AUTH_CAL["/admin/calendar Calendar<br/>Content: calendar component"]
-        AUTH_MSG["/admin/messages Messages<br/>List: contact form messages"]
-        AUTH_SET["/admin/settings Settings<br/>Content: stub page"]
-        AUTH_UI["/admin/ui/buttons UI Buttons<br/>Content: button variant showcase"]
-        ACCOUNT["/account Account<br/>Access: header avatar<br/>Info: email, full name, about"]
+        ST_HOME["/student Dashboard"]
+        ST_COURSES["/student/courses"]
+        ST_COURSE_DETAIL["/student/courses/:courseId"]
     end
 
-    NOT_FOUND["404 Not Found<br/>Route: unmatched<br/>Action: return home"]
+    LANDING --> LOGIN
+    LANDING --> SIGNUP
+    LOGIN --> REQ_RESET
+    SIGNUP --> VERIFY
+    VERIFY --> LOGIN
+    REQ_RESET --> RESET
+    RESET --> LOGIN
+    LOGIN --> ROLE_GATE
 
-    %% Public flow
-    LANDING -->|Login| LOGIN
-    LANDING -->|Sign Up| SIGNUP
-    LOGIN -->|Sign Up link| SIGNUP
-    LOGIN -->|Forgot password| REQ_RESET
-    SIGNUP -->|Create account| VERIFY
-    VERIFY -->|Verified| LOGIN
-    REQ_RESET -->|Reset link| RESET
-    RESET -->|Done| LOGIN
-    LOGIN -->|Sign In success| ROLE_GATE
+    ROLE_GATE -->|USER pending role| REG
+    ROLE_GATE -->|SYSTEM_ADMIN| SA_HOME
+    ROLE_GATE -->|SCHOOL_MANAGER| SM_HOME
+    ROLE_GATE -->|INSTRUCTOR| I_HOME
+    ROLE_GATE -->|STUDENT| ST_HOME
 
-    %% Role gate
-    ROLE_GATE -->|USER| REG
-    ROLE_GATE -->|SYSTEM_ADMIN| SYS_HOME
-    ROLE_GATE -->|SCHOOL_MANAGER| MGR_HOME
-    ROLE_GATE -->|INSTRUCTOR/STUDENT| BASIC_HOME
+    SA_HOME --> SA_USERS
+    SA_HOME --> SA_SCHOOL_REQ
+    SA_HOME --> SA_SYL
+    SA_HOME --> SA_SETTINGS
+    SA_HOME --> SA_MESSAGES
 
-    %% Registration flow
-    REG -->|Submit| REG_PENDING
-    REG_PENDING -->|Approved| BASIC_HOME
+    SM_HOME --> SM_REQ_I
+    SM_HOME --> SM_REQ_S
+    SM_HOME --> SM_SCHOOL
+    SM_HOME --> SM_COURSES
+    SM_COURSES --> SM_COURSE_DETAIL
+    SM_HOME --> SM_SYL
 
-    %% System Admin internal
-    SYS_HOME --> SCH_REQ
-    SYS_HOME --> SYS_SYL
-    SYS_HOME -->|shared pages| AUTH_DASH
+    I_HOME --> I_COURSES
+    I_COURSES --> I_COURSE_DETAIL
 
-    %% School Manager internal
-    MGR_HOME --> MBR_REQ
-    MGR_HOME --> MY_SCHOOL
-    MGR_HOME --> MGR_SYL
-    MGR_HOME -->|shared pages| AUTH_DASH
+    ST_HOME --> ST_COURSES
+    ST_COURSES --> ST_COURSE_DETAIL
 
-    %% Basic roles
-    BASIC_HOME -->|shared pages| AUTH_DASH
+    SA_HOME --> ACCOUNT
+    SM_HOME --> ACCOUNT
+    I_HOME --> ACCOUNT
+    ST_HOME --> ACCOUNT
 
-    %% Shared pages internal
-    AUTH_DASH --> AUTH_USERS
-    AUTH_DASH --> AUTH_CAL
-    AUTH_DASH --> AUTH_MSG
-    AUTH_DASH --> AUTH_SET
-    AUTH_DASH --> AUTH_UI
-    AUTH_DASH --> ACCOUNT
-
-    %% In-page refresh loops
-    SCH_REQ -->|Approve/Reject| SCH_REQ
-    MBR_REQ -->|Approve/Reject| MBR_REQ
-    MY_SCHOOL -->|Save| MY_SCHOOL
-
-    NOT_FOUND -.->|Go home| LANDING
-
-    subgraph PUBLIC["Public"]
-        LANDING
-        LOGIN
-        SIGNUP
-        VERIFY
-        REQ_RESET
-        RESET
-    end
-
-    subgraph REGISTRATION["Registration"]
-        REG
-        REG_PENDING
-    end
+    NOT_FOUND -.-> LANDING

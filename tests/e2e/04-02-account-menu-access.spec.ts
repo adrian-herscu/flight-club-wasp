@@ -17,7 +17,7 @@ const createTestInstructorForSchool = async (schoolId: string): Promise<User> =>
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -89,7 +89,7 @@ const createTestStudentForSchool = async (schoolId: string): Promise<User> => {
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 

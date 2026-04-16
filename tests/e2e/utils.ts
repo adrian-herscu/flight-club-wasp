@@ -142,7 +142,7 @@ export const provisionFreshEmailUser = async (): Promise<User> => {
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -214,7 +214,7 @@ export const createTestCourseWithManager = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -364,7 +364,7 @@ export const createTestCourseWithAssignedInstructor = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -509,7 +509,7 @@ export const createTestSystemAdmin = async (): Promise<User> => {
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -543,7 +543,7 @@ export const createTestManagerWithTwoSchools = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -775,7 +775,7 @@ export const createStartedCourseWithLesson = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -910,7 +910,7 @@ export const createLessonUnderwayFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -949,7 +949,7 @@ export const createOpenCourseNoLead = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1027,7 +1027,7 @@ export const createOpenCourseNoWage = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1110,7 +1110,7 @@ export const createBelowCapacityFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1159,7 +1159,7 @@ export const createConfirmedLessonFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1204,7 +1204,7 @@ export const createCourseWithNonLeadInstructor = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1272,7 +1272,7 @@ export const createReadyToStartCourse = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1347,7 +1347,7 @@ export const createClosedCourseFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1405,7 +1405,7 @@ export const createDeclinedPresenceUnderwayFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1458,7 +1458,7 @@ export const createLateEnrollmentFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1544,7 +1544,7 @@ export const createBelowCapacityWithSuggestionFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 
@@ -1597,7 +1597,7 @@ export const createFinalLessonUnderwayFixture = async (): Promise<{
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 

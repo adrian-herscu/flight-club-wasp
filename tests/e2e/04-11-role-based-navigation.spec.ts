@@ -23,7 +23,7 @@ const createStudentNavigationFixture = async (): Promise<User> => {
   ]);
 
   config({
-    path: resolve(process.cwd(), ".wasp/out/server/.env"),
+    path: resolve(process.cwd(), ".env.server"),
     override: false,
   });
 

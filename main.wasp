@@ -28,7 +28,7 @@ app OpenSaaS {
     userEntity: User,
     methods: {
       email: {
-        userSignupFields: import { getEmailUserFields } from "@src/auth/userSignupFields",
+        userSignupFields: import { getEmailUserFields } from "@src/areas/auth/userSignupFields",
         fromField: {
           name: "Flight Club",
           email: "hello@flightclub.app"
@@ -41,8 +41,8 @@ app OpenSaaS {
         }
       },
       google: {
-        userSignupFields: import { getGoogleUserFields } from "@src/auth/userSignupFields",
-        configFn: import { getGoogleAuthConfig } from "@src/auth/userSignupFields"
+        userSignupFields: import { getGoogleUserFields } from "@src/areas/auth/userSignupFields",
+        configFn: import { getGoogleAuthConfig } from "@src/areas/auth/userSignupFields"
       }
     },
     onAuthFailedRedirectTo: "/login",
@@ -66,37 +66,37 @@ app OpenSaaS {
 
 //#region Auth Pages
 page LandingPage {
-  component: import LandingPage from "@src/landing-page/LandingPage"
+  component: import LandingPage from "@src/areas/public/landing/LandingPage"
 }
 route LandingPageRoute { path: "/", to: LandingPage }
 
 query getLandingSchoolsWithCourses {
-  fn: import { getLandingSchoolsWithCourses } from "@src/landing-page/operations",
+  fn: import { getLandingSchoolsWithCourses } from "@src/areas/public/landing/operations",
   entities: [School, User, UserSchoolRole, Syllabus, SyllabusVersion, Course, AssignedInstructor, Instructor, CourseLifecycleEvent, CourseInterest]
 }
 
 page LoginPage {
-  component: import Login from "@src/auth/LoginPage"
+  component: import Login from "@src/areas/auth/LoginPage"
 }
 route LoginRoute { path: "/login", to: LoginPage }
 
 page SignupPage {
-  component: import { Signup } from "@src/auth/SignupPage"
+  component: import { Signup } from "@src/areas/auth/SignupPage"
 }
 route SignupRoute { path: "/signup", to: SignupPage }
 
 page EmailVerificationPage {
-  component: import { EmailVerification } from "@src/auth/EmailVerificationPage"
+  component: import { EmailVerification } from "@src/areas/auth/EmailVerificationPage"
 }
 route EmailVerificationRoute { path: "/email-verification", to: EmailVerificationPage }
 
 page RequestPasswordResetPage {
-  component: import { RequestPasswordReset } from "@src/auth/RequestPasswordResetPage"
+  component: import { RequestPasswordReset } from "@src/areas/auth/RequestPasswordResetPage"
 }
 route RequestPasswordResetRoute { path: "/request-password-reset", to: RequestPasswordResetPage }
 
 page PasswordResetPage {
-  component: import { PasswordReset } from "@src/auth/PasswordResetPage"
+  component: import { PasswordReset } from "@src/areas/auth/PasswordResetPage"
 }
 route PasswordResetRoute { path: "/password-reset", to: PasswordResetPage }
 //#endregion
@@ -104,70 +104,70 @@ route PasswordResetRoute { path: "/password-reset", to: PasswordResetPage }
 //#region Registration
 page RegistrationPage {
   authRequired: true,
-  component: import RegistrationPage from "@src/registration/RegistrationPage"
+  component: import RegistrationPage from "@src/areas/account/registration/RegistrationPage"
 }
 route RegistrationRoute { path: "/registration", to: RegistrationPage }
 
 query getMyRegistrationRequests {
-  fn: import { getMyRegistrationRequests } from "@src/registration/operations",
+  fn: import { getMyRegistrationRequests } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest, RegistrationRequestDecision]
 }
 
 query getRegistrationSchoolOptions {
-  fn: import { getRegistrationSchoolOptions } from "@src/registration/operations",
+  fn: import { getRegistrationSchoolOptions } from "@src/areas/account/registration/operations",
   entities: [School]
 }
 
 action submitRegistrationRequest {
-  fn: import { submitRegistrationRequest } from "@src/registration/operations",
+  fn: import { submitRegistrationRequest } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest]
 }
 
 page AdminSchoolRequestsPage {
   authRequired: true,
-  component: import AdminSchoolRequestsPage from "@src/admin/dashboards/school-requests/SchoolRequestsDashboardPage"
+  component: import AdminSchoolRequestsPage from "@src/areas/system-admin/dashboards/school-requests/SchoolRequestsDashboardPage"
 }
 route AdminSchoolRequestsRoute { path: "/system-admin/school-requests", to: AdminSchoolRequestsPage }
 
 query getPendingSchoolManagerRequests {
-  fn: import { getPendingSchoolManagerRequests } from "@src/registration/operations",
+  fn: import { getPendingSchoolManagerRequests } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest]
 }
 
 action approveSchoolManagerRequest {
-  fn: import { approveSchoolManagerRequest } from "@src/registration/operations",
+  fn: import { approveSchoolManagerRequest } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Account]
 }
 
 action rejectSchoolManagerRequest {
-  fn: import { rejectSchoolManagerRequest } from "@src/registration/operations",
+  fn: import { rejectSchoolManagerRequest } from "@src/areas/account/registration/operations",
   entities: [User, RegistrationRequest, RegistrationRequestDecision]
 }
 
 page SchoolManagerInstructorRequestsPage {
   authRequired: true,
-  component: import ManagerRequestsPage from "@src/school-manager/ManagerRequestsDashboardPage"
+  component: import ManagerRequestsPage from "@src/areas/school-manager/ManagerRequestsDashboardPage"
 }
 route ManagerInstructorRequestsRoute { path: "/school-manager/member-requests/instructors", to: SchoolManagerInstructorRequestsPage }
 
 page SchoolManagerStudentRequestsPage {
   authRequired: true,
-  component: import ManagerRequestsPage from "@src/school-manager/ManagerRequestsDashboardPage"
+  component: import ManagerRequestsPage from "@src/areas/school-manager/ManagerRequestsDashboardPage"
 }
 route ManagerStudentRequestsRoute { path: "/school-manager/member-requests/students", to: SchoolManagerStudentRequestsPage }
 
 query getPendingSchoolMemberRequests {
-  fn: import { getPendingSchoolMemberRequests } from "@src/registration/operations",
+  fn: import { getPendingSchoolMemberRequests } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest]
 }
 
 action approveSchoolMemberRequest {
-  fn: import { approveSchoolMemberRequest } from "@src/registration/operations",
+  fn: import { approveSchoolMemberRequest } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Instructor, Student, Account]
 }
 
 action rejectSchoolMemberRequest {
-  fn: import { rejectSchoolMemberRequest } from "@src/registration/operations",
+  fn: import { rejectSchoolMemberRequest } from "@src/areas/account/registration/operations",
   entities: [User, School, RegistrationRequest, RegistrationRequestDecision]
 }
 //#endregion
@@ -175,27 +175,27 @@ action rejectSchoolMemberRequest {
 //#region User
 page AccountPage {
   authRequired: true,
-  component: import Account from "@src/user/AccountPage"
+  component: import Account from "@src/areas/account/profile/AccountPage"
 }
 route AccountRoute { path: "/account", to: AccountPage }
 
 query getPaginatedUsers {
-  fn: import { getPaginatedUsers } from "@src/user/operations",
+  fn: import { getPaginatedUsers } from "@src/areas/account/profile/operations",
   entities: [User]
 }
 
 action updateIsUserAdminById {
-  fn: import { updateIsUserAdminById } from "@src/user/operations",
+  fn: import { updateIsUserAdminById } from "@src/areas/account/profile/operations",
   entities: [User]
 }
 
 action updateMyUserProfile {
-  fn: import { updateMyUserProfile } from "@src/user/operations",
+  fn: import { updateMyUserProfile } from "@src/areas/account/profile/operations",
   entities: [User]
 }
 
 query getMyDashboardPath {
-  fn: import { getMyDashboardPath } from "@src/user/operations",
+  fn: import { getMyDashboardPath } from "@src/areas/account/profile/operations",
   entities: [User, UserSchoolRole]
 }
 //#endregion
@@ -203,114 +203,114 @@ query getMyDashboardPath {
 //#region School Manager
 page SchoolManagerSchoolPage {
   authRequired: true,
-  component: import ManagerSchoolPage from "@src/school-manager/ManagerSchoolPage"
+  component: import ManagerSchoolPage from "@src/areas/school-manager/ManagerSchoolPage"
 }
 route ManagerSchoolRoute { path: "/school-manager/school", to: SchoolManagerSchoolPage }
 
 page SchoolManagerSyllabusesPage {
   authRequired: true,
-  component: import ManagerSyllabusesPage from "@src/school-manager/ManagerSyllabusesPage"
+  component: import ManagerSyllabusesPage from "@src/areas/school-manager/ManagerSyllabusesPage"
 }
 route ManagerSyllabusesRoute { path: "/school-manager/syllabuses", to: SchoolManagerSyllabusesPage }
 
 page SchoolManagerCoursesPage {
   authRequired: true,
-  component: import ManagerCoursesPage from "@src/school-manager/ManagerCoursesPage"
+  component: import ManagerCoursesPage from "@src/areas/school-manager/ManagerCoursesPage"
 }
 route ManagerCoursesRoute { path: "/school-manager/courses", to: SchoolManagerCoursesPage }
 
 query getMyManagedSchool {
-  fn: import { getMyManagedSchool } from "@src/school-manager/operations",
+  fn: import { getMyManagedSchool } from "@src/areas/school-manager/operations",
   entities: [User, School, Account]
 }
 
 query getManagerSyllabusCatalog {
-  fn: import { getManagerSyllabusCatalog } from "@src/school-manager/operations",
+  fn: import { getManagerSyllabusCatalog } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, HiddenSyllabusDraft]
 }
 
 query getSyllabusVersionDetails {
-  fn: import { getSyllabusVersionDetails } from "@src/school-manager/operations",
+  fn: import { getSyllabusVersionDetails } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, HiddenSyllabusDraft]
 }
 
 action createDraftSyllabusFromScratch {
-  fn: import { createDraftSyllabusFromScratch } from "@src/school-manager/operations",
+  fn: import { createDraftSyllabusFromScratch } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
 }
 
 action createDraftSyllabusFromTemplate {
-  fn: import { createDraftSyllabusFromTemplate } from "@src/school-manager/operations",
+  fn: import { createDraftSyllabusFromTemplate } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
 }
 
 action saveDraftSyllabusRevision {
-  fn: import { saveDraftSyllabusRevision } from "@src/school-manager/operations",
+  fn: import { saveDraftSyllabusRevision } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
 }
 
 action publishDraftSyllabusVersion {
-  fn: import { publishDraftSyllabusVersion } from "@src/school-manager/operations",
+  fn: import { publishDraftSyllabusVersion } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson]
 }
 
 action deleteDraftSyllabusVersion {
-  fn: import { deleteDraftSyllabusVersion } from "@src/school-manager/syllabusDraftDeleteOperations",
+  fn: import { deleteDraftSyllabusVersion } from "@src/areas/school-manager/syllabusDraftDeleteOperations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, HiddenSyllabusDraft]
 }
 
 action deleteAllEditableDraftSyllabusVersions {
-  fn: import { deleteAllEditableDraftSyllabusVersions } from "@src/school-manager/syllabusDraftDeleteOperations",
+  fn: import { deleteAllEditableDraftSyllabusVersions } from "@src/areas/school-manager/syllabusDraftDeleteOperations",
   entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, HiddenSyllabusDraft]
 }
 
 action createCourseFromFinalSyllabus {
-  fn: import { createCourseFromFinalSyllabus } from "@src/school-manager/operations",
+  fn: import { createCourseFromFinalSyllabus } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course]
 }
 
 query getManagerCoursesForEnrollment {
-  fn: import { getManagerCoursesForEnrollment } from "@src/school-manager/operations",
+  fn: import { getManagerCoursesForEnrollment } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, EnrolledStudent, CourseLifecycleEvent]
 }
 
 query getManagerClosedCourses {
-  fn: import { getManagerClosedCourses } from "@src/school-manager/operations",
+  fn: import { getManagerClosedCourses } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, EnrolledStudent, CourseLifecycleEvent]
 }
 
 query getManagerStudentsForEnrollment {
-  fn: import { getManagerStudentsForEnrollment } from "@src/school-manager/operations",
+  fn: import { getManagerStudentsForEnrollment } from "@src/areas/school-manager/operations",
   entities: [User, School, Student, Account]
 }
 
 query getManagerCourseEnrollmentDetails {
-  fn: import { getManagerCourseEnrollmentDetails } from "@src/school-manager/operations",
+  fn: import { getManagerCourseEnrollmentDetails } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent]
 }
 
 query getManagerInstructorsForAssignment {
-  fn: import { getManagerInstructorsForAssignment } from "@src/school-manager/operations",
+  fn: import { getManagerInstructorsForAssignment } from "@src/areas/school-manager/operations",
   entities: [User, School, Instructor, Account]
 }
 
 query getManagerCourseInstructorDetails {
-  fn: import { getManagerCourseInstructorDetails } from "@src/school-manager/operations",
+  fn: import { getManagerCourseInstructorDetails } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, Instructor, AssignedInstructor]
 }
 
 action enrollStudentInCourse {
-  fn: import { enrollStudentInCourse } from "@src/school-manager/operations",
+  fn: import { enrollStudentInCourse } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent, Account, CourseLifecycleEvent]
 }
 
 action assignInstructorToCourse {
-  fn: import { assignInstructorToCourse } from "@src/school-manager/operations",
+  fn: import { assignInstructorToCourse } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, Instructor, AssignedInstructor, Account, CourseLifecycleEvent]
 }
 
 action closeCourse {
-  fn: import { closeCourse } from "@src/school-manager/operations",
+  fn: import { closeCourse } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]
 }
 
@@ -396,59 +396,59 @@ job lessonStatusJob {
 }
 
 action reopenCourse {
-  fn: import { reopenCourse } from "@src/school-manager/operations",
+  fn: import { reopenCourse } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseLifecycleEvent]
 }
 
 action updateMyManagedSchool {
-  fn: import { updateMyManagedSchool } from "@src/school-manager/updateSchoolOperations",
+  fn: import { updateMyManagedSchool } from "@src/areas/school-manager/updateSchoolOperations",
   entities: [User, School, Account]
 }
 
 query getManagerCourseInterests {
-  fn: import { getManagerCourseInterests } from "@src/school-manager/operations",
+  fn: import { getManagerCourseInterests } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
 }
 
 query getManagerStudentCoursePairs {
-  fn: import { getManagerStudentCoursePairs } from "@src/school-manager/operations",
+  fn: import { getManagerStudentCoursePairs } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
 }
 
 action cancelCourseInterestForManager {
-  fn: import { cancelCourseInterestForManager } from "@src/school-manager/operations",
+  fn: import { cancelCourseInterestForManager } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
 }
 
 action approveStudentEnrollmentFromInterest {
-  fn: import { approveStudentEnrollmentFromInterest } from "@src/school-manager/operations",
+  fn: import { approveStudentEnrollmentFromInterest } from "@src/areas/school-manager/operations",
   entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Student, Account, EnrolledStudent, CourseLifecycleEvent]
 }
 //#endregion
 
 //#region Student Portal
 action expressInterestInCourse {
-  fn: import { expressInterestInCourse } from "@src/portal/student/operations",
+  fn: import { expressInterestInCourse } from "@src/areas/student/operations",
   entities: [User, Course, CourseInterest]
 }
 
 action cancelMyCourseInterest {
-  fn: import { cancelMyCourseInterest } from "@src/portal/student/operations",
+  fn: import { cancelMyCourseInterest } from "@src/areas/student/operations",
   entities: [User, CourseInterest]
 }
 
 query getMyInterests {
-  fn: import { getMyInterests } from "@src/portal/student/operations",
+  fn: import { getMyInterests } from "@src/areas/student/operations",
   entities: [User, Course, CourseInterest, Syllabus, SyllabusVersion, School]
 }
 
 query getStudentSchools {
-  fn: import { getStudentSchools } from "@src/portal/student/operations",
+  fn: import { getStudentSchools } from "@src/areas/student/operations",
   entities: [User, School, UserSchoolRole]
 }
 
 query getStudentEnrolledCourses {
-  fn: import { getStudentEnrolledCourses } from "@src/portal/student/operations",
+  fn: import { getStudentEnrolledCourses } from "@src/areas/student/operations",
   entities: [User, School, UserSchoolRole, Student, Course, EnrolledStudent, SyllabusVersion, Syllabus]
 }
 //#endregion
@@ -456,12 +456,12 @@ query getStudentEnrolledCourses {
 //#region Admin Dashboard
 //#region Instructor Portal
 query getInstructorSchools {
-  fn: import { getInstructorSchools } from "@src/portal/instructor/operations",
+  fn: import { getInstructorSchools } from "@src/areas/instructor/operations",
   entities: [User, School, UserSchoolRole]
 }
 
 query getInstructorAssignedCourses {
-  fn: import { getInstructorAssignedCourses } from "@src/portal/instructor/operations",
+  fn: import { getInstructorAssignedCourses } from "@src/areas/instructor/operations",
   entities: [User, School, UserSchoolRole, Instructor, Course, SyllabusVersion, Syllabus, AssignedInstructor, CourseLifecycleEvent]
 }
 //#endregion
@@ -469,37 +469,37 @@ query getInstructorAssignedCourses {
 //#region Admin Dashboard
 page SystemAdminDashboardPage {
   authRequired: true,
-  component: import AdminDashboard from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
+  component: import AdminDashboard from "@src/areas/system-admin/dashboards/analytics/AnalyticsDashboardPage"
 }
 route SystemAdminRoute { path: "/system-admin", to: SystemAdminDashboardPage }
 
 page SchoolManagerDashboardPage {
   authRequired: true,
-  component: import AdminDashboard from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
+  component: import SchoolManagerDashboardPage from "@src/areas/school-manager/dashboard/DashboardPage"
 }
 route SchoolManagerRoute { path: "/school-manager", to: SchoolManagerDashboardPage }
 
 page InstructorDashboardPage {
   authRequired: true,
-  component: import InstructorDashboardPage from "@src/portal/instructor/DashboardPage"
+  component: import InstructorDashboardPage from "@src/areas/instructor/DashboardPage"
 }
 route InstructorRoute { path: "/instructor", to: InstructorDashboardPage }
 
 page InstructorCoursesPage {
   authRequired: true,
-  component: import InstructorCoursesPage from "@src/portal/instructor/InstructorCoursesPage"
+  component: import InstructorCoursesPage from "@src/areas/instructor/InstructorCoursesPage"
 }
 route InstructorCoursesRoute { path: "/instructor/courses", to: InstructorCoursesPage }
 
 page StudentDashboardPage {
   authRequired: true,
-  component: import StudentDashboardPage from "@src/portal/student/DashboardPage"
+  component: import StudentDashboardPage from "@src/areas/student/DashboardPage"
 }
 route StudentRoute { path: "/student", to: StudentDashboardPage }
 
 page StudentCoursesPage {
   authRequired: true,
-  component: import StudentCoursesPage from "@src/portal/student/StudentCoursesPage"
+  component: import StudentCoursesPage from "@src/areas/student/StudentCoursesPage"
 }
 route StudentCoursesRoute { path: "/student/courses", to: StudentCoursesPage }
 
@@ -523,19 +523,19 @@ route ManagerCourseDetailRoute { path: "/school-manager/courses/:courseId", to: 
 
 page SystemAdminUsersPage {
   authRequired: true,
-  component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage"
+  component: import AdminUsers from "@src/areas/system-admin/dashboards/users/UsersDashboardPage"
 }
 route SystemAdminUsersRoute { path: "/system-admin/users", to: SystemAdminUsersPage }
 
 page SystemAdminSettingsPage {
   authRequired: true,
-  component: import AdminSettings from "@src/admin/elements/settings/SettingsPage"
+  component: import AdminSettings from "@src/areas/system-admin/elements/settings/SettingsPage"
 }
 route SystemAdminSettingsRoute { path: "/system-admin/settings", to: SystemAdminSettingsPage }
 
 page SystemAdminSyllabusesPage {
   authRequired: true,
-  component: import ManagerSyllabusesPage from "@src/school-manager/ManagerSyllabusesPage"
+  component: import ManagerSyllabusesPage from "@src/areas/school-manager/ManagerSyllabusesPage"
 }
 route SystemAdminSyllabusesRoute { path: "/system-admin/syllabuses", to: SystemAdminSyllabusesPage }
 
@@ -548,7 +548,7 @@ route NotFoundRoute { path: "*", to: NotFoundPage }
 //#region Contact Form Messages
 page SystemAdminMessagesPage {
   authRequired: true,
-  component: import AdminMessages from "@src/admin/dashboards/messages/MessagesPage"
+  component: import AdminMessages from "@src/areas/system-admin/dashboards/messages/MessagesPage"
 }
 route SystemAdminMessagesRoute { path: "/system-admin/messages", to: SystemAdminMessagesPage }
 //#endregion
