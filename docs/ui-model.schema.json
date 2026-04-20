@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "./ui-model.schema.json",
+  "title": "Flight Club UI Model",
+  "type": "object",
+  "required": ["roles", "schema_bindings", "data_flows"],
+  "additionalProperties": false,
+  "properties": {
+    "roles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/role" }
+    },
+    "schema_bindings": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/schemaBinding" }
+    },
+    "data_flows": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/dataFlow" }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stringOrScalar": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "integer" },
+        { "type": "boolean" },
+        { "type": "null" }
+      ]
+    },
+    "stringList": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "queryList": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": { "type": "string" }
+          }
+        ]
+      }
+    },
+    "actionList": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": { "type": "string" }
+          }
+        ]
+      }
+    },
+    "dataView": {
+      "type": "object",
+      "required": ["source_query"],
+      "additionalProperties": false,
+      "properties": {
+        "source_query": { "$ref": "#/$defs/nonEmptyString" },
+        "entity": { "$ref": "#/$defs/nonEmptyString" },
+        "nested_entities": { "$ref": "#/$defs/stringList" },
+        "filter": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "detailView": {
+      "type": "object",
+      "required": ["source_query", "entity"],
+      "additionalProperties": false,
+      "properties": {
+        "source_query": { "$ref": "#/$defs/nonEmptyString" },
+        "entity": { "$ref": "#/$defs/nonEmptyString" },
+        "nested_entities": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "requestGroup": {
+      "type": "object",
+      "required": ["source_query", "filter", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "source_query": { "$ref": "#/$defs/nonEmptyString" },
+        "filter": { "$ref": "#/$defs/nonEmptyString" },
+        "fields": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "fieldSpec": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "$ref": "#/$defs/nonEmptyString" },
+        "constraints": { "$ref": "#/$defs/stringList" },
+        "source": {
+          "type": "object",
+          "required": ["query", "value", "label"],
+          "additionalProperties": false,
+          "properties": {
+            "query": { "$ref": "#/$defs/nonEmptyString" },
+            "value": { "$ref": "#/$defs/nonEmptyString" },
+            "label": { "$ref": "#/$defs/nonEmptyString" }
+          }
+        },
+        "schema_model": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "interactionFlow": {
+      "type": "object",
+      "required": ["variant", "submit", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "variant": { "$ref": "#/$defs/nonEmptyString" },
+        "submit": {
+          "type": "object",
+          "required": ["intent", "operation"],
+          "additionalProperties": false,
+          "properties": {
+            "intent": { "$ref": "#/$defs/nonEmptyString" },
+            "operation": { "$ref": "#/$defs/nonEmptyString" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/stringOrScalar" }
+            }
+          }
+        },
+        "fields": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/fieldSpec" }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "redirect_if_authenticated": { "$ref": "#/$defs/nonEmptyString" },
+        "path_params": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "wasp_queries": { "$ref": "#/$defs/queryList" },
+        "wasp_actions": { "$ref": "#/$defs/actionList" },
+        "data_views": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/dataView" }
+        },
+        "detail_views": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/detailView" }
+        },
+        "auth_flows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fields": { "$ref": "#/$defs/stringList" }
+            }
+          }
+        },
+        "profile_fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["schema_model"],
+            "additionalProperties": false,
+            "properties": {
+              "schema_model": { "$ref": "#/$defs/nonEmptyString" }
+            }
+          }
+        },
+        "editable_fields": {
+          "type": "object",
+          "required": ["schema_model", "fields"],
+          "additionalProperties": false,
+          "properties": {
+            "schema_model": { "$ref": "#/$defs/nonEmptyString" },
+            "fields": { "$ref": "#/$defs/stringList" }
+          }
+        },
+        "derived_fields": { "$ref": "#/$defs/stringList" },
+        "metrics": { "$ref": "#/$defs/stringList" },
+        "related_pages": { "$ref": "#/$defs/stringList" },
+        "action_intents": { "$ref": "#/$defs/stringList" },
+        "request_groups": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/requestGroup" }
+        },
+        "interaction_flows": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/interactionFlow" }
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": ["description", "pages"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "extends": { "$ref": "#/$defs/nonEmptyString" },
+        "pages": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/page" }
+        }
+      }
+    },
+    "schemaBinding": {
+      "type": "object",
+      "required": ["schema_model"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_model": { "$ref": "#/$defs/nonEmptyString" },
+        "key_fields": { "$ref": "#/$defs/stringList" },
+        "notes": { "type": "string" },
+        "derived_status": { "type": "string" },
+        "enums": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "relations": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+        }
+      }
+    },
+    "dataFlowStep": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/stringOrScalar" },
+      "properties": {
+        "page": { "$ref": "#/$defs/nonEmptyString" },
+        "query": { "$ref": "#/$defs/nonEmptyString" },
+        "queries": { "$ref": "#/$defs/stringList" },
+        "action": { "$ref": "#/$defs/nonEmptyString" },
+        "result": { "$ref": "#/$defs/nonEmptyString" },
+        "effect": { "$ref": "#/$defs/nonEmptyString" },
+        "guard": { "$ref": "#/$defs/nonEmptyString" },
+        "async": { "$ref": "#/$defs/nonEmptyString" },
+        "background_job": { "$ref": "#/$defs/nonEmptyString" },
+        "manager": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "dataFlow": {
+      "type": "object",
+      "required": ["steps"],
+      "additionalProperties": false,
+      "properties": {
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/nonEmptyString" },
+              { "$ref": "#/$defs/dataFlowStep" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,698 @@
+# Flight Club UI Model
+# Source of truth for frontend interaction semantics, role-based access, and
+# data bindings. Derived directly from main.wasp routes, schema.prisma models,
+# and the areas/ directory structure.
+#
+# Conventions:
+#   wasp_query / wasp_action  — names match declarations in main.wasp exactly
+#   schema_model              — names match Prisma model names exactly
+#   enum values               — names match Prisma enum members exactly
+#   route                     — path as declared in main.wasp route declarations
+
+# Access resolution semantics (tool-enforced):
+#   1) Resolve authentication from role ancestry.
+#      `anonymous` pages are public; `registered` and its descendants require authentication.
+#   2) Expand effective roles via `extends` inheritance.
+#   3) Resolve accessible pages from each role's embedded `pages` descriptors.
+#   4) If present, `excluded_pages` overrides inherited access.
+
+# ---------------------------------------------------------------------------
+# 1. ROLES
+# ---------------------------------------------------------------------------
+# System-level role: User.isSystemAdmin === true
+# School-level role: UserSchoolRole.role ∈ { SCHOOL_MANAGER, INSTRUCTOR, STUDENT }
+# A user may hold multiple school roles across different schools simultaneously.
+# ---------------------------------------------------------------------------
+roles:
+  anonymous:
+    description: Unauthenticated visitor. No User record in session.
+    pages:
+      LandingPage:
+        description: Public marketing page with school + course discovery.
+        wasp_queries:
+          - getLandingSchoolsWithCourses
+            # returns: School[] with nested Course[], SyllabusVersion, CourseLifecycleEvent[]
+        data_views:
+          schools_with_courses:
+            source_query: getLandingSchoolsWithCourses
+            entity: School
+            nested_entities: [Course, SyllabusVersion, CourseLifecycleEvent]
+
+      LoginPage:
+        auth_flows:
+          email_password_login:
+            fields: [email, password]
+          google_login: {}
+
+      SignupPage:
+        auth_flows:
+          email_password_signup:
+            fields: [email, password, fullName]
+
+      EmailVerificationPage: {}
+
+      RequestPasswordResetPage:
+        auth_flows:
+          request_password_reset:
+            fields: [email]
+
+      PasswordResetPage:
+        auth_flows:
+          password_reset:
+            fields: [password, confirmPassword]
+
+      NotFoundPage: {}
+
+  registered:
+    description: >
+      Authenticated user with no school role yet, or pending registration.
+      Basis for all authenticated roles; every school-role user implicitly has
+      these permissions too.
+    extends: anonymous
+    pages:
+      AccountPage:
+        wasp_queries:
+          - getMyDashboardPath      # returns role-based redirect path string
+        wasp_actions:
+          - updateMyUserProfile     # payload: { fullName?, phone? }
+        profile_fields:
+          fullName:
+            schema_model: User
+          phone:
+            schema_model: User
+        derived_fields: [subscriptionStatus, datePaid]
+
+      RegistrationPage:
+        wasp_queries:
+          - getMyRegistrationRequests
+            # returns: RegistrationRequest[] with targetSchool, decisions;
+            # grouped by requestedRole for school-manager and instructor request handling
+          - getRegistrationSchoolOptions
+            # returns: School[] (id, name, country) as available instructor targets
+        wasp_actions:
+          - submitRegistrationRequest
+            # operation reused by both registration flows below
+        request_groups:
+          school_manager_requests:
+            source_query: getMyRegistrationRequests
+            filter: requestedRole == SCHOOL_MANAGER
+            fields: [createdAt, requestedSchoolName, status, rejectionReason]
+          instructor_requests:
+            source_query: getMyRegistrationRequests
+            filter: requestedRole == INSTRUCTOR
+            fields: [createdAt, targetSchool.name, status, rejectionReason]
+        interaction_flows:
+          school_manager_registration:
+            variant: SCHOOL_MANAGER
+            submit:
+              intent: submitSchoolManagerRegistration
+              operation: submitRegistrationRequest
+              payload:
+                requestedRole: SCHOOL_MANAGER
+            fields:
+              fullName:
+                type: string
+                constraints: [NotBlank]
+              phone:
+                type: tel
+                constraints: [NotBlank]
+              requestedSchoolName:
+                type: string
+                constraints: [NotBlank, Length(min=2)]
+              requestedWebsiteUrl:
+                type: url
+                constraints: [Optional, URL]
+              requestedLogoUrl:
+                type: url
+                constraints: [Optional, URL(protocol=http|https)]
+              requestedAddressLine1:
+                type: string
+                constraints: [NotBlank, Length(min=2)]
+              requestedAddressLine2:
+                type: string
+                constraints: [Optional]
+              requestedCity:
+                type: string
+                constraints: [NotBlank, Length(min=2)]
+              requestedStateProvince:
+                type: string
+                constraints: [Optional]
+              requestedPostalCode:
+                type: string
+                constraints: [NotBlank, Length(min=2)]
+              requestedCountry:
+                type: string
+                constraints: [NotBlank, Length(exact=2), Uppercase]
+              requestedCurrency:
+                type: string
+                constraints: [NotBlank, Length(exact=3), Uppercase]
+
+          instructor_registration:
+            variant: INSTRUCTOR
+            submit:
+              intent: submitInstructorRegistration
+              operation: submitRegistrationRequest
+              payload:
+                requestedRole: INSTRUCTOR
+            fields:
+              fullName:
+                type: string
+                constraints: [NotBlank]
+              phone:
+                type: tel
+                constraints: [NotBlank]
+              targetSchoolId:
+                type: select
+                source:
+                  query: getRegistrationSchoolOptions
+                  value: id
+                  label: name
+                constraints: [NotBlank, ExistsIn(getRegistrationSchoolOptions.id)]
+
+  system_admin:
+    description: >
+      User.isSystemAdmin === true. Manages platform-wide concerns and may also
+      submit registration requests for school manager, instructor, or student
+      roles.
+    extends: registered
+    pages:
+      SystemAdminDashboardPage:
+        metrics:
+          - totalSignups
+          - totalPayingUsers
+          - totalRevenue
+          - revenueAndProfit
+
+      SystemAdminUsersPage:
+        wasp_queries:
+          - getPaginatedUsers        # paginated User[]
+        wasp_actions:
+          - updateIsUserAdminById   # payload: { id, isAdmin }
+        data_views:
+          users:
+            source_query: getPaginatedUsers
+            entity: User
+        action_intents: [updateIsUserAdminById]
+
+      AdminSchoolRequestsPage:
+        wasp_queries:
+          - getPendingSchoolManagerRequests
+            # returns: RegistrationRequest[] where requestedRole=SCHOOL_MANAGER, status=PENDING
+        wasp_actions:
+          - approveSchoolManagerRequest
+            # payload: { requestId, schoolData? }
+            # effect: creates School, UserSchoolRole(SCHOOL_MANAGER), Account
+          - rejectSchoolManagerRequest
+            # payload: { requestId, reason }
+        request_groups:
+          pending_school_manager_requests:
+            source_query: getPendingSchoolManagerRequests
+            filter: status in [PENDING]
+            fields: [createdAt, requester.fullName, requester.email, requestedSchoolName, status]
+
+      SystemAdminMessagesPage: {}
+
+      SystemAdminSyllabusesPage:
+        description: Cross-school syllabus oversight.
+        wasp_queries:
+          - getManagerSyllabusCatalog
+        data_views:
+          syllabus_catalog:
+            source_query: getManagerSyllabusCatalog
+            entity: Syllabus
+
+      SystemAdminSettingsPage: {}
+
+  school_manager:
+    description: >
+      UserSchoolRole.role === SCHOOL_MANAGER for a school.
+      Manages school profile, syllabuses, courses, member registrations,
+      enrollment, instructor assignment, and course lifecycle.
+    extends: registered
+    pages:
+      SchoolManagerDashboardPage:
+        wasp_queries:
+          - getMyManagedSchool      # returns School with Account balance
+          - getMyDashboardPath
+        data_views:
+          managed_school:
+            source_query: getMyManagedSchool
+            entity: School
+            nested_entities: [Account]
+        related_pages:
+          - SchoolManagerSchoolPage
+          - SchoolManagerSyllabusesPage
+          - SchoolManagerCoursesPage
+          - SchoolManagerInstructorRequestsPage
+          - SchoolManagerStudentRequestsPage
+
+      SchoolManagerSchoolPage:
+        wasp_queries:
+          - getMyManagedSchool
+        wasp_actions:
+          - updateMyManagedSchool
+            # payload: { name?, websiteUrl?, logoUrl?, addressLine1?, addressLine2?,
+            #            city?, stateProvince?, postalCode?, country?, currency?,
+            #            defaultHourlyRate? }
+        editable_fields:
+          schema_model: School
+          fields: [name, websiteUrl, logoUrl, addressLine1, addressLine2, city, stateProvince, postalCode, country, currency, defaultHourlyRate]
+        derived_fields: [Account.balanceMinor, Account.currency]
+
+      SchoolManagerSyllabusesPage:
+        wasp_queries:
+          - getManagerSyllabusCatalog
+            # returns: Syllabus[] with SyllabusVersion[] (DRAFT/FINAL/OBSOLETE),
+            #          SyllabusLesson[], HiddenSyllabusDraft[]
+          - getSyllabusVersionDetails  # detail for selected version; params: syllabusVersionId
+        wasp_actions:
+          - createDraftSyllabusFromScratch
+            # payload: { name, lessons: [{ name, description, durationMinutes }] }
+          - createDraftSyllabusFromTemplate
+            # payload: { sourceSyllabusVersionId, name }
+          - saveDraftSyllabusRevision
+            # payload: { syllabusVersionId, lessons: [...] }
+          - publishDraftSyllabusVersion
+            # payload: { syllabusVersionId }
+            # guard: version must have ≥ 1 lesson
+          - deleteDraftSyllabusVersion
+            # payload: { syllabusVersionId }
+          - deleteAllEditableDraftSyllabusVersions
+            # payload: { syllabusId }
+        data_views:
+          syllabus_catalog:
+            source_query: getManagerSyllabusCatalog
+            entity: Syllabus
+            nested_entities: [SyllabusVersion, SyllabusLesson, HiddenSyllabusDraft]
+          syllabus_version_detail:
+            source_query: getSyllabusVersionDetails
+            entity: SyllabusVersion
+        action_intents:
+          - createDraftSyllabusFromScratch
+          - createDraftSyllabusFromTemplate
+          - saveDraftSyllabusRevision
+          - publishDraftSyllabusVersion
+          - deleteDraftSyllabusVersion
+          - deleteAllEditableDraftSyllabusVersions
+
+      SchoolManagerCoursesPage:
+        wasp_queries:
+          - getManagerCoursesForEnrollment
+            # returns: Course[] (open/started) with EnrolledStudent[], latest lifecycle event
+          - getManagerClosedCourses
+            # returns: Course[] (closed/completed)
+          - getManagerStudentsForEnrollment
+            # returns: Student[] with User (fullName), Account
+          - getManagerCourseEnrollmentDetails
+            # params: courseId; returns detailed enrollment roster
+          - getManagerInstructorsForAssignment
+            # params: courseId; returns Instructor[] with User, AssignedInstructor status
+          - getManagerCourseInstructorDetails
+            # params: courseId; returns assigned instructors with agreedWagePerHour
+          - getManagerCourseInterests
+            # returns: CourseInterest[] with User, Course
+          - getManagerStudentCoursePairs
+            # returns: [{ student, course, interest }] eligible for enrollment approval
+        wasp_actions:
+          - createCourseFromFinalSyllabus
+            # payload: { syllabusVersionId, startDate?, minCapacity?, maxCapacity?, hourlyRate? }
+          - enrollStudentInCourse
+            # payload: { courseId, studentId }
+          - assignInstructorToCourse
+            # payload: { courseId, instructorId, isLead, agreedWagePerHour? }
+          - startCourse
+            # payload: { courseId }
+            # guard: has lead instructor + ≥ minCapacity enrolled students
+          - closeCourse
+            # payload: { courseId }
+          - reopenCourse
+            # payload: { courseId }
+          - approveStudentEnrollmentFromInterest
+            # payload: { courseInterestId }
+            # side-effect: creates student membership if needed + EnrolledStudent
+          - cancelCourseInterestForManager
+            # payload: { courseInterestId }
+        data_views:
+          active_courses:
+            source_query: getManagerCoursesForEnrollment
+            entity: Course
+            filter: lifecycleStatus in [OPEN, STARTED]
+          closed_courses:
+            source_query: getManagerClosedCourses
+            entity: Course
+          enrollment_candidates:
+            source_query: getManagerStudentsForEnrollment
+            entity: Student
+          enrollment_details:
+            source_query: getManagerCourseEnrollmentDetails
+            entity: EnrolledStudent
+          assignment_candidates:
+            source_query: getManagerInstructorsForAssignment
+            entity: Instructor
+          assignment_details:
+            source_query: getManagerCourseInstructorDetails
+            entity: AssignedInstructor
+          course_interests:
+            source_query: getManagerCourseInterests
+            entity: CourseInterest
+          student_course_pairs:
+            source_query: getManagerStudentCoursePairs
+        related_pages: [ManagerCourseDetailPage]
+
+      SchoolManagerInstructorRequestsPage:
+        wasp_queries:
+          - getPendingSchoolMemberRequests
+            # filtered by requestedRole=INSTRUCTOR, status=PENDING for my school
+        wasp_actions:
+          - approveSchoolMemberRequest
+            # payload: { requestId }
+            # effect: creates Instructor profile + UserSchoolRole + Account
+          - rejectSchoolMemberRequest
+            # payload: { requestId, reason }
+        request_groups:
+          instructor_requests:
+            source_query: getPendingSchoolMemberRequests
+            filter: requestedRole == INSTRUCTOR
+            fields: [createdAt, requester.fullName, requester.email, status, rejectionReason]
+
+      SchoolManagerStudentRequestsPage:
+        wasp_queries:
+          - getPendingSchoolMemberRequests
+            # filtered by requestedRole=STUDENT
+        wasp_actions:
+          - approveSchoolMemberRequest
+            # effect: creates Student profile + UserSchoolRole + Account
+          - rejectSchoolMemberRequest
+        request_groups:
+          student_requests:
+            source_query: getPendingSchoolMemberRequests
+            filter: requestedRole == STUDENT
+            fields: [createdAt, requester.fullName, requester.email, status, rejectionReason]
+
+      ManagerCourseDetailPage:
+        path_params:
+          courseId: Course.id
+        wasp_queries:
+          - getCourseDetail
+            # returns: Course with CourseLesson[], SyllabusLesson[], lifecycle events,
+            #          AssignedInstructor[], EnrolledStudent[], InstructorSuggestion[],
+            #          RefundRequest[]
+        wasp_actions:
+          - startCourse             # payload: { courseId }
+          - closeCourse
+          - reopenCourse
+          - scheduleLesson          # payload: { courseId, syllabusLessonId, date, location, ... }
+          - rescheduleLesson
+          - approveInstructorSuggestion
+          - approveRefund
+          - declineRefund
+        detail_views:
+          course:
+            source_query: getCourseDetail
+            entity: Course
+            nested_entities: [CourseLesson, SyllabusLesson, CourseLifecycleEvent, AssignedInstructor, EnrolledStudent, InstructorSuggestion, RefundRequest]
+
+  instructor:
+    description: >
+      UserSchoolRole.role === INSTRUCTOR for a school AND Instructor profile
+      exists. May be lead or non-lead on a course (AssignedInstructor.isLead).
+    extends: registered
+    pages:
+      InstructorDashboardPage:
+        wasp_queries:
+          - getInstructorSchools    # returns School[] where user has INSTRUCTOR role
+          - getMyDashboardPath
+        data_views:
+          instructor_schools:
+            source_query: getInstructorSchools
+            entity: School
+        related_pages: [InstructorCoursesPage]
+
+      InstructorCoursesPage:
+        wasp_queries:
+          - getInstructorAssignedCourses
+            # returns: Course[] with SyllabusVersion, Syllabus, AssignedInstructor
+            #          (isLead), latest lifecycle event
+        data_views:
+          assigned_courses:
+            source_query: getInstructorAssignedCourses
+            entity: Course
+            nested_entities: [SyllabusVersion, Syllabus, AssignedInstructor]
+        related_pages: [InstructorCourseDetailPage]
+
+      InstructorCourseDetailPage:
+        path_params:
+          courseId: Course.id
+        wasp_queries:
+          - getCourseDetail
+        wasp_actions:
+          - scheduleLesson          # lead-only; payload: { courseId, syllabusLessonId, date, location }
+          - rescheduleLesson        # lead-only; payload: { courseLessonId, newDate, newLocation }
+          - updateInstructorPresence   # self; payload: { courseLessonId, status }
+          - submitInstructorSuggestion # lead; payload: { courseLessonId, type }
+          - submitStudentAssessment    # lead; payload: { courseLessonId, studentId, status, attended, notes }
+          - markInstructorAbsent       # lead; payload: { courseLessonId, instructorId }
+          - updateMeetingAttendance    # advisory; payload: { courseLessonId, status }
+        detail_views:
+          course:
+            source_query: getCourseDetail
+            entity: Course
+            nested_entities: [CourseLesson, AssignedInstructor, EnrolledStudent, InstructorSuggestion]
+
+  student:
+    description: >
+      UserSchoolRole.role === STUDENT for a school AND Student profile exists.
+    extends: registered
+    pages:
+      StudentDashboardPage:
+        wasp_queries:
+          - getStudentSchools       # returns School[] where user has STUDENT role
+          - getMyInterests          # returns CourseInterest[] with Course, Syllabus, School
+          - getMyDashboardPath
+        data_views:
+          student_schools:
+            source_query: getStudentSchools
+            entity: School
+          my_interests:
+            source_query: getMyInterests
+            entity: CourseInterest
+            nested_entities: [Course, Syllabus, School]
+
+      StudentCoursesPage:
+        wasp_queries:
+          - getStudentEnrolledCourses
+            # returns: EnrolledStudent[] with Course, SyllabusVersion, Syllabus, School
+        wasp_actions:
+          - expressInterestInCourse  # from landing or course browse
+        data_views:
+          enrolled_courses:
+            source_query: getStudentEnrolledCourses
+            entity: EnrolledStudent
+            nested_entities: [Course, SyllabusVersion, Syllabus, School]
+        related_pages: [StudentCourseDetailPage]
+
+      StudentCourseDetailPage:
+        path_params:
+          courseId: Course.id
+        wasp_queries:
+          - getCourseDetail
+        wasp_actions:
+          - updateMeetingAttendance  # advisory; payload: { courseLessonId, status }
+          - submitRefundRequest      # payload: { courseId, reason }
+        detail_views:
+          course:
+            source_query: getCourseDetail
+            entity: Course
+            nested_entities: [CourseLesson, StudentLessonEvaluation, EnrolledStudent, RefundRequest]
+
+# ---------------------------------------------------------------------------
+# 2. SCHEMA BINDINGS
+# Maps UI entity concepts to Prisma models. Key fields listed for quick
+# reference; see schema.prisma for the full definition.
+# ---------------------------------------------------------------------------
+schema_bindings:
+
+  User:
+    schema_model: User
+    key_fields: [id, email, fullName, isSystemAdmin, createdAt]
+    notes: Auth identity (email/password, Google) is in Wasp auth tables, not here.
+
+  School:
+    schema_model: School
+    key_fields: [id, name, websiteUrl, logoUrl, addressLine1, city, country, currency, defaultHourlyRate]
+
+  RegistrationRequest:
+    schema_model: RegistrationRequest
+    key_fields: [id, requestedRole, status, createdAt]
+    enums:
+      requestedRole: RegistrationRequestRole   # SCHOOL_MANAGER | INSTRUCTOR | STUDENT
+      status: RegistrationRequestStatus        # PENDING | APPROVED | REJECTED
+    relations:
+      requester: User
+      targetSchool: School (nullable — null when requesting new school creation)
+      approvedSchool: School (nullable)
+
+  UserSchoolRole:
+    schema_model: UserSchoolRole
+    key_fields: [userId, schoolId, role, grantedAt, revokedAt]
+    enums:
+      role: SchoolRole   # SCHOOL_MANAGER | INSTRUCTOR | STUDENT
+
+  Syllabus:
+    schema_model: Syllabus
+    key_fields: [id, name, schoolId]
+    relations:
+      versions: SyllabusVersion[]
+
+  SyllabusVersion:
+    schema_model: SyllabusVersion
+    key_fields: [id, syllabusId, version, status]
+    enums:
+      status: SyllabusVersionStatus   # DRAFT | FINAL | OBSOLETE
+    relations:
+      lessons: SyllabusLesson[]
+
+  SyllabusLesson:
+    schema_model: SyllabusLesson
+    key_fields: [id, syllabusVersionId, position, name, durationMinutes]
+
+  Course:
+    schema_model: Course
+    key_fields: [id, syllabusVersionId, schoolId, startDate, minCapacity, maxCapacity, hourlyRate]
+    derived_status: >
+      Computed from latest CourseLifecycleEvent.status.
+      Enum: CourseLifecycleStatus — CLOSED | REOPENED | STARTED | COMPLETED
+    relations:
+      syllabusVersion: SyllabusVersion
+      school: School
+      assignedInstructors: AssignedInstructor[]
+      enrolledStudents: EnrolledStudent[]
+      courseInterests: CourseInterest[]
+      courseLessons: CourseLesson[]
+      lifecycleEvents: CourseLifecycleEvent[]
+
+  CourseInterest:
+    schema_model: CourseInterest
+    key_fields: [id, courseId, userId, status]
+    enums:
+      status: CourseInterestStatus   # INTERESTED | ENROLLED | CANCELLED
+
+  EnrolledStudent:
+    schema_model: EnrolledStudent
+    key_fields: [courseId, studentId, status]
+    enums:
+      status: EnrolledStudentStatus   # ACTIVE | CERTIFIED | FAILED
+
+  AssignedInstructor:
+    schema_model: AssignedInstructor
+    key_fields: [courseId, instructorId, isLead, agreedWagePerHour]
+
+  CourseLesson:
+    schema_model: CourseLesson
+    key_fields: [id, courseId, syllabusLessonId, date, location, status, bufferMinutes]
+    enums:
+      status: CourseLessonStatus
+        # SCHEDULED | BELOW_CAPACITY | CONFIRMED | LESSON_UNDERWAY
+        # | LESSON_CONCLUDED | CANCELLED
+    relations:
+      meetingAttendances: MeetingAttendance[]
+      studentEvaluations: StudentLessonEvaluation[]
+      instructorPresences: InstructorLessonPresence[]
+      instructorSuggestions: InstructorSuggestion[]
+
+  MeetingAttendance:
+    schema_model: MeetingAttendance
+    key_fields: [courseLessonId, studentId, status]
+    enums:
+      status: MeetingAttendanceStatus   # NO_RESPONSE | ACCEPTED | DECLINED
+
+  InstructorLessonPresence:
+    schema_model: InstructorLessonPresence
+    key_fields: [courseLessonId, instructorId, status]
+    enums:
+      status: InstructorLessonPresenceStatus   # EXPECTED | DECLINED | ABSENT
+
+  InstructorSuggestion:
+    schema_model: InstructorSuggestion
+    key_fields: [id, courseLessonId, proposedByInstructorId, type, status]
+    enums:
+      type: InstructorSuggestionType      # PROCEED_WITH_PARTIAL | CLOSE_COURSE
+      status: InstructorSuggestionStatus  # PENDING | APPROVED | SUPERSEDED
+
+  StudentLessonEvaluation:
+    schema_model: StudentLessonEvaluation
+    key_fields: [id, studentId, courseLessonId, instructorId, status, attended]
+    enums:
+      status: LessonEvaluationStatus   # PASS | FAIL
+
+  RefundRequest:
+    schema_model: RefundRequest
+    key_fields: [id, courseId, studentId, status, approvedAmountMinor, reason]
+    enums:
+      status: RefundRequestStatus   # PENDING | APPROVED | DECLINED
+
+  Account:
+    schema_model: Account
+    key_fields: [id, userId, schoolId, balanceMinor, currency]
+
+  Transaction:
+    schema_model: Transaction
+    key_fields: [id, accountId, type, amountMinor, currency, description]
+    enums:
+      type: TransactionType   # DEPOSIT | WITHDRAWAL
+
+# ---------------------------------------------------------------------------
+# 3. DATA FLOWS (key user journeys)
+# ---------------------------------------------------------------------------
+data_flows:
+
+  anonymous_discovers_course:
+    steps:
+      - page: LandingPage
+        query: getLandingSchoolsWithCourses
+      - action: course discovery without authenticated enrollment
+      - page: LoginPage or SignupPage
+
+  registered_requests_role:
+    steps:
+      - page: RegistrationPage
+        queries: [getMyRegistrationRequests, getRegistrationSchoolOptions]
+      - action: submitRegistrationRequest
+        result: RegistrationRequest (status=PENDING) added to the relevant request group
+      - async: admin (SCHOOL_MANAGER req) or school_manager (INSTRUCTOR/STUDENT) reviews
+
+  admin_approves_school_manager:
+    steps:
+      - page: AdminSchoolRequestsPage
+        query: getPendingSchoolManagerRequests
+      - action: approveSchoolManagerRequest
+        effect: School created, UserSchoolRole(SCHOOL_MANAGER) granted, Account created
+      - user now sees SchoolManagerDashboardPage on next login
+
+  manager_creates_course:
+    steps:
+      - page: SchoolManagerSyllabusesPage → publishDraftSyllabusVersion
+      - page: SchoolManagerCoursesPage → createCourseFromFinalSyllabus
+      - page: SchoolManagerCoursesPage → enrollStudentInCourse + assignInstructorToCourse
+      - action: startCourse
+        guard: lead instructor assigned AND enrolled ≥ minCapacity
+      - result: Course status becomes STARTED
+
+  instructor_runs_lesson:
+    steps:
+      - page: InstructorCourseDetailPage
+        guard: user === lead instructor (AssignedInstructor.isLead)
+      - action: scheduleLesson → CourseLesson(SCHEDULED)
+      - background_job: lessonStatusJob moves status based on time + attendance
+      - lesson day: status transitions SCHEDULED → BELOW_CAPACITY? → CONFIRMED → LESSON_UNDERWAY
+      - post-lesson: submitStudentAssessment (PASS/FAIL per student)
+        effect: StudentLessonEvaluation created; Transaction charged (Account debit)
+      - if all lessons complete: Course → COMPLETED via CourseLifecycleEvent
+
+  student_enrolls_expresses_interest:
+    steps:
+      - page: LandingPage or StudentCoursesPage
+      - action: expressInterestInCourse → CourseInterest(INTERESTED)
+      - manager: approveStudentEnrollmentFromInterest
+        effect: EnrolledStudent created, CourseInterest → ENROLLED (or Student+role created if new)
+
