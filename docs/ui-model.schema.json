@@ -3,18 +3,13 @@
   "$id": "./ui-model.schema.json",
   "title": "Flight Club UI Model",
   "type": "object",
-  "required": ["roles", "schema_bindings", "data_flows"],
+  "required": ["roles", "data_flows"],
   "additionalProperties": false,
   "properties": {
     "roles": {
       "type": "object",
       "minProperties": 1,
       "additionalProperties": { "$ref": "#/$defs/role" }
-    },
-    "schema_bindings": {
-      "type": "object",
-      "minProperties": 1,
-      "additionalProperties": { "$ref": "#/$defs/schemaBinding" }
     },
     "data_flows": {
       "type": "object",
@@ -40,7 +35,12 @@
       "type": "array",
       "items": { "type": "string" }
     },
-    "queryList": {
+    "pageRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A menu item token: usually a page name declared in the role's pages map, or a non-navigation action token such as action:logout."
+    },
+    "operationList": {
       "type": "array",
       "items": {
         "oneOf": [
@@ -54,64 +54,45 @@
         ]
       }
     },
-    "actionList": {
-      "type": "array",
-      "items": {
-        "oneOf": [
-          { "type": "string" },
-          {
-            "type": "object",
-            "minProperties": 1,
-            "maxProperties": 1,
-            "additionalProperties": { "type": "string" }
-          }
-        ]
-      }
-    },
-    "dataView": {
+    "dataBinding": {
       "type": "object",
-      "required": ["source_query"],
+      "required": ["source_operation"],
       "additionalProperties": false,
       "properties": {
-        "source_query": { "$ref": "#/$defs/nonEmptyString" },
+        "source_operation": { "$ref": "#/$defs/nonEmptyString" },
+        "mode": { "$ref": "#/$defs/nonEmptyString" },
         "entity": { "$ref": "#/$defs/nonEmptyString" },
         "nested_entities": { "$ref": "#/$defs/stringList" },
         "filter": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
-    "detailView": {
+    "dataGroup": {
       "type": "object",
-      "required": ["source_query", "entity"],
+      "required": ["source_operation", "filter", "fields"],
       "additionalProperties": false,
       "properties": {
-        "source_query": { "$ref": "#/$defs/nonEmptyString" },
-        "entity": { "$ref": "#/$defs/nonEmptyString" },
-        "nested_entities": { "$ref": "#/$defs/stringList" }
-      }
-    },
-    "requestGroup": {
-      "type": "object",
-      "required": ["source_query", "filter", "fields"],
-      "additionalProperties": false,
-      "properties": {
-        "source_query": { "$ref": "#/$defs/nonEmptyString" },
+        "source_operation": { "$ref": "#/$defs/nonEmptyString" },
         "filter": { "$ref": "#/$defs/nonEmptyString" },
         "fields": { "$ref": "#/$defs/stringList" }
       }
     },
     "fieldSpec": {
       "type": "object",
-      "required": ["type"],
+      "required": ["type", "operation_param"],
       "additionalProperties": false,
       "properties": {
         "type": { "$ref": "#/$defs/nonEmptyString" },
+        "operation_param": {
+          "$ref": "#/$defs/nonEmptyString",
+          "description": "Explicit payload parameter name for the target write operation."
+        },
         "constraints": { "$ref": "#/$defs/stringList" },
         "source": {
           "type": "object",
-          "required": ["query", "value", "label"],
+          "required": ["operation", "value", "label"],
           "additionalProperties": false,
           "properties": {
-            "query": { "$ref": "#/$defs/nonEmptyString" },
+            "operation": { "$ref": "#/$defs/nonEmptyString" },
             "value": { "$ref": "#/$defs/nonEmptyString" },
             "label": { "$ref": "#/$defs/nonEmptyString" }
           }
@@ -119,12 +100,19 @@
         "schema_model": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
-    "interactionFlow": {
+    "pageLink": {
       "type": "object",
-      "required": ["variant", "submit", "fields"],
+      "required": ["target", "relation"],
       "additionalProperties": false,
       "properties": {
-        "variant": { "$ref": "#/$defs/nonEmptyString" },
+        "target": { "$ref": "#/$defs/nonEmptyString" },
+        "relation": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "interactionFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
         "submit": {
           "type": "object",
           "required": ["intent", "operation"],
@@ -150,58 +138,29 @@
       "additionalProperties": false,
       "properties": {
         "description": { "type": "string" },
-        "redirect_if_authenticated": { "$ref": "#/$defs/nonEmptyString" },
         "path_params": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
         },
-        "wasp_queries": { "$ref": "#/$defs/queryList" },
-        "wasp_actions": { "$ref": "#/$defs/actionList" },
-        "data_views": {
+        "read_operations": { "$ref": "#/$defs/operationList" },
+        "write_operations": { "$ref": "#/$defs/operationList" },
+        "data_bindings": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/dataView" }
+          "additionalProperties": { "$ref": "#/$defs/dataBinding" }
         },
-        "detail_views": {
+        "bound_fields": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/detailView" }
-        },
-        "auth_flows": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "fields": { "$ref": "#/$defs/stringList" }
-            }
-          }
-        },
-        "profile_fields": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "required": ["schema_model"],
-            "additionalProperties": false,
-            "properties": {
-              "schema_model": { "$ref": "#/$defs/nonEmptyString" }
-            }
-          }
-        },
-        "editable_fields": {
-          "type": "object",
-          "required": ["schema_model", "fields"],
-          "additionalProperties": false,
-          "properties": {
-            "schema_model": { "$ref": "#/$defs/nonEmptyString" },
-            "fields": { "$ref": "#/$defs/stringList" }
-          }
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/fieldSpec" }
         },
         "derived_fields": { "$ref": "#/$defs/stringList" },
-        "metrics": { "$ref": "#/$defs/stringList" },
-        "related_pages": { "$ref": "#/$defs/stringList" },
-        "action_intents": { "$ref": "#/$defs/stringList" },
-        "request_groups": {
+        "page_links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pageLink" }
+        },
+        "data_groups": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/requestGroup" }
+          "additionalProperties": { "$ref": "#/$defs/dataGroup" }
         },
         "interaction_flows": {
           "type": "object",
@@ -216,29 +175,14 @@
       "properties": {
         "description": { "type": "string" },
         "extends": { "$ref": "#/$defs/nonEmptyString" },
+        "menu": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pageRef" }
+        },
         "pages": {
           "type": "object",
           "minProperties": 1,
           "additionalProperties": { "$ref": "#/$defs/page" }
-        }
-      }
-    },
-    "schemaBinding": {
-      "type": "object",
-      "required": ["schema_model"],
-      "additionalProperties": false,
-      "properties": {
-        "schema_model": { "$ref": "#/$defs/nonEmptyString" },
-        "key_fields": { "$ref": "#/$defs/stringList" },
-        "notes": { "type": "string" },
-        "derived_status": { "type": "string" },
-        "enums": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
-        },
-        "relations": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
         }
       }
     },
