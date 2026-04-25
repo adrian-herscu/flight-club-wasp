@@ -21,8 +21,8 @@ import {
   getManagerStudentsForEnrollment,
   getManagerInstructorsForAssignment,
   reopenCourse,
-} from '../../src/school-manager/operations.js';
-import { updateMyManagedSchool } from '../../src/school-manager/updateSchoolOperations.js';
+} from '../../src/areas/school-manager/operations.js';
+import { updateMyManagedSchool } from '../../src/areas/school-manager/updateSchoolOperations.js';
 import { startCourse } from '../../src/course-execution/operations.js';
 import { prisma } from './wasp-server-stub.js';
 import { ctx, SEED } from './testHelpers.js';

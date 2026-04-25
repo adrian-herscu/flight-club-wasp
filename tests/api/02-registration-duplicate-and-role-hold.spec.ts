@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from './wasp-server-stub.js';
 import {
   submitRegistrationRequest,
-} from '../../src/registration/operations.js';
+} from '../../src/areas/account/registration/operations.js';
 import { SEED, ctx } from './testHelpers.js';
 
 const SEEDED_REQUEST_IDS = Object.values(SEED.registrationRequests);

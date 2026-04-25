@@ -4,7 +4,7 @@ import {
   approveSchoolManagerRequest,
   approveSchoolMemberRequest,
   submitRegistrationRequest,
-} from '../../src/registration/operations.js';
+} from '../../src/areas/account/registration/operations.js';
 import { ctx, SEED } from './testHelpers.js';
 import { prisma } from './wasp-server-stub.js';
 

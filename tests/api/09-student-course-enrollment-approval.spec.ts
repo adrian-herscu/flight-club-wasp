@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { expressInterestInCourse } from '../../src/portal/student/operations.js';
+import { expressInterestInCourse } from '../../src/areas/student/operations.js';
 import {
   approveStudentEnrollmentFromInterest,
   cancelCourseInterestForManager,
   createCourseFromFinalSyllabus,
   getManagerStudentCoursePairs,
-} from '../../src/school-manager/operations.js';
+} from '../../src/areas/school-manager/operations.js';
 import { ctx, SEED } from './testHelpers.js';
 import { prisma } from './wasp-server-stub.js';
 

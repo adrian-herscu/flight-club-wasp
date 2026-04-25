@@ -6,7 +6,7 @@ import {
   getSyllabusVersionDetails,
   publishDraftSyllabusVersion,
   saveDraftSyllabusRevision,
-} from '../../src/school-manager/operations.js';
+} from '../../src/areas/school-manager/operations.js';
 import { ctx, SEED } from './testHelpers.js';
 import { prisma } from './wasp-server-stub.js';
 

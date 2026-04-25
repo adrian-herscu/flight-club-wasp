@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   approveSchoolManagerRequest,
   approveSchoolMemberRequest,
-} from '../../src/registration/operations.js';
+} from '../../src/areas/account/registration/operations.js';
 import { ctx } from './testHelpers.js';
 
 type HttpErrorShape = {

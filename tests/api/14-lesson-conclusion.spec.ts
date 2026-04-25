@@ -21,8 +21,8 @@ import {
   enrollStudentInCourse,
   getManagerInstructorsForAssignment,
   getManagerStudentsForEnrollment,
-} from '../../src/school-manager/operations.js';
-import { updateMyManagedSchool } from '../../src/school-manager/updateSchoolOperations.js';
+} from '../../src/areas/school-manager/operations.js';
+import { updateMyManagedSchool } from '../../src/areas/school-manager/updateSchoolOperations.js';
 import {
   markInstructorAbsent,
   scheduleLesson,
