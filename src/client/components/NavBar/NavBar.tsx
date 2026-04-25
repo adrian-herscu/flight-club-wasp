@@ -7,6 +7,7 @@ import { Sheet, SheetHeader } from "../ui/sheet";
 import { throttleWithTrailingInvocation } from "../../../shared/utils";
 import { UserDropdown } from "../../../areas/account/profile/UserDropdown";
 import { UserMenuItems } from "../../../areas/account/profile/UserMenuItems";
+import { DevLoginMenu } from "./DevLoginMenu";
 // import { useIsLandingPage } from "../../hooks/useIsLandingPage";
 import DarkModeSwitcher from "../DarkModeSwitcher";
 import { LanguageSelector } from "../LanguageSelector";
@@ -107,6 +108,7 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
         <LanguageSelector />
         <DarkModeSwitcher />
       </NavIconRow>
+      <DevLoginMenu />
       {isUserLoading ? null : !user ? (
         <NavDesktopLoginLink isScrolled={isScrolled}>
           <NavDesktopLoginInner>

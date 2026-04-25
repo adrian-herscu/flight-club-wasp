@@ -75,6 +75,11 @@ query getLandingSchoolsWithCourses {
   entities: [School, User, UserSchoolRole, Syllabus, SyllabusVersion, Course, AssignedInstructor, Instructor, CourseLifecycleEvent, CourseInterest]
 }
 
+query getDevSeedUsers {
+  fn: import { getDevSeedUsers } from "@src/areas/auth/operations",
+  entities: [User]
+}
+
 page LoginPage {
   component: import Login from "@src/areas/auth/LoginPage"
 }

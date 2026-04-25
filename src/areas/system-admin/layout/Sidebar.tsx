@@ -13,6 +13,7 @@ import { type AuthUser } from "wasp/auth";
 import * as operations from "wasp/client/operations";
 import DarkModeSwitcher from "../../../client/components/DarkModeSwitcher";
 import { LanguageSelector } from "../../../client/components/LanguageSelector";
+import { DevLoginMenu } from "../../../client/components/NavBar/DevLoginMenu";
 import {
   SchoolContextBadgeBox,
   SchoolContextBadgeContainer,
@@ -418,6 +419,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isDesktop, user }: SidebarProps)
                 <SidebarAccountControlsStack>
                   <LanguageSelector />
                   <DarkModeSwitcher />
+                  <DevLoginMenu />
                 </SidebarAccountControlsStack>
               </SidebarAccountControlsSection>
             </>

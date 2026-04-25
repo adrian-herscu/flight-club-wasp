@@ -3,6 +3,7 @@ import { type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import DarkModeSwitcher from "../../../client/components/DarkModeSwitcher";
 import { LanguageSelector } from "../../../client/components/LanguageSelector";
+import { DevLoginMenu } from "../../../client/components/NavBar/DevLoginMenu";
 import {
   HeaderRoot,
   HeaderContent,
@@ -34,6 +35,7 @@ const Header = (props: {
     <HeaderActions>
       <LanguageSelector />
       <DarkModeSwitcher />
+      <DevLoginMenu />
       <UserDropdown user={props.user} />
     </HeaderActions>
   );
