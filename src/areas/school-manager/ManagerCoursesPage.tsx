@@ -455,12 +455,13 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       subtitle={
         <>
           {t("syllabus.enrolledStudents", { count: course.enrolledCount })} •{" "}
-          {includeTotalPrice
-            ? course.hourlyRate != null
-              ? t("syllabus.totalPriceValue", { price: course.hourlyRate * course.enrolledCount })
-              : t("syllabus.noTotalPrice")
+          {course.hourlyRate != null
+            ? t("syllabus.courseHourlyRateValue", { rate: course.hourlyRate })
+            : t("syllabus.noHourlyRate")}
+          {includeTotalPrice && course.hourlyRate != null && course.enrolledCount > 0
+            ? ` • ${t("syllabus.totalPriceValue", { price: course.hourlyRate * course.enrolledCount })}`
             : null}
-          {includeTotalPrice ? " • " : null}
+          {" • "}
           {course.startDate ? new Date(course.startDate).toLocaleDateString() : t("syllabus.startDate")}
         </>
       }
