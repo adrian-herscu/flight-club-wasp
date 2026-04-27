@@ -81,6 +81,7 @@ The project should continue to evolve within the existing Wasp application struc
 
   - The platform must display a public landing page with schools and visible courses.
   - Users must be able to filter schools by country and location and filter courses by name.
+  - Landing-page course items must display the total course price.
   - School cards should support logos and school website visibility when available.
   - For authenticated users, landing school cards must show contact details for school managers (email and phone when available).
   - For authenticated users, landing course items must show contact details for assigned instructors (email and phone when available).
@@ -136,6 +137,7 @@ The project should continue to evolve within the existing Wasp application struc
   - Course setup must support capacity bounds and default lesson pricing (hourly rate).
   - A course progresses through four lifecycle states: `OPEN`, `STARTED`, `COMPLETED`, and `CLOSED`.
   - Managers must be able to start a course; the system must enforce hard pre-start conditions (at least one assigned instructor designated as lead, all instructors have an agreed wage, hourly rate is set, and all enrolled student accounts have sufficient balance). Minimum enrolled student capacity is a soft condition the manager may override.
+  - Manager course lists must display the total course price per student.
   - Managers must be able to view course enrollment details and course-level metadata.
   - Managers must be able to close a course and reopen it later from a dedicated closed-courses panel.
   - Closed courses must be hidden from public landing-page discovery and must reject new enrollments and instructor assignments until reopened.

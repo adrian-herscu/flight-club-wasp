@@ -448,7 +448,7 @@ model Course {
   startDate                 DateTime?
   minCapacity               Int?
   maxCapacity               Int?
-  hourlyRate                Int?            // Default course hourly rate in whole currency units
+  hourlyRate                Int             // Required course hourly rate in whole currency units
 
   courseInterests           CourseInterest[]
   courseLessons             CourseLesson[]

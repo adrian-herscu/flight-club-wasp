@@ -217,6 +217,25 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     expect(closedCoursesAfterReopen.some((course) => course.courseId === created.courseId)).toBe(false);
   });
 
+  it('[STD-CRS-005A] manager course lists expose total course price per student', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-03T00:00:00.000Z').toISOString(),
+        hourlyRate: 140,
+      },
+      ctx.schoolManager,
+    );
+
+    const openCourses = await getManagerCoursesForEnrollment({}, ctx.schoolManager);
+    const createdCourse = openCourses.find((course) => course.courseId === created.courseId);
+
+    expect(createdCourse).toMatchObject({
+      courseId: created.courseId,
+      totalPricePerStudent: 280,
+    });
+  });
+
   it('[STD-ENR-001] lists only students in manager school scope for enrollment', async () => {
     const students = await getManagerStudentsForEnrollment(
       { schoolId: SEED.schools.cloudbase },

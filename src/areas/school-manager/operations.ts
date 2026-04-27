@@ -11,6 +11,7 @@ import {
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../../server/validation";
+import { calculateCourseTotalPrice } from "../../shared/coursePricing";
 
 const lessonInputSchema = z.object({
   position: z.number().int().positive(),
@@ -208,7 +209,7 @@ type ManagerCourseListItem = {
   syllabusName: string;
   syllabusVersion: number;
   startDate: Date | null;
-  hourlyRate: number | null;
+  totalPricePerStudent: number;
   enrolledCount: number;
 };
 
@@ -895,12 +896,21 @@ export const getManagerCoursesForEnrollment = async (
     where: {
       schoolId: school.id,
     },
-    include: {
+    select: {
+      id: true,
+      startDate: true,
+      hourlyRate: true,
       syllabusVersion: {
-        include: {
+        select: {
+          version: true,
           syllabus: {
             select: {
               name: true,
+            },
+          },
+          lessons: {
+            select: {
+              durationMinutes: true,
             },
           },
         },
@@ -925,7 +935,10 @@ export const getManagerCoursesForEnrollment = async (
       syllabusName: course.syllabusVersion.syllabus.name,
       syllabusVersion: course.syllabusVersion.version,
       startDate: course.startDate,
-      hourlyRate: course.hourlyRate,
+      totalPricePerStudent: calculateCourseTotalPrice(
+        course.hourlyRate,
+        course.syllabusVersion.lessons,
+      ),
       enrolledCount: course._count.enrolledStudents,
     }));
 };
@@ -945,12 +958,21 @@ export const getManagerClosedCourses = async (
     where: {
       schoolId: school.id,
     },
-    include: {
+    select: {
+      id: true,
+      startDate: true,
+      hourlyRate: true,
       syllabusVersion: {
-        include: {
+        select: {
+          version: true,
           syllabus: {
             select: {
               name: true,
+            },
+          },
+          lessons: {
+            select: {
+              durationMinutes: true,
             },
           },
         },
@@ -975,7 +997,10 @@ export const getManagerClosedCourses = async (
       syllabusName: course.syllabusVersion.syllabus.name,
       syllabusVersion: course.syllabusVersion.version,
       startDate: course.startDate,
-      hourlyRate: course.hourlyRate,
+      totalPricePerStudent: calculateCourseTotalPrice(
+        course.hourlyRate,
+        course.syllabusVersion.lessons,
+      ),
       enrolledCount: course._count.enrolledStudents,
     }));
 };

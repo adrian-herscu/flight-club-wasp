@@ -46,6 +46,16 @@ test.describe("4.1 public discovery", () => {
     await expect(page.getByTestId("landing-course-instructor-contact-item").first()).toBeVisible();
   });
 
+  test("[4.1][STD-PUB-002A] landing course cards show total course price", async ({ page }) => {
+    const tandemCourseCard = page
+      .getByTestId("landing-course-item")
+      .filter({ has: page.getByText("Tandem Flights v1") })
+      .first();
+
+    await expect(tandemCourseCard).toBeVisible();
+    await expect(tandemCourseCard).toContainText("Total price: 240");
+  });
+
   test("[4.1][STD-PUB-007][STD-PUB-010] course name filter shows only matching courses", async ({ page }) => {
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
 

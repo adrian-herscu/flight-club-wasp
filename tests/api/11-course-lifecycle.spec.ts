@@ -129,25 +129,13 @@ describe('startCourse — hard guards (INV-01, INV-16, INV-17, INV-18)', () => {
     });
   });
 
-  it('blocks when course hourlyRate is null (INV-17)', async () => {
-    // Course table is immutable; create directly with hourlyRate: null to simulate INV-17.
-    const course = await prisma.course.create({
-      data: {
-        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
-        schoolId: SEED.schools.cloudbase,
-        // hourlyRate intentionally omitted (null)
-      },
-    });
-    const courseId = course.id;
-    const instructors = await getManagerInstructorsForAssignment({}, ctx.schoolManager);
-    await assignInstructorToCourse(
-      { courseId, instructorId: instructors[0]!.instructorId, isLead: true, agreedWagePerHour: 50 },
-      ctx.schoolManager,
-    );
-    await expect(startCourse({ courseId }, ctx.schoolManager)).rejects.toMatchObject({
-      statusCode: 400,
-      message: expect.stringContaining('hourly rate'),
-    });
+  it('enforces course hourlyRate NOT NULL at DB layer (INV-17)', async () => {
+    await expect(
+      prisma.$executeRaw`
+        INSERT INTO "Course" ("syllabusVersionId", "schoolId", "hourlyRate")
+        VALUES (${FINAL_SYSTEM_SYLLABUS_VERSION_ID}, ${SEED.schools.cloudbase}, NULL)
+      `,
+    ).rejects.toBeTruthy();
   });
 });
 

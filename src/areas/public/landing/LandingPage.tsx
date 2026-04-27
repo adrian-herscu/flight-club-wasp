@@ -53,6 +53,7 @@ type LandingCourse = {
   startDate: string | null;
   minCapacity: number | null;
   maxCapacity: number | null;
+  totalPrice: number;
   instructorContacts: LandingContact[];
   canExpressInterest: boolean;
   viewerInterestId: string | null;
@@ -453,6 +454,9 @@ export default function LandingPage() {
                       <LandingCourseTitle>{course.title}</LandingCourseTitle>
                       <MutedText>
                         {t("landing.startsLabel")} {formatDate(course.startDate, i18n.language, t("landing.dateToBeAnnounced"))}
+                      </MutedText>
+                      <MutedText>
+                        {t("landing.totalPriceLabel", { price: course.totalPrice })}
                       </MutedText>
                       {(course.minCapacity !== null || course.maxCapacity !== null) && (
                         <MutedText>

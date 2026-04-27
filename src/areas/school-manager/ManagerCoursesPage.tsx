@@ -80,7 +80,7 @@ type EnrollmentCourseItem = {
   syllabusName: string;
   syllabusVersion: number;
   startDate: string | null;
-  hourlyRate: number | null;
+  totalPricePerStudent: number;
   status: "OPEN" | "CLOSED";
   enrolledCount: number;
 };
@@ -444,7 +444,6 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const renderCourseRow = (
     course: EnrollmentCourseItem,
     actionButton: ReactNode,
-    includeTotalPrice: boolean,
     includeSummaryTestId: boolean,
   ) => (
     <ListItem
@@ -455,12 +454,7 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
       subtitle={
         <>
           {t("syllabus.enrolledStudents", { count: course.enrolledCount })} •{" "}
-          {course.hourlyRate != null
-            ? t("syllabus.courseHourlyRateValue", { rate: course.hourlyRate })
-            : t("syllabus.noHourlyRate")}
-          {includeTotalPrice && course.hourlyRate != null && course.enrolledCount > 0
-            ? ` • ${t("syllabus.totalPriceValue", { price: course.hourlyRate * course.enrolledCount })}`
-            : null}
+          {t("syllabus.totalPriceValue", { price: course.totalPricePerStudent })}
           {" • "}
           {course.startDate ? new Date(course.startDate).toLocaleDateString() : t("syllabus.startDate")}
         </>
@@ -604,7 +598,6 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                       {t("syllabus.closeCourseButton")}
                     </Button>,
                     true,
-                    true,
                   ),
                 )}
               </SimpleList>
@@ -626,7 +619,6 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
                       >
                         {t("syllabus.reopenCourseButton")}
                       </Button>,
-                      false,
                       false,
                     ),
                   )}

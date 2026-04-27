@@ -5,6 +5,7 @@ import {
   SyllabusVersionStatus,
 } from "@prisma/client";
 import { prisma } from "wasp/server";
+import { calculateCourseTotalPrice } from "../../../shared/coursePricing";
 
 type LandingContact = {
   userId: string;
@@ -19,7 +20,7 @@ export type LandingCourse = {
   startDate: Date | null;
   minCapacity: number | null;
   maxCapacity: number | null;
-  hourlyRate: number | null;
+  totalPrice: number;
   instructorContacts: LandingContact[];
   canExpressInterest: boolean;
   viewerInterestId: string | null;
@@ -112,6 +113,11 @@ export const getLandingSchoolsWithCourses = async (
           select: {
             id: true,
             version: true,
+            lessons: {
+              select: {
+                durationMinutes: true,
+              },
+            },
             syllabus: {
               select: {
                 schoolId: true,
@@ -243,7 +249,10 @@ export const getLandingSchoolsWithCourses = async (
           startDate: course.startDate,
           minCapacity: course.minCapacity,
           maxCapacity: course.maxCapacity,
-          hourlyRate: course.hourlyRate,
+          totalPrice: calculateCourseTotalPrice(
+            course.hourlyRate,
+            course.syllabusVersion.lessons,
+          ),
           instructorContacts: isAuthenticated
             ? (instructorContactsByCourseId.get(course.id) ?? [])
             : [],

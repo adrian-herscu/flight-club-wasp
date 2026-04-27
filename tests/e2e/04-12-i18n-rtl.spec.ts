@@ -170,20 +170,24 @@ test.describe("4.12 internationalization and RTL", () => {
     const controlsGeometry = await page.evaluate(() => {
       const header = document.querySelector("header");
       const languageTrigger = document.querySelector("header [role='combobox']") as HTMLElement | null;
-      if (!header || !languageTrigger) return null;
+      const sidebar = document.querySelector("aside") as HTMLElement | null;
+      if (!header || !languageTrigger || !sidebar) return null;
       const headerRect = header.getBoundingClientRect();
       const languageRect = languageTrigger.getBoundingClientRect();
+      const sidebarRect = sidebar.getBoundingClientRect();
       return {
         headerMidX: headerRect.left + headerRect.width / 2,
         languageLeft: languageRect.left,
+        languageRight: languageRect.right,
+        sidebarLeft: sidebarRect.left,
       };
     });
 
     expect(controlsGeometry).not.toBeNull();
-    // In RTL the sidebar is on the physical RIGHT; controls must be on the physical LEFT
-    // (inline-end = left in RTL), away from the sidebar.
-    // Allow 5px tolerance for Firefox sub-pixel floating-point geometry differences
-    expect(controlsGeometry!.languageLeft).toBeLessThan(controlsGeometry!.headerMidX + 5);
+    // In RTL the sidebar is on the physical RIGHT; controls must remain physically
+    // to the LEFT of the sidebar edge (no overlap with the sidebar plane).
+    // Allow 5px tolerance for Firefox sub-pixel floating-point geometry differences.
+    expect(controlsGeometry!.languageRight).toBeLessThanOrEqual(controlsGeometry!.sidebarLeft + 5);
   });
 
   test("[4.12][STD-I18N-010] mobile dashboard hamburger and sidebar stay on the RTL start edge", async ({ page }) => {
