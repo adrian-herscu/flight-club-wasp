@@ -16,11 +16,13 @@ function escapeRegex(value: string): string {
 test.describe("4.5 school-manager member approval workflow", () => {
   let schoolManagerUser: User;
   let testSchoolName: string;
+  let testSyllabusName: string;
 
   test.beforeAll(async () => {
     const result = await createTestCourseWithManager();
     schoolManagerUser = result.manager;
     testSchoolName = result.schoolName;
+    testSyllabusName = result.syllabusName;
   });
 
   const dismissCookieBanner = async (page: Page) => {
@@ -90,34 +92,46 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await page.waitForURL(/registration|\/$/);
   };
 
-  test.skip("[4.6][STD-SCH-001][STD-SCH-002][inactive] manager can view school profile", async ({ page }) => {
+  test("[4.6][STD-SCH-002] manager can view school profile identity and contact fields", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: schoolManagerUser,
+      expectedRedirectPath: "/",
+    });
+
     await page.goto("/school-manager/school");
     await page.waitForURL("**/school-manager/school");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByRole("heading", { name: "My School" })).toBeVisible();
-    await expect(page.getByText("Cloudbase Paragliding")).toBeVisible();
-    await expect(page.getByText("123 Mountain Ridge Road")).toBeVisible();
-    await expect(page.getByText("Boulder")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /school profile/i })).toBeVisible();
+    await expect(page.getByLabel(/name/i)).toHaveValue(testSchoolName);
+    await expect(page.getByLabel(/address line 1/i)).toHaveValue("123 Test St");
+    await expect(page.getByLabel(/city/i)).toHaveValue("Test City");
+    await expect(page.getByLabel(/default hourly rate/i)).toBeVisible();
     await expect(page.getByText("USD").first()).toBeVisible();
   });
 
-  test.skip("[4.7][STD-SYL-001][STD-SYL-002][inactive] manager can discover final syllabuses with policy hints", async ({
+  test("[4.7][STD-SYL-001][STD-SYL-002] manager can discover syllabus catalog with policy hints", async ({
     page,
   }) => {
+    await logUserIn({
+      page,
+      user: schoolManagerUser,
+      expectedRedirectPath: "/",
+    });
+
     await page.goto("/school-manager/syllabuses");
     await page.waitForURL("**/school-manager/syllabuses");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText("Visibility and usage policy")).toBeVisible();
+    await expect(page.getByText(/visibility and usage policy/i)).toBeVisible();
 
-    await expect(page.getByText("Tandem Flights")).toBeVisible();
-    await expect(page.getByText("Paragliding Intro")).toBeVisible();
+    await expect(page.getByText(testSyllabusName).first()).toBeVisible();
     await expect(
-      page.getByText("Course opening can use only FINAL syllabus versions."),
+      page.getByText(/course opening can use only FINAL syllabus versions/i),
     ).toBeVisible();
     await expect(
-      page.getByText("Drafts are private to the manager's school."),
+      page.getByText(/drafts are private to the manager's school/i),
     ).toBeVisible();
   });
 
@@ -216,6 +230,9 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
     await expect(page).toHaveURL(/\/school-manager\/syllabuses\?section=catalog/);
     await expect(page.locator("body")).not.toContainText("Visibility and usage policy");
+    await expect(page.getByText("מדיניות ראות שימוש")).toBeVisible();
+    await expect(page.getByText("זמינה לפתיחת קורס (FINAL)")).toBeVisible();
+    await expect(page.getByText("טיוטות בית ספר ניתנות לעריכה")).toBeVisible();
   });
 
   test("[4.5][STD-MGR-001][STD-MGR-002][STD-MGR-003][STD-MGR-006] manager can view and approve instructor member requests (UI smoke)", async ({ page }) => {

@@ -56,6 +56,31 @@ test.describe("4.1 public discovery", () => {
     await expect(tandemCourseCard).toContainText("Total price: 240");
   });
 
+  test("[4.1][STD-PUB-004] school card renders school name and location text", async ({ page }) => {
+    const schoolCard = page.getByTestId("landing-school-card").first();
+    await expect(schoolCard).toBeVisible();
+
+    const schoolNameText = (await schoolCard.locator("h2").first().textContent())?.trim() ?? "";
+    expect(schoolNameText.length).toBeGreaterThan(0);
+
+    const locationText = (await schoolCard.locator("p").first().textContent())?.trim() ?? "";
+    expect(locationText).toContain(",");
+  });
+
+  test("[4.1][STD-PUB-005][STD-PUB-006] landing remains stable when a school has no website and no logo", async ({ page }) => {
+    const { schoolName } = await createTestCourseWithAssignedInstructor();
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const schoolCard = page.getByTestId("landing-school-card").filter({ hasText: schoolName }).first();
+    await expect(schoolCard).toBeVisible();
+
+    await expect(schoolCard.locator("img")).toHaveCount(0);
+    await expect(schoolCard.getByRole("link", { name: /website/i })).toHaveCount(0);
+    await expect(schoolCard.getByTestId("landing-course-item").first()).toBeVisible();
+  });
+
   test("[4.1][STD-PUB-007][STD-PUB-010] course name filter shows only matching courses", async ({ page }) => {
     await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
 
@@ -106,6 +131,17 @@ test.describe("4.1 public discovery", () => {
     // Filtering by nonsense hides all schools
     await filterInput.fill("XYZNonExistentCity99");
     await expect(page.getByTestId("landing-school-card")).toHaveCount(0, { timeout: 5000 });
+  });
+
+  test("[4.1][STD-PUB-011] empty-result message is shown when filters yield no schools", async ({ page }) => {
+    await expect(page.getByTestId("landing-school-card").first()).toBeVisible();
+
+    const filterInput = page.getByTestId("filter-location");
+    await filterInput.fill("XYZNonExistentCity99");
+
+    await expect(page.getByTestId("landing-school-card")).toHaveCount(0, { timeout: 5000 });
+    await expect(page.getByText("No schools or courses match your filters.")).toBeVisible();
+    await expect(page.getByTestId("landing-schools-section")).toBeVisible();
   });
 
   test("[4.1][STD-NAV-012] narrow landing menu opens from the hamburger side and exposes theme/language controls", async ({ page }) => {

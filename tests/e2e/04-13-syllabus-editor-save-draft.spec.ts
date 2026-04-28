@@ -175,6 +175,34 @@ test.describe("4.13 Syllabus editor - save draft revision", () => {
     },
   );
 
+  test("[STD-SYL-007] catalog and details distinguish DRAFT, FINAL, and OBSOLETE states", async ({ page }) => {
+    const syllabusName = `E2E obsolete flow ${Date.now()}`;
+
+    await test.step("Create draft and publish first FINAL", async () => {
+      await createDraftFromTemplate(page, syllabusName);
+      await page.getByRole("button", { name: "Publish as FINAL version" }).click();
+      await expect(page).toHaveURL(/section=details/, { timeout: 10_000 });
+      await expect(page.getByText(/v\d+\s*•\s*FINAL\s*•/).first()).toBeVisible();
+    });
+
+    await test.step("Create a new draft revision from that FINAL", async () => {
+      await loadIntoEditor(page);
+      await page.getByRole("button", { name: "Save as new draft revision" }).click();
+      await expect(page).toHaveURL(/section=details/, { timeout: 10_000 });
+      await expect(page.getByText(/v\d+\s*•\s*DRAFT\s*•/).first()).toBeVisible();
+    });
+
+    await test.step("Publish again and verify obsolete version appears in catalog", async () => {
+      await page.getByRole("button", { name: "Publish as FINAL version" }).click();
+      await expect(page).toHaveURL(/section=details/, { timeout: 10_000 });
+      await expect(page.getByText(/v\d+\s*•\s*FINAL\s*•/).first()).toBeVisible();
+
+      await navigateToSyllabusesSection(page, "catalog");
+      await expect(page.getByRole("heading", { name: "Obsolete versions" })).toBeVisible();
+      await expect(page.getByText(/obsolete v\d+/i).first()).toBeVisible();
+    });
+  });
+
   test(
     "[STD-SYL-011] manager can delete a single draft from catalog after confirmation",
     async ({ page }) => {

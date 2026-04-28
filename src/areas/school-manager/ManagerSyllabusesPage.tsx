@@ -68,6 +68,7 @@ type SyllabusVersionDetails = {
 type ManagerSyllabusCatalog = {
   courseOpeningCandidates: CatalogItem[];
   editableDrafts: CatalogItem[];
+  obsoleteVersions: CatalogItem[];
 };
 
 type ManagedSchool = {
@@ -133,6 +134,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
 
   const finalCandidates = catalog?.courseOpeningCandidates ?? [];
   const editableDrafts = catalog?.editableDrafts ?? [];
+  const obsoleteVersions = catalog?.obsoleteVersions ?? [];
 
   const sectionContentRef = useRef<HTMLDivElement | null>(null);
   const hasChangedSectionRef = useRef(false);
@@ -432,6 +434,7 @@ const ManagerSyllabusesPage = ({ user }: { user: AuthUser }) => {
         sectionContentRef={sectionContentRef}
         finalCandidates={finalCandidates}
         editableDrafts={editableDrafts}
+        obsoleteVersions={obsoleteVersions}
         onSelectVersion={(syllabusVersionId) => {
           setSelectedVersionId(syllabusVersionId);
           goToSection("details");

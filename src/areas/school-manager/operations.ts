@@ -378,6 +378,20 @@ async function isCourseClosed(courseId: string) {
   return latestEvent?.status === CourseLifecycleStatus.CLOSED;
 }
 
+async function isCourseStarted(courseId: string) {
+  const latestEvent = await prisma.courseLifecycleEvent.findFirst({
+    where: {
+      courseId,
+    },
+    select: {
+      status: true,
+    },
+    orderBy: [{ createdAt: "desc" }],
+  });
+
+  return latestEvent?.status === CourseLifecycleStatus.STARTED;
+}
+
 /** Performs the auth + school lookup prefix shared by most school-manager mutations. */
 async function getSchoolManagerContext(
   rawArgs: unknown,
@@ -420,6 +434,7 @@ export const getManagerSyllabusCatalog = async (
 ): Promise<{
   courseOpeningCandidates: SyllabusCatalogItem[];
   editableDrafts: SyllabusCatalogItem[];
+  obsoleteVersions: SyllabusCatalogItem[];
 }> => {
   const user = await ensureSyllabusOperator(context);
   const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
@@ -437,6 +452,9 @@ export const getManagerSyllabusCatalog = async (
                 status: SyllabusVersionStatus.FINAL,
               },
               {
+                status: SyllabusVersionStatus.OBSOLETE,
+              },
+              {
                 status: SyllabusVersionStatus.DRAFT,
                 syllabus: { schoolId: null },
               },
@@ -444,6 +462,12 @@ export const getManagerSyllabusCatalog = async (
           : [
               {
                 status: SyllabusVersionStatus.FINAL,
+                syllabus: {
+                  OR: [{ schoolId: null }, { schoolId: school?.id ?? null }],
+                },
+              },
+              {
+                status: SyllabusVersionStatus.OBSOLETE,
                 syllabus: {
                   OR: [{ schoolId: null }, { schoolId: school?.id ?? null }],
                 },
@@ -493,9 +517,39 @@ export const getManagerSyllabusCatalog = async (
     lessonCount: version.lessons.length,
   }));
 
+  const latestFinalVersionBySyllabusId = new Map<string, number>();
+  for (const item of mapped) {
+    if (item.status !== SyllabusVersionStatus.FINAL) {
+      continue;
+    }
+    const currentLatest = latestFinalVersionBySyllabusId.get(item.syllabusId) ?? 0;
+    if (item.version > currentLatest) {
+      latestFinalVersionBySyllabusId.set(item.syllabusId, item.version);
+    }
+  }
+
+  const explicitObsoleteVersions = mapped.filter(
+    (item) => item.status === SyllabusVersionStatus.OBSOLETE,
+  );
+
+  const derivedObsoleteVersions = mapped
+    .filter((item) => {
+      if (item.status !== SyllabusVersionStatus.FINAL) {
+        return false;
+      }
+      const latestFinalVersion = latestFinalVersionBySyllabusId.get(item.syllabusId);
+      return typeof latestFinalVersion === "number" && item.version < latestFinalVersion;
+    })
+    .map((item) => ({
+      ...item,
+      status: SyllabusVersionStatus.OBSOLETE,
+    }));
+
   return {
     courseOpeningCandidates: mapped.filter(
-      (item) => item.status === SyllabusVersionStatus.FINAL,
+      (item) =>
+        item.status === SyllabusVersionStatus.FINAL &&
+        item.version === latestFinalVersionBySyllabusId.get(item.syllabusId),
     ),
     editableDrafts: mapped.filter(
       (item) =>
@@ -505,6 +559,7 @@ export const getManagerSyllabusCatalog = async (
           ? item.schoolId === null
           : item.schoolId === school?.id),
     ),
+    obsoleteVersions: [...explicitObsoleteVersions, ...derivedObsoleteVersions],
   };
 };
 
@@ -1353,6 +1408,13 @@ export const assignInstructorToCourse = async (
     );
   }
 
+  if ((await isCourseStarted(course.id)) && agreedWagePerHour == null) {
+    throw new HttpError(
+      409,
+      "Started courses require agreed wage per hour for newly assigned instructors. (INV-18)",
+    );
+  }
+
   const instructor = await prisma.instructor.findFirst({
     where: {
       id: instructorId,
@@ -1390,14 +1452,33 @@ export const assignInstructorToCourse = async (
     throw new HttpError(409, "Instructor is already assigned to this course.");
   }
 
-  await prisma.assignedInstructor.create({
-    data: {
-      courseId,
-      instructorId,
-      isLead: isLead ?? false,
-      agreedWagePerHour: agreedWagePerHour ?? null,
-    },
-  });
+  try {
+    await prisma.assignedInstructor.create({
+      data: {
+        courseId,
+        instructorId,
+        isLead: isLead ?? false,
+        agreedWagePerHour: agreedWagePerHour ?? null,
+      },
+    });
+  } catch (error: unknown) {
+    const isPrismaRequestError =
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientUnknownRequestError;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (
+      isPrismaRequestError &&
+      /schedule conflict/i.test(errorMessage)
+    ) {
+      throw new HttpError(
+        409,
+        "Instructor assignment conflicts with an existing lesson schedule. (INV-02)",
+      );
+    }
+
+    throw error;
+  }
 
   return {
     courseId,

@@ -196,6 +196,18 @@ test.describe("4.2 authentication and access control - account menu", () => {
     student = await createTestStudentForSchool(courseResult.schoolId);
   });
 
+  test("[4.2][STD-AUTH-004] authenticated user can open account page", async ({ page }) => {
+    await logUserIn({
+      page,
+      user: manager,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/account");
+    await expect(page).toHaveURL(/\/account\/?$/);
+    await expect(page.getByRole("heading", { name: /account information/i })).toBeVisible();
+  });
+
   test("[4.11][STD-NAV-008] system admin user menu shows Dashboard link that navigates to /system-admin", async ({ page }) => {
     await openAccountUserMenu({ page, user: systemAdmin });
 

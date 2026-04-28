@@ -64,6 +64,7 @@ type ManagerSyllabusesPageContentProps = {
   sectionContentRef: RefObject<HTMLDivElement | null>;
   finalCandidates: CatalogItem[];
   editableDrafts: CatalogItem[];
+  obsoleteVersions: CatalogItem[];
   onSelectVersion: (syllabusVersionId: string) => void;
   onOpenDeleteAllDialog: () => void;
   templateVersionId: string;
@@ -250,6 +251,7 @@ const LessonDraftList = ({
 const CatalogSection = ({
   editableDrafts,
   finalCandidates,
+  obsoleteVersions,
   isDeletingAllDrafts,
   onOpenDeleteAllDialog,
   onDraftPendingDeleteChange,
@@ -258,6 +260,7 @@ const CatalogSection = ({
 }: {
   editableDrafts: CatalogItem[];
   finalCandidates: CatalogItem[];
+  obsoleteVersions: CatalogItem[];
   isDeletingAllDrafts: boolean;
   onOpenDeleteAllDialog: () => void;
   onDraftPendingDeleteChange: (item: CatalogItem | null) => void;
@@ -275,7 +278,7 @@ const CatalogSection = ({
         </ul>
       </div>
 
-      <div className="grid gap-6 2xl:grid-cols-2">
+      <div className="grid gap-6 2xl:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>{t("syllabus.availableForCourseOpening")}</CardTitle>
@@ -345,6 +348,34 @@ const CatalogSection = ({
                         {t("syllabus.deleteDraftButton")}
                       </Button>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Obsolete versions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {obsoleteVersions.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No obsolete versions yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {obsoleteVersions.map((item) => (
+                  <li key={item.syllabusVersionId}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectVersion(item.syllabusVersionId)}
+                      className="hover:bg-accent w-full rounded-md border p-3 text-start"
+                    >
+                      <p className="text-sm font-medium">{item.syllabusName}</p>
+                      <p className="text-muted-foreground text-xs">
+                        obsolete v{item.version} • {item.lessonCount} lessons
+                      </p>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -718,6 +749,7 @@ export const ManagerSyllabusesPageContent = ({
   editableDrafts,
   errorMessage,
   finalCandidates,
+  obsoleteVersions,
   goToSection,
   isCreatingFromScratch,
   isCreatingFromTemplate,
@@ -769,6 +801,7 @@ export const ManagerSyllabusesPageContent = ({
             <CatalogSection
               editableDrafts={editableDrafts}
               finalCandidates={finalCandidates}
+              obsoleteVersions={obsoleteVersions}
               isDeletingAllDrafts={isDeletingAllDrafts}
               onOpenDeleteAllDialog={onOpenDeleteAllDialog}
               onDraftPendingDeleteChange={onDraftPendingDeleteChange}

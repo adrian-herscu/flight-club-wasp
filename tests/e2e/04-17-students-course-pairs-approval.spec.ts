@@ -122,4 +122,47 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
       await expect(targetCourseCard.getByTestId('landing-course-enrolled-label')).toBeVisible();
     });
   });
+
+  test('[STD-MGR-009][STD-INT-001] student-pair decision state persists after refresh and status filtering', async ({ page }) => {
+    const { manager, schoolName, syllabusName, courseStartDate } = await createTestCourseWithManager();
+    const interestedStudent = await createTestStudentUser();
+
+    const courseDateStr = courseStartDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    await logUserIn({ page, user: interestedStudent, expectedRedirectPath: '/' });
+    await page.goto('/');
+
+    const schoolCard = page.getByTestId('landing-school-card').filter({ hasText: schoolName }).first();
+    const targetCourseCard = schoolCard
+      .getByTestId('landing-course-item')
+      .filter({ hasText: syllabusName })
+      .filter({ hasText: courseDateStr })
+      .first();
+
+    await targetCourseCard.getByTestId('express-interest-btn').click();
+    await expect(targetCourseCard.getByTestId('express-interest-btn')).toContainText(/interested/i);
+
+    await logUserIn({ page, user: manager, expectedRedirectPath: '/' });
+    await page.goto('/school-manager/member-requests/students');
+    await expect(page.getByText(interestedStudent.email).first()).toBeVisible();
+
+    await page.getByRole('button', { name: /approve enrollment/i }).first().click();
+
+    // Navigate away and return with Approved filter to verify persisted decision visibility.
+    await page.goto('/school-manager');
+    await page.goto('/school-manager/member-requests/students');
+    await page.getByTestId('manager-requests-status-filter-approved').click();
+
+    await expect(page.getByText(interestedStudent.email).first()).toBeVisible();
+    await expect(page.getByText(/ENROLLED/i).first()).toBeVisible();
+
+    // Refresh should keep the same approved decision visible.
+    await page.reload();
+    await page.getByTestId('manager-requests-status-filter-approved').click();
+    await expect(page.getByText(interestedStudent.email).first()).toBeVisible();
+  });
 });

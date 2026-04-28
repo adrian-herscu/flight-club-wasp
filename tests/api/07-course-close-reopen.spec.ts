@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  scheduleLesson,
+  startCourse,
+} from '../../src/course-execution/operations.js';
+import {
   assignInstructorToCourse,
   closeCourse,
   createCourseFromFinalSyllabus,
@@ -236,6 +240,70 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     });
   });
 
+  it('[STD-CRS-005] manager can view course metadata and enrollment details after creation', async () => {
+    const startDateIso = new Date('2026-06-12T00:00:00.000Z').toISOString();
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: startDateIso,
+        hourlyRate: 160,
+      },
+      ctx.schoolManager,
+    );
+
+    const openCourses = await getManagerCoursesForEnrollment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+    const createdCourse = openCourses.find((course) => course.courseId === created.courseId);
+
+    expect(createdCourse).toMatchObject({
+      courseId: created.courseId,
+      syllabusName: expect.any(String),
+      syllabusVersion: expect.any(Number),
+      totalPricePerStudent: expect.any(Number),
+      enrolledCount: 0,
+    });
+    expect(createdCourse?.startDate?.toISOString()).toBe(startDateIso);
+
+    const enrollmentDetails = await getManagerCourseEnrollmentDetails(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+      },
+      ctx.schoolManager,
+    );
+
+    expect(enrollmentDetails).toEqual({
+      courseId: created.courseId,
+      enrolledCount: 0,
+      enrolledStudents: [],
+    });
+  });
+
+  it('[STD-SCH-004] manager cannot update a school profile outside authorized scope', async () => {
+    await expect(
+      updateMyManagedSchool(
+        {
+          schoolId: OUTSIDER_SCHOOL_ID,
+          name: 'Unauthorized Edit Attempt',
+          websiteUrl: 'https://unauthorized.example.test',
+          logoUrl: 'https://unauthorized.example.test/logo.png',
+          addressLine1: '1 Not Allowed Ave',
+          addressLine2: '',
+          city: 'No Access',
+          stateProvince: '',
+          postalCode: '12345',
+          defaultHourlyRate: 120,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'Selected school is not managed by this account.',
+    });
+  });
+
   it('[STD-ENR-001] lists only students in manager school scope for enrollment', async () => {
     const students = await getManagerStudentsForEnrollment(
       { schoolId: SEED.schools.cloudbase },
@@ -307,7 +375,7 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     });
   });
 
-  it('[STD-ENR-002][STD-ENR-003][STD-ENR-004] manager can enroll student, see roster updates, and duplicates are blocked', async () => {
+  it('[STD-ENR-002][STD-ENR-003][STD-ENR-004][STD-INT-003] manager can enroll student, see roster updates, and duplicates are blocked', async () => {
     const created = await createCourseFromFinalSyllabus(
       {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
@@ -416,7 +484,7 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     ).toBe(true);
   });
 
-  it('[STD-ASN-002][STD-ASN-003] manager can assign instructor and duplicate assignment is blocked', async () => {
+  it('[STD-ASN-002][STD-ASN-003][STD-INT-003] manager can assign instructor and duplicate assignment is blocked', async () => {
     const created = await createCourseFromFinalSyllabus(
       {
         syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
@@ -470,6 +538,150 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
     ).rejects.toMatchObject({
       statusCode: 409,
       message: 'Instructor is already assigned to this course.',
+    });
+  });
+
+  it('[STD-ASN-004][STD-INT-003] assignment-time schedule conflicts are surfaced with a clear error', async () => {
+    const courseA = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-07-01T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const courseB = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-07-02T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const instructors = await getManagerInstructorsForAssignment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    if (instructors.length < 2) {
+      throw new Error('Expected at least two seeded instructors in manager scope.');
+    }
+
+    const instructorA = instructors[0]!;
+    const instructorB = instructors[1]!;
+
+    await assignInstructorToCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: courseA.courseId,
+        instructorId: instructorA.instructorId,
+        isLead: true,
+        agreedWagePerHour: 60,
+      },
+      ctx.schoolManager,
+    );
+
+    await assignInstructorToCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: courseB.courseId,
+        instructorId: instructorB.instructorId,
+        isLead: true,
+        agreedWagePerHour: 60,
+      },
+      ctx.schoolManager,
+    );
+
+    await startCourse({ courseId: courseA.courseId }, ctx.schoolManager);
+    await startCourse({ courseId: courseB.courseId }, ctx.schoolManager);
+
+    const overlapDate = new Date('2031-01-01T10:00:00.000Z');
+
+    await scheduleLesson(
+      {
+        courseId: courseA.courseId,
+        syllabusLessonId: 'seed-lesson-tandem-flights-01',
+        date: overlapDate,
+        location: 'Hill Alpha',
+      },
+      { user: { id: instructorA.userId, isSystemAdmin: false } },
+    );
+
+    await scheduleLesson(
+      {
+        courseId: courseB.courseId,
+        syllabusLessonId: 'seed-lesson-tandem-flights-01',
+        date: overlapDate,
+        location: 'Hill Beta',
+      },
+      { user: { id: instructorB.userId, isSystemAdmin: false } },
+    );
+
+    await expect(
+      assignInstructorToCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: courseB.courseId,
+          instructorId: instructorA.instructorId,
+          isLead: false,
+          agreedWagePerHour: 50,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Instructor assignment conflicts with an existing lesson schedule. (INV-02)',
+    });
+  });
+
+  it('[STD-ASN-005] assigning instructors to started courses requires agreed wage per hour', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-07-10T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const instructors = await getManagerInstructorsForAssignment(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    if (instructors.length < 2) {
+      throw new Error('Expected at least two seeded instructors in manager scope.');
+    }
+
+    const lead = instructors[0]!;
+    const secondInstructor = instructors[1]!;
+
+    await assignInstructorToCourse(
+      {
+        schoolId: SEED.schools.cloudbase,
+        courseId: created.courseId,
+        instructorId: lead.instructorId,
+        isLead: true,
+        agreedWagePerHour: 60,
+      },
+      ctx.schoolManager,
+    );
+
+    await startCourse({ courseId: created.courseId }, ctx.schoolManager);
+
+    await expect(
+      assignInstructorToCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          instructorId: secondInstructor.instructorId,
+          isLead: false,
+        },
+        ctx.schoolManager,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message:
+        'Started courses require agreed wage per hour for newly assigned instructors. (INV-18)',
     });
   });
 
@@ -580,5 +792,75 @@ describe('4.8 course close/reopen lifecycle (API)', () => {
       statusCode: 404,
       message: 'Instructor not found in your school scope.',
     });
+  });
+
+  it('[STD-INT-005] concurrent enrollment/assignment attempts preserve integrity with deterministic outcomes', async () => {
+    const created = await createCourseFromFinalSyllabus(
+      {
+        syllabusVersionId: FINAL_SYSTEM_SYLLABUS_VERSION_ID,
+        startDate: new Date('2026-06-15T00:00:00.000Z').toISOString(),
+      },
+      ctx.schoolManager,
+    );
+
+    const [students, instructors] = await Promise.all([
+      getManagerStudentsForEnrollment({ schoolId: SEED.schools.cloudbase }, ctx.schoolManager),
+      getManagerInstructorsForAssignment({ schoolId: SEED.schools.cloudbase }, ctx.schoolManager),
+    ]);
+
+    if (!students.length || !instructors.length) {
+      throw new Error('Expected seeded students and instructors in manager scope.');
+    }
+
+    const studentId = students[0]!.studentId;
+    const instructorId = instructors[0]!.instructorId;
+
+    const enrollmentResults = await Promise.allSettled([
+      enrollStudentInCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          studentId,
+        },
+        ctx.schoolManager,
+      ),
+      enrollStudentInCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          studentId,
+        },
+        ctx.schoolManager,
+      ),
+    ]);
+
+    const enrollmentSuccesses = enrollmentResults.filter((r) => r.status === 'fulfilled');
+    const enrollmentFailures = enrollmentResults.filter((r) => r.status === 'rejected');
+    expect(enrollmentSuccesses).toHaveLength(1);
+    expect(enrollmentFailures).toHaveLength(1);
+
+    const assignmentResults = await Promise.allSettled([
+      assignInstructorToCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          instructorId,
+        },
+        ctx.schoolManager,
+      ),
+      assignInstructorToCourse(
+        {
+          schoolId: SEED.schools.cloudbase,
+          courseId: created.courseId,
+          instructorId,
+        },
+        ctx.schoolManager,
+      ),
+    ]);
+
+    const assignmentSuccesses = assignmentResults.filter((r) => r.status === 'fulfilled');
+    const assignmentFailures = assignmentResults.filter((r) => r.status === 'rejected');
+    expect(assignmentSuccesses).toHaveLength(1);
+    expect(assignmentFailures).toHaveLength(1);
   });
 });

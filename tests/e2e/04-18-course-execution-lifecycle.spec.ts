@@ -212,16 +212,15 @@ test.describe("4.18 course execution lifecycle", () => {
   test("[STD-CRS-018] manager sees late enrollment panel on a started course", async ({
     page,
   }) => {
-    const { manager, courseId } = await createStartedCourseWithLesson();
+    const { manager, courseId, enrollableStudentId } = await createLateEnrollmentFixture();
 
-    // The school has the student already enrolled; enrollableStudents may be empty.
-    // We verify the panel appears only if there are candidates — just navigate and confirm page loads.
     await logUserIn({ page, user: manager, expectedRedirectPath: "/" });
     await page.goto(`/school-manager/courses/${courseId}`);
     await expect(page.getByTestId("course-detail-page")).toBeVisible();
-    // Panel may or may not render depending on whether there are unenrolled school students.
-    // Assert the page loaded without error.
-    await expect(page.getByText(/v1/i)).toBeVisible();
+
+    await expect(page.getByText(/Late Enrollment/i).first()).toBeVisible({ timeout: 5000 });
+    await page.locator("select").selectOption({ value: enrollableStudentId });
+    await expect(page.getByRole("button", { name: /^Enroll$/i })).toBeEnabled();
   });
 });
 

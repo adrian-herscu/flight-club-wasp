@@ -205,7 +205,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
   });
 
   describe('rejectSchoolManagerRequest', () => {
-    it('[STD-ADM-004] rejects a pending school-manager request and persists reason', async () => {
+    it('[STD-ADM-004][STD-ADM-005] rejects a pending school-manager request and persists reason', async () => {
       const requestId = await createSchoolManagerRequest(tempCtx.requesterA, 'api-sm-reject');
       const reason = 'Missing legal documents';
 
@@ -316,7 +316,7 @@ describe('4.4 / 4.5 rejection and listing behavior (API)', () => {
       expect(approvedIds).toContain('seed-request-student-02-cloudbase');
     });
 
-    it('rejects a pending member request and persists reason', async () => {
+    it('[STD-MGR-008] rejects a pending member request and persists reason', async () => {
       const requestId = await createMemberRequest(tempCtx.requesterA, 'INSTRUCTOR', SEED.schools.cloudbase);
       const reason = 'Missing certification';
 

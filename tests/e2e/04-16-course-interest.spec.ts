@@ -230,5 +230,47 @@ test.describe("4.16 course interest flow", () => {
       await expect(page.getByTestId("interest-status-badge").first()).toContainText("INTERESTED");
     });
   });
+
+  test("[4.16][STD-CIN-004] student dashboard lists the student course interests with status", async ({ page }) => {
+    const { schoolName, syllabusName, courseStartDate } = await createTestCourseWithManager();
+    const interestedStudent = await createTestStudentUser();
+
+    const courseDateStr = courseStartDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    await logUserIn({
+      page,
+      user: interestedStudent,
+      expectedRedirectPath: "/",
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const schoolCard = page.getByTestId("landing-school-card").filter({ hasText: schoolName }).first();
+    const targetCourseCard = schoolCard
+      .getByTestId("landing-course-item")
+      .filter({ hasText: syllabusName })
+      .filter({ hasText: courseDateStr })
+      .first();
+
+    await expect(targetCourseCard).toBeVisible();
+    await targetCourseCard.getByTestId("express-interest-btn").click();
+    await expect(targetCourseCard.getByTestId("express-interest-btn")).toContainText(/interested/i);
+
+    await page.goto("/student");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByTestId("student-dashboard-interests-section")).toBeVisible();
+    const dashboardItem = page
+      .getByTestId("student-interest-item")
+      .filter({ hasText: syllabusName })
+      .first();
+    await expect(dashboardItem).toBeVisible();
+    await expect(dashboardItem).toContainText(/status: interested/i);
+  });
 });
 

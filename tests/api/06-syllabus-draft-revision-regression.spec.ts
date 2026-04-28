@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 
 import {
+  createDraftSyllabusFromScratch,
   createDraftSyllabusFromTemplate,
+  getManagerSyllabusCatalog,
   getSyllabusVersionDetails,
   publishDraftSyllabusVersion,
   saveDraftSyllabusRevision,
@@ -13,6 +15,56 @@ import { prisma } from './wasp-server-stub.js';
 const FINAL_SYSTEM_SYLLABUS_VERSION_ID = 'seed-syllabus-version-tandem-flights-v1';
 
 describe('4.10 syllabus draft revision regression (API)', () => {
+  it('[STD-SYL-003] manager can create a draft syllabus from scratch and retrieve it', async () => {
+    const uniqueName = `Scratch syllabus ${Date.now()}`;
+
+    const created = await createDraftSyllabusFromScratch(
+      {
+        schoolId: SEED.schools.cloudbase,
+        name: uniqueName,
+        lessons: [
+          {
+            position: 1,
+            name: 'Ground school',
+            description: 'Safety basics and weather briefing.',
+            durationMinutes: 90,
+          },
+          {
+            position: 2,
+            name: 'Wing handling',
+            description: 'Launch and control practice.',
+            durationMinutes: 120,
+          },
+        ],
+      },
+      ctx.schoolManager,
+    );
+
+    const details = await getSyllabusVersionDetails(
+      {
+        schoolId: SEED.schools.cloudbase,
+        syllabusVersionId: created.syllabusVersionId,
+      },
+      ctx.schoolManager,
+    );
+
+    expect(details?.status).toBe('DRAFT');
+    expect(details?.syllabusName).toBe(uniqueName);
+    expect(details?.lessons).toHaveLength(2);
+    expect(details?.lessons.map((lesson) => lesson.position)).toEqual([1, 2]);
+
+    const catalog = await getManagerSyllabusCatalog(
+      { schoolId: SEED.schools.cloudbase },
+      ctx.schoolManager,
+    );
+
+    expect(
+      catalog.editableDrafts.some(
+        (item) => item.syllabusVersionId === created.syllabusVersionId,
+      ),
+    ).toBe(true);
+  });
+
   it('[STD-SYL-005][STD-SYL-010] allows saving a new DRAFT revision after editing a manager-owned FINAL version', async () => {
     const uniqueName = `Regression syllabus ${Date.now()}`;
 

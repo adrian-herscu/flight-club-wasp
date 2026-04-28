@@ -1,5 +1,10 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { createTestCourseWithManager, detectLanguageFromText, logUserIn } from "./utils.js";
+import {
+  createTestCourseWithManager,
+  createTestSystemAdmin,
+  detectLanguageFromText,
+  logUserIn,
+} from "./utils.js";
 
 async function selectLanguage(page: Page, languageLabel: string) {
   await page.getByRole("combobox").click();
@@ -60,6 +65,20 @@ test.describe("4.12 internationalization and RTL", () => {
 
     await expect(page.getByText("Continuă cu Google")).toBeVisible();
     await expect(googleLink).toBeVisible();
+  });
+
+  test("[4.2][STD-AUTH-006] clicking Google sign-in initiates the OAuth entry request", async ({ page }) => {
+    await page.goto("/login");
+
+    const googleLink = page.locator('a[href$="/auth/google/login"]');
+    await expect(googleLink).toBeVisible();
+
+    const [request] = await Promise.all([
+      page.waitForRequest((req) => req.url().includes("/auth/google/login")),
+      googleLink.click(),
+    ]);
+
+    expect(request.method()).toBe("GET");
   });
 
   test("[4.12][STD-I18N-002] lang and dir attributes track language switching", async ({ page }) => {
@@ -235,6 +254,81 @@ test.describe("4.12 internationalization and RTL", () => {
     expect(rtlGeometry!.dir).toBe("rtl");
     expect(rtlGeometry!.triggerCenterX).toBeGreaterThan(rtlGeometry!.headerMidX - 20);
     expect(rtlGeometry!.sidebarRight).toBeGreaterThanOrEqual(rtlGeometry!.viewportWidth - 2);
+  });
+
+  test("[4.12][STD-I18N-007] critical manager actions remain accessible on member-requests page in Hebrew RTL", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    const { manager } = await createTestCourseWithManager();
+    await logUserIn({ page, user: manager, expectedRedirectPath: "/" });
+
+    await page.goto("/school-manager/member-requests/instructors");
+    await page.waitForLoadState("networkidle");
+
+    // Switch to Hebrew (RTL)
+    await page.locator("header [role='combobox']").first().click();
+    await page.getByRole("option", { name: "עברית" }).click();
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("rtl");
+
+    // Page must still load without error
+    await expect(page.getByRole("heading", { name: /404/i })).toHaveCount(0);
+
+    // The filter controls must remain visible in RTL mode
+    await expect(page.getByTestId("manager-requests-status-filter-pending")).toBeVisible();
+    await expect(page.getByTestId("manager-requests-status-filter-approved")).toBeVisible();
+
+    // RTL layout: the page must remain usable (header controls not overlapping content)
+    const rtlPageGeometry = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      const main = document.querySelector("main");
+      if (!header || !main) return null;
+      const headerRect = header.getBoundingClientRect();
+      const mainRect = main.getBoundingClientRect();
+      return {
+        headerBottom: headerRect.bottom,
+        mainTop: mainRect.top,
+      };
+    });
+
+    expect(rtlPageGeometry).not.toBeNull();
+    // Main content must start below the header
+    expect(rtlPageGeometry!.mainTop).toBeGreaterThanOrEqual(rtlPageGeometry!.headerBottom - 5);
+  });
+
+  test("[4.12][STD-I18N-005][STD-I18N-006] admin school-requests page keeps RTL sidebar and content layout usable", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    const admin = await createTestSystemAdmin();
+    await logUserIn({ page, user: admin, expectedRedirectPath: "/" });
+
+    await page.goto("/system-admin/school-requests");
+    await page.waitForLoadState("networkidle");
+
+    await page.locator("header [role='combobox']").first().click();
+    await page.getByRole("option", { name: "עברית" }).click();
+    await expect.poll(async () => page.getAttribute("html", "lang")).toBe("he");
+    await expect.poll(async () => page.getAttribute("html", "dir")).toBe("rtl");
+
+    await expect(page.getByTestId("schools-status-filter-all")).toBeVisible();
+    await expect(page.getByTestId("schools-status-filter-pending")).toBeVisible();
+
+    const geometry = await page.evaluate(() => {
+      const aside = document.querySelector("aside");
+      const main = document.querySelector("main");
+      if (!aside || !main) return null;
+      const asideRect = aside.getBoundingClientRect();
+      const mainRect = main.getBoundingClientRect();
+      return {
+        viewportWidth: window.innerWidth,
+        asideRight: asideRect.right,
+        mainLeft: mainRect.left,
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(Math.abs(geometry!.asideRight - geometry!.viewportWidth)).toBeLessThanOrEqual(2);
+    expect(geometry!.mainLeft).toBeGreaterThanOrEqual(0);
   });
 });
 
