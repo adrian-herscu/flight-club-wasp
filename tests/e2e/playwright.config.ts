@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: '.',
   outputDir: '../../out/test-results',
   fullyParallel: false,
-  workers: 8,
+  workers: 4,
   globalSetup: './global-setup.ts',
   
   use: {

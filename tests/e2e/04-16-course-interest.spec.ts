@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createTestCourseWithManager, logUserIn, createTestStudentUser } from "./utils.js";
+import { createTestCourseWithManager, logUserIn, createTestStudentUser, waitForLandingReady } from "./utils.js";
 
 const PENDING_ANON_INTEREST_KEY = "landing.pendingAnonCourseInterest";
 
@@ -20,8 +20,7 @@ test.describe("4.16 course interest flow", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await waitForLandingReady(page);
 
     const schoolCard = page.getByTestId("landing-school-card").filter({ hasText: schoolName }).first();
     const targetCourseCard = schoolCard
@@ -53,7 +52,7 @@ test.describe("4.16 course interest flow", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/");
+    await waitForLandingReady(page);
     await targetCourseCard.getByTestId("express-interest-btn").click();
     await expect(targetCourseCard.getByTestId("express-interest-btn")).toContainText(/interested/i);
   });
@@ -69,8 +68,7 @@ test.describe("4.16 course interest flow", () => {
     });
 
     await test.step("Anonymous user clicks I'm Interested and is redirected to login", async () => {
-      await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await waitForLandingReady(page);
 
       const schoolCard = page
         .getByTestId("landing-school-card")
@@ -141,6 +139,7 @@ test.describe("4.16 course interest flow", () => {
       day: "numeric",
       year: "numeric",
     });
+    const managerOwnedCourseOption = `${syllabusName} v1`;
 
     let matchedCourseFound = false;
 
@@ -186,40 +185,24 @@ test.describe("4.16 course interest flow", () => {
         expectedRedirectPath: "/",
       });
 
-      await page.goto("/school-manager/courses");
-      await expect(page).toHaveURL(/\/school-manager\/courses\/?$/);
-      await expect(
-        page.getByRole("heading", { name: /open course from final syllabus/i }).first(),
-      ).toBeVisible();
+      await page.goto("/school-manager/courses?section=enrollment", { waitUntil: "domcontentloaded", timeout: 60000 });
+      await expect(page).toHaveURL(/\/school-manager\/courses\?section=enrollment$/);
+      await expect(page.locator("#interests-course-select")).toBeVisible();
 
       await page.locator("#interests-course-select").click();
-      const optionNames = (await page.getByRole("option").allTextContents())
-        .map((name) => name.trim())
-        .filter(Boolean);
+      await page.getByRole("option", { name: managerOwnedCourseOption }).first().click();
 
-      await page.keyboard.press("Escape");
-
-      for (const optionName of optionNames) {
-        await page.locator("#interests-course-select").click();
-        await page.getByRole("option", { name: optionName }).first().click();
-
-        const isVisible = await expect
-          .poll(async () => {
-            return await page
-              .getByText(interestedStudent.email)
-              .first()
-              .isVisible()
-              .catch(() => false);
-          }, { timeout: 1500 })
-          .toBe(true)
-          .then(() => true)
-          .catch(() => false);
-
-        if (isVisible) {
-          matchedCourseFound = true;
-          break;
-        }
-      }
+      matchedCourseFound = await expect
+        .poll(async () => {
+          return await page
+            .getByText(interestedStudent.email)
+            .first()
+            .isVisible()
+            .catch(() => false);
+        }, { timeout: 5000 })
+        .toBe(true)
+        .then(() => true)
+        .catch(() => false);
     });
 
     await test.step("Manager sees the interested student on that course", async () => {
@@ -247,8 +230,7 @@ test.describe("4.16 course interest flow", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await waitForLandingReady(page);
 
     const schoolCard = page.getByTestId("landing-school-card").filter({ hasText: schoolName }).first();
     const targetCourseCard = schoolCard

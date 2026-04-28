@@ -329,7 +329,7 @@ test.describe("4.11 role-based navigation", () => {
         expectedRedirectPath: "/",
       });
 
-      await page.goto(scenario.dashboardRoot);
+      await page.goto(scenario.dashboardRoot, { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("networkidle");
 
       await expectSidebarOnScreen(page);
@@ -345,7 +345,7 @@ test.describe("4.11 role-based navigation", () => {
       }
 
       for (const step of scenario.navSteps) {
-        await page.goto(scenario.dashboardRoot);
+        await page.goto(scenario.dashboardRoot, { waitUntil: "domcontentloaded" });
         await page.waitForLoadState("networkidle");
         await expectSidebarOnScreen(page);
         await clickSidebarLinkAndExpectUrl(page, step.linkName, step.expectedUrl);
@@ -364,7 +364,7 @@ test.describe("4.11 role-based navigation", () => {
       expectedRedirectPath: "/",
     });
 
-    await page.goto("/school-manager/syllabuses?section=catalog");
+    await page.goto("/school-manager/syllabuses?section=catalog", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle");
 
     const sidebar = page.locator("aside").first();
@@ -533,6 +533,11 @@ test.describe("4.11 role-based navigation", () => {
     await expect(sidebarToggle).toHaveCount(0);
 
     await expect(headerToggle).toBeVisible();
+
+    const rejectAllButton = page.getByRole("button", { name: /reject all/i });
+    if (await rejectAllButton.count()) {
+      await rejectAllButton.first().click();
+    }
 
     const languageSelect = sidebar.locator("[role='combobox']").first();
     await languageSelect.click();

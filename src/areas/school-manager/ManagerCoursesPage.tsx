@@ -1,7 +1,8 @@
 import { type CourseInterestStatus } from "@prisma/client";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { type AuthUser } from "wasp/auth";
@@ -12,10 +13,14 @@ import DefaultLayout from "../system-admin/layout/DefaultLayout";
 import LabeledInputField from "../../client/components/patterns/LabeledInputField";
 import LabeledSelectField from "../../client/components/patterns/LabeledSelectField";
 import {
+  CoursesSectionContent,
+  CoursesStickyTabs,
   ManagerCoursesDetailsPanel,
   ManagerCoursesDisclosure,
   ManagerCoursesForm,
   ManagerCoursesGrid,
+  type ManagerCoursesSection,
+  validCoursesSections,
 } from "../../client/components/patterns/ManagerCoursesPagePatterns";
 import { ListItem } from "../../client/components/patterns/ListItem";
 import {
@@ -168,6 +173,24 @@ type CreateCourseFormValues = z.infer<typeof createCourseSchema>;
 
 const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const sectionContentRef = useRef<HTMLDivElement | null>(null);
+  const hasChangedSectionRef = useRef(false);
+
+  const activeSection = useMemo<ManagerCoursesSection>(() => {
+    const section = new URLSearchParams(location.search).get("section");
+    if (section && validCoursesSections.includes(section as ManagerCoursesSection)) {
+      return section as ManagerCoursesSection;
+    }
+    return "courses";
+  }, [location.search]);
+
+  const goToSection = (section: ManagerCoursesSection) => {
+    hasChangedSectionRef.current = true;
+    navigate({ search: `?section=${section}` }, { replace: false });
+    sectionContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const { data: managedSchoolsData } = useQuery(getMyManagedSchool);
   const managedSchools = (managedSchoolsData as ManagedSchool[] | undefined) ?? [];
@@ -474,323 +497,343 @@ const ManagerCoursesPage = ({ user }: { user: AuthUser }) => {
     <DefaultLayout user={user}>
       <Breadcrumb pageName={t("admin.courses")} showTitle={false} />
 
-      <ManagerCoursesGrid variant="top">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("syllabus.openCourseFromFinalSyllabus")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isCatalogLoading ? (
-              <LoadingText>{t("syllabus.loadingCatalog")}</LoadingText>
-            ) : (
-              <ManagerCoursesForm onSubmit={handleCreateCourse} variant="compact">
-                <Controller
-                  control={form.control}
-                  name="templateVersionId"
-                  render={({ field }) => (
+      <CoursesStickyTabs activeSection={activeSection} goToSection={goToSection} t={t} />
+
+      <CoursesSectionContent sectionContentRef={sectionContentRef}>
+        {/* ---------------------------------------------------------------- */}
+        {/* TAB: Courses (create + list)                                     */}
+        {/* ---------------------------------------------------------------- */}
+        {activeSection === "courses" && (
+          <ManagerCoursesGrid variant="top">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("syllabus.openCourseFromFinalSyllabus")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isCatalogLoading ? (
+                  <LoadingText>{t("syllabus.loadingCatalog")}</LoadingText>
+                ) : (
+                  <ManagerCoursesForm onSubmit={handleCreateCourse} variant="compact">
+                    <Controller
+                      control={form.control}
+                      name="templateVersionId"
+                      render={({ field }) => (
+                        <LabeledSelectField
+                          id="create-course-template-version"
+                          label={t("syllabus.selectFinalVersion")}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={t("syllabus.finalTemplatePlaceholder")}
+                        >
+                          {finalCandidates.map((item: CatalogItem) => (
+                            <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
+                              {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
+                            </SelectItem>
+                          ))}
+                        </LabeledSelectField>
+                      )}
+                    />
+
+                    <Controller
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <LabeledInputField
+                          id="manager-course-start-date"
+                          label={t("syllabus.startDateLabel")}
+                          type="date"
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+
+                    <TwoColumnFields>
+                      <Controller
+                        control={form.control}
+                        name="minCapacity"
+                        render={({ field }) => (
+                          <LabeledInputField
+                            id="manager-course-min-capacity"
+                            label={t("syllabus.minCapacityLabel")}
+                            type="number"
+                            min={1}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        )}
+                      />
+                      <Controller
+                        control={form.control}
+                        name="maxCapacity"
+                        render={({ field }) => (
+                          <LabeledInputField
+                            id="manager-course-max-capacity"
+                            label={t("syllabus.maxCapacityLabel")}
+                            type="number"
+                            min={1}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        )}
+                      />
+                    </TwoColumnFields>
+
+                    <Controller
+                      control={form.control}
+                      name="hourlyRate"
+                      render={({ field }) => (
+                        <LabeledInputField
+                          id="manager-course-hourly-rate"
+                          label={
+                            managedSchoolDefaultHourlyRate != null
+                              ? t("syllabus.courseHourlyRateLabel")
+                              : t("syllabus.courseHourlyRateRequiredLabel")
+                          }
+                          type="number"
+                          min={1}
+                          value={field.value}
+                          onChange={field.onChange}
+                          required={managedSchoolDefaultHourlyRate == null}
+                        />
+                      )}
+                    />
+
+                    <Button type="submit" disabled={createCourse.isPending || finalCandidates.length === 0}>
+                      {createCourse.isPending ? t("syllabus.creatingCourse") : t("syllabus.createCourseButton")}
+                    </Button>
+                  </ManagerCoursesForm>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("admin.courses")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {coursesForEnrollment.length === 0 ? (
+                  <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
+                ) : (
+                  <SimpleList>
+                    {coursesForEnrollment.map((course: EnrollmentCourseItem) =>
+                      renderCourseRow(
+                        course,
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => { setPendingCloseCourse(course); setIsCloseDialogOpen(true); }}
+                        >
+                          {t("syllabus.closeCourseButton")}
+                        </Button>,
+                        true,
+                      ),
+                    )}
+                  </SimpleList>
+                )}
+
+                <ManagerCoursesDisclosure summary={t("syllabus.closedCoursesPanel", { count: closedCourses.length })}>
+                  {closedCourses.length === 0 ? (
+                    <MutedText>{t("syllabus.noClosedCourses")}</MutedText>
+                  ) : (
+                    <SimpleList>
+                      {closedCourses.map((course: EnrollmentCourseItem) =>
+                        renderCourseRow(
+                          course,
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPendingReopenCourse(course); setIsReopenDialogOpen(true); }}
+                          >
+                            {t("syllabus.reopenCourseButton")}
+                          </Button>,
+                          false,
+                        ),
+                      )}
+                    </SimpleList>
+                  )}
+                </ManagerCoursesDisclosure>
+              </CardContent>
+            </Card>
+          </ManagerCoursesGrid>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
+        {/* TAB: Enrollment                                                  */}
+        {/* ---------------------------------------------------------------- */}
+        {activeSection === "enrollment" && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("syllabus.workflowSingleStudentEnrollment")}</CardTitle>
+              </CardHeader>
+              <SpacedCardContent>
+                <ManagerCoursesForm onSubmit={handleEnrollStudent} variant="spacious">
+                  {renderCourseSelectField(
+                    "enrollment-course-select",
+                    t("syllabus.course"),
+                    selectedEnrollmentCourseId ?? "",
+                    (val) => setEnrollmentCourseOverride(val || null),
+                  )}
+
+                  <LabeledSelectField
+                    id="enrollment-student-select"
+                    label={t("syllabus.student")}
+                    value={selectedStudentIdToEnroll}
+                    onValueChange={setStudentOverride}
+                    placeholder={t("syllabus.studentPlaceholder")}
+                  >
+                    {studentsForEnrollment.map((student: EnrollmentStudentItem) => (
+                      <SelectItem key={student.studentId} value={student.studentId}>
+                        {student.displayName} • {student.email ?? "—"}
+                      </SelectItem>
+                    ))}
+                  </LabeledSelectField>
+
+                  <Button type="submit" disabled={enrollStudent.isPending}>
+                    {enrollStudent.isPending ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
+                  </Button>
+                </ManagerCoursesForm>
+
+                <ManagerCoursesDetailsPanel
+                  title={t("syllabus.enrolledStudents", { count: courseEnrollmentDetails?.enrolledCount ?? 0 })}
+                >
+                  {!selectedEnrollmentCourseId ? (
+                    <MutedText>{t("syllabus.selectCourseToViewEnrolled")}</MutedText>
+                  ) : !courseEnrollmentDetails ? (
+                    <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
+                  ) : courseEnrollmentDetails.enrolledStudents.length === 0 ? (
+                    <MutedText>{t("syllabus.noStudentsEnrolled")}</MutedText>
+                  ) : (
+                    <SimpleList>
+                      {courseEnrollmentDetails.enrolledStudents.map((student) =>
+                        renderParticipantRow(student.studentId, student.displayName, student.email),
+                      )}
+                    </SimpleList>
+                  )}
+                </ManagerCoursesDetailsPanel>
+              </SpacedCardContent>
+            </Card>
+
+            <TopSpacing>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("student.courseInterests")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TwoColumnFields>
                     <LabeledSelectField
-                      id="create-course-template-version"
-                      label={t("syllabus.selectFinalVersion")}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder={t("syllabus.finalTemplatePlaceholder")}
+                      id="interests-course-select"
+                      label={t("syllabus.coursePlaceholder")}
+                      value={selectedInterestsCourseId ?? ""}
+                      onValueChange={(v) => setSelectedInterestsCourseId(v || null)}
+                      placeholder={t("syllabus.coursePlaceholder")}
                     >
-                      {finalCandidates.map((item: CatalogItem) => (
-                        <SelectItem key={item.syllabusVersionId} value={item.syllabusVersionId}>
-                          {item.syllabusName} (v{item.version}) • {item.schoolName ?? t("syllabus.system")}
+                      {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
+                        <SelectItem key={course.courseId} value={course.courseId}>
+                          {course.syllabusName} v{course.syllabusVersion}
                         </SelectItem>
                       ))}
                     </LabeledSelectField>
+                  </TwoColumnFields>
+
+                  {courseInterests.length === 0 ? (
+                    <MutedText testId="no-course-interests">
+                      {t("student.noInterestsForCourse")}
+                    </MutedText>
+                  ) : (
+                    <SimpleList>
+                      {courseInterests.map((interest: CourseInterestItem) => (
+                        <ListItem
+                          key={interest.id}
+                          title={interest.user.fullName ?? interest.user.email ?? interest.user.id}
+                          subtitle={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
+                          status={interest.status}
+                          statusTestId="interest-status-badge"
+                          action={
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={cancellingInterestId === interest.id}
+                              onClick={() => handleCancelInterest(interest.id)}
+                              data-testid="cancel-interest-btn"
+                            >
+                              {cancellingInterestId === interest.id
+                                ? t("admin.cancellingInterest")
+                                : t("admin.cancelInterest")}
+                            </Button>
+                          }
+                        />
+                      ))}
+                    </SimpleList>
                   )}
-                />
+                </CardContent>
+              </Card>
+            </TopSpacing>
+          </>
+        )}
 
-                <Controller
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <LabeledInputField
-                      id="manager-course-start-date"
-                      label={t("syllabus.startDateLabel")}
-                      type="date"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  )}
-                />
+        {/* ---------------------------------------------------------------- */}
+        {/* TAB: Instructors                                                 */}
+        {/* ---------------------------------------------------------------- */}
+        {activeSection === "instructors" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("syllabus.workflowInstructorAssignment")}</CardTitle>
+            </CardHeader>
+            <SpacedCardContent>
+              <ManagerCoursesForm onSubmit={handleAssignInstructor} variant="spacious">
+                {renderCourseSelectField(
+                  "assignment-course-select",
+                  t("syllabus.course"),
+                  selectedAssignmentCourseId ?? "",
+                  (val) => setAssignmentCourseOverride(val || null),
+                )}
 
-                <TwoColumnFields>
-                  <Controller
-                    control={form.control}
-                    name="minCapacity"
-                    render={({ field }) => (
-                      <LabeledInputField
-                        id="manager-course-min-capacity"
-                        label={t("syllabus.minCapacityLabel")}
-                        type="number"
-                        min={1}
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    )}
-                  />
-                  <Controller
-                    control={form.control}
-                    name="maxCapacity"
-                    render={({ field }) => (
-                      <LabeledInputField
-                        id="manager-course-max-capacity"
-                        label={t("syllabus.maxCapacityLabel")}
-                        type="number"
-                        min={1}
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    )}
-                  />
-                </TwoColumnFields>
+                <LabeledSelectField
+                  id="assignment-instructor-select"
+                  label={t("syllabus.instructor")}
+                  value={selectedInstructorIdToAssign}
+                  onValueChange={setInstructorOverride}
+                  placeholder={t("syllabus.instructorPlaceholder")}
+                >
+                  {instructorsForAssignment.map((inst: AssignmentInstructorItem) => (
+                    <SelectItem key={inst.instructorId} value={inst.instructorId}>
+                      {inst.displayName} • {inst.email ?? "—"}
+                    </SelectItem>
+                  ))}
+                </LabeledSelectField>
 
-                <Controller
-                  control={form.control}
-                  name="hourlyRate"
-                  render={({ field }) => (
-                    <LabeledInputField
-                      id="manager-course-hourly-rate"
-                      label={
-                        managedSchoolDefaultHourlyRate != null
-                          ? t("syllabus.courseHourlyRateLabel")
-                          : t("syllabus.courseHourlyRateRequiredLabel")
-                      }
-                      type="number"
-                      min={1}
-                      value={field.value}
-                      onChange={field.onChange}
-                      required={managedSchoolDefaultHourlyRate == null}
-                    />
-                  )}
-                />
-
-                <Button type="submit" disabled={createCourse.isPending || finalCandidates.length === 0}>
-                  {createCourse.isPending ? t("syllabus.creatingCourse") : t("syllabus.createCourseButton")}
+                <Button type="submit" disabled={assignInstructor.isPending}>
+                  {assignInstructor.isPending ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
                 </Button>
               </ManagerCoursesForm>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.courses")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {coursesForEnrollment.length === 0 ? (
-              <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
-            ) : (
-              <SimpleList>
-                {coursesForEnrollment.map((course: EnrollmentCourseItem) =>
-                  renderCourseRow(
-                    course,
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => { setPendingCloseCourse(course); setIsCloseDialogOpen(true); }}
-                    >
-                      {t("syllabus.closeCourseButton")}
-                    </Button>,
-                    true,
-                  ),
+              <ManagerCoursesDetailsPanel
+                title={t("syllabus.assignedInstructors", { count: courseInstructorDetails?.assignedCount ?? 0 })}
+              >
+                {!selectedAssignmentCourseId ? (
+                  <MutedText>{t("syllabus.selectCourseToViewAssigned")}</MutedText>
+                ) : !courseInstructorDetails ? (
+                  <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
+                ) : courseInstructorDetails.assignedInstructors.length === 0 ? (
+                  <MutedText>{t("syllabus.noInstructorsAssigned")}</MutedText>
+                ) : (
+                  <SimpleList>
+                    {courseInstructorDetails.assignedInstructors.map((instructor) =>
+                      renderParticipantRow(instructor.instructorId, instructor.displayName, instructor.email),
+                    )}
+                  </SimpleList>
                 )}
-              </SimpleList>
-            )}
+              </ManagerCoursesDetailsPanel>
+            </SpacedCardContent>
+          </Card>
+        )}
+      </CoursesSectionContent>
 
-            <ManagerCoursesDisclosure summary={t("syllabus.closedCoursesPanel", { count: closedCourses.length })}>
-              {closedCourses.length === 0 ? (
-                <MutedText>{t("syllabus.noClosedCourses")}</MutedText>
-              ) : (
-                <SimpleList>
-                  {closedCourses.map((course: EnrollmentCourseItem) =>
-                    renderCourseRow(
-                      course,
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setPendingReopenCourse(course); setIsReopenDialogOpen(true); }}
-                      >
-                        {t("syllabus.reopenCourseButton")}
-                      </Button>,
-                      false,
-                    ),
-                  )}
-                </SimpleList>
-              )}
-            </ManagerCoursesDisclosure>
-          </CardContent>
-        </Card>
-      </ManagerCoursesGrid>
-
-      <ManagerCoursesGrid variant="bottom">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("syllabus.workflowSingleStudentEnrollment")}</CardTitle>
-          </CardHeader>
-          <SpacedCardContent>
-            <ManagerCoursesForm onSubmit={handleEnrollStudent} variant="spacious">
-              {renderCourseSelectField(
-                "enrollment-course-select",
-                t("syllabus.course"),
-                selectedEnrollmentCourseId ?? "",
-                (val) => setEnrollmentCourseOverride(val || null),
-              )}
-
-              <LabeledSelectField
-                id="enrollment-student-select"
-                label={t("syllabus.student")}
-                value={selectedStudentIdToEnroll}
-                onValueChange={setStudentOverride}
-                placeholder={t("syllabus.studentPlaceholder")}
-              >
-                {studentsForEnrollment.map((student: EnrollmentStudentItem) => (
-                  <SelectItem key={student.studentId} value={student.studentId}>
-                    {student.displayName} • {student.email ?? "—"}
-                  </SelectItem>
-                ))}
-              </LabeledSelectField>
-
-              <Button type="submit" disabled={enrollStudent.isPending}>
-                {enrollStudent.isPending ? t("syllabus.enrollingButton") : t("syllabus.enrollStudent")}
-              </Button>
-            </ManagerCoursesForm>
-
-            <ManagerCoursesDetailsPanel
-              title={t("syllabus.enrolledStudents", { count: courseEnrollmentDetails?.enrolledCount ?? 0 })}
-            >
-              {!selectedEnrollmentCourseId ? (
-                <MutedText>{t("syllabus.selectCourseToViewEnrolled")}</MutedText>
-              ) : !courseEnrollmentDetails ? (
-                <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
-              ) : courseEnrollmentDetails.enrolledStudents.length === 0 ? (
-                <MutedText>{t("syllabus.noStudentsEnrolled")}</MutedText>
-              ) : (
-                <SimpleList>
-                  {courseEnrollmentDetails.enrolledStudents.map((student) =>
-                    renderParticipantRow(student.studentId, student.displayName, student.email),
-                  )}
-                </SimpleList>
-              )}
-            </ManagerCoursesDetailsPanel>
-          </SpacedCardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("syllabus.workflowInstructorAssignment")}</CardTitle>
-          </CardHeader>
-          <SpacedCardContent>
-            <ManagerCoursesForm onSubmit={handleAssignInstructor} variant="spacious">
-              {renderCourseSelectField(
-                "assignment-course-select",
-                t("syllabus.course"),
-                selectedAssignmentCourseId ?? "",
-                (val) => setAssignmentCourseOverride(val || null),
-              )}
-
-              <LabeledSelectField
-                id="assignment-instructor-select"
-                label={t("syllabus.instructor")}
-                value={selectedInstructorIdToAssign}
-                onValueChange={setInstructorOverride}
-                placeholder={t("syllabus.instructorPlaceholder")}
-              >
-                {instructorsForAssignment.map((inst: AssignmentInstructorItem) => (
-                  <SelectItem key={inst.instructorId} value={inst.instructorId}>
-                    {inst.displayName} • {inst.email ?? "—"}
-                  </SelectItem>
-                ))}
-              </LabeledSelectField>
-
-              <Button type="submit" disabled={assignInstructor.isPending}>
-                {assignInstructor.isPending ? t("syllabus.assigningButton") : t("syllabus.assignInstructor")}
-              </Button>
-            </ManagerCoursesForm>
-
-            <ManagerCoursesDetailsPanel
-              title={t("syllabus.assignedInstructors", { count: courseInstructorDetails?.assignedCount ?? 0 })}
-            >
-              {!selectedAssignmentCourseId ? (
-                <MutedText>{t("syllabus.selectCourseToViewAssigned")}</MutedText>
-              ) : !courseInstructorDetails ? (
-                <MutedText>{t("syllabus.noDetailsAvailable")}</MutedText>
-              ) : courseInstructorDetails.assignedInstructors.length === 0 ? (
-                <MutedText>{t("syllabus.noInstructorsAssigned")}</MutedText>
-              ) : (
-                <SimpleList>
-                  {courseInstructorDetails.assignedInstructors.map((instructor) =>
-                    renderParticipantRow(instructor.instructorId, instructor.displayName, instructor.email),
-                  )}
-                </SimpleList>
-              )}
-            </ManagerCoursesDetailsPanel>
-          </SpacedCardContent>
-        </Card>
-      </ManagerCoursesGrid>
-
-      <TopSpacing>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("student.courseInterests")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TwoColumnFields>
-              <LabeledSelectField
-                id="interests-course-select"
-                label={t("syllabus.coursePlaceholder")}
-                value={selectedInterestsCourseId ?? ""}
-                onValueChange={(v) => setSelectedInterestsCourseId(v || null)}
-                placeholder={t("syllabus.coursePlaceholder")}
-              >
-                {coursesForEnrollment.map((course: EnrollmentCourseItem) => (
-                  <SelectItem key={course.courseId} value={course.courseId}>
-                    {course.syllabusName} v{course.syllabusVersion}
-                  </SelectItem>
-                ))}
-              </LabeledSelectField>
-            </TwoColumnFields>
-
-            {courseInterests.length === 0 ? (
-              <MutedText testId="no-course-interests">
-                {t("student.noInterestsForCourse")}
-              </MutedText>
-            ) : (
-              <SimpleList>
-                {courseInterests.map((interest: CourseInterestItem) => (
-                  <ListItem
-                    key={interest.id}
-                    title={interest.user.fullName ?? interest.user.email ?? interest.user.id}
-                    subtitle={interest.user.email && interest.user.fullName ? interest.user.email : undefined}
-                    status={interest.status}
-                    statusTestId="interest-status-badge"
-                    action={
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={cancellingInterestId === interest.id}
-                        onClick={() => handleCancelInterest(interest.id)}
-                        data-testid="cancel-interest-btn"
-                      >
-                        {cancellingInterestId === interest.id
-                          ? t("admin.cancellingInterest")
-                          : t("admin.cancelInterest")}
-                      </Button>
-                    }
-                  />
-                ))}
-              </SimpleList>
-            )}
-          </CardContent>
-        </Card>
-      </TopSpacing>
-
+      {/* Dialogs are rendered regardless of active tab */}
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>
           <DialogHeader>

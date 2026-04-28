@@ -9,6 +9,17 @@ export type User = {
 
 const DEFAULT_PASSWORD = "12345678";
 
+export const waitForLandingReady = async (page: Page) => {
+  await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60000 });
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByTestId("landing-schools-section")).toBeVisible({ timeout: 15000 });
+  await expect
+    .poll(async () => page.getByTestId("landing-school-card").count(), {
+      timeout: 15000,
+    })
+    .toBeGreaterThan(0);
+};
+
 export const logUserIn = async ({
   page,
   user,
@@ -18,7 +29,7 @@ export const logUserIn = async ({
   user: User;
   expectedRedirectPath?: string;
 }) => {
-  await page.goto("/login");
+  await page.goto("/login", { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForURL("**/login", {
     waitUntil: "domcontentloaded",
   });
@@ -27,11 +38,12 @@ export const logUserIn = async ({
   await page.fill('input[name="password"]', user.password ?? DEFAULT_PASSWORD);
 
   // Wait for the form to be ready
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle").catch(() => {});
 
-  const rejectAllButton = page.getByRole("button", { name: /reject all/i });
-  if (await rejectAllButton.count()) {
-    await rejectAllButton.first().click();
+  const rejectAllButton = page.getByRole("button", { name: /reject all/i }).first();
+  const isRejectVisible = await rejectAllButton.isVisible().catch(() => false);
+  if (isRejectVisible) {
+    await rejectAllButton.click({ force: true }).catch(() => {});
   }
 
   // Find login button - it could be "Log in", "Login", "כניסה" (Hebrew), or any translation
@@ -86,7 +98,7 @@ export const logUserIn = async ({
       localStorage.setItem("wasp:sessionId", sessionId);
     }, loginPayload.sessionId);
 
-    await page.goto(expectedRedirectPath);
+    await page.goto(expectedRedirectPath, { waitUntil: "domcontentloaded", timeout: 60000 });
   }
 
   // Also wait a bit for any redirects
@@ -353,6 +365,7 @@ export const createTestCourseWithAssignedInstructor = async (): Promise<{
   manager: User;
   instructor: User;
   schoolId: string;
+  schoolName: string;
   courseId: string;
 }> => {
   const baseFixture = await createTestCourseWithManager();
@@ -399,6 +412,7 @@ export const createTestCourseWithAssignedInstructor = async (): Promise<{
       manager: baseFixture.manager,
       instructor,
       schoolId: baseFixture.schoolId,
+      schoolName: baseFixture.schoolName,
       courseId: baseFixture.courseId,
     };
   } finally {

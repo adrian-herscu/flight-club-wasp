@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { createTestCourseWithManager, logUserIn, createTestStudentUser } from './utils.js';
+import { createTestCourseWithManager, logUserIn, createTestStudentUser, waitForLandingReady } from './utils.js';
 
 test.describe('4.17 manager students page - course enrollment approval', () => {
   test('[STD-CIN-015][STD-CIN-016] manager can cancel a pending interest before enrollment', async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
     });
 
     await logUserIn({ page, user: interestedStudent, expectedRedirectPath: '/' });
-    await page.goto('/');
+    await waitForLandingReady(page);
 
     const schoolCard = page.getByTestId('landing-school-card').filter({ hasText: schoolName }).first();
     const targetCourseCard = schoolCard
@@ -34,8 +34,15 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
     await expect(page.getByText(interestedStudent.email).first()).toHaveCount(0);
 
     await logUserIn({ page, user: interestedStudent, expectedRedirectPath: '/' });
-    await page.goto('/');
-    await expect(targetCourseCard.getByTestId('express-interest-btn')).toContainText(/i('| a)m interested/i);
+    await waitForLandingReady(page);
+
+    const refreshedSchoolCard = page.getByTestId('landing-school-card').filter({ hasText: schoolName }).first();
+    const refreshedTargetCourseCard = refreshedSchoolCard
+      .getByTestId('landing-course-item')
+      .filter({ hasText: syllabusName })
+      .filter({ hasText: courseDateStr })
+      .first();
+    await expect(refreshedTargetCourseCard.getByTestId('express-interest-btn')).toContainText(/i('| a)m interested/i);
   });
 
   test('[STD-MGR-003][STD-MGR-007][STD-CIN-010] manager sees student-course pair and can approve enrollment', async ({ page }) => {
@@ -57,8 +64,7 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
         expectedRedirectPath: '/',
       });
 
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await waitForLandingReady(page);
 
       const schoolCard = page
         .getByTestId('landing-school-card')
@@ -87,7 +93,7 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
         expectedRedirectPath: '/',
       });
 
-      await page.goto('/school-manager/member-requests/students');
+      await page.goto('/school-manager/member-requests/students', { waitUntil: 'domcontentloaded' });
       await expect(page).toHaveURL(/\/school-manager\/member-requests\/students\/?$/);
 
       await expect(page.getByText(interestedStudent.email).first()).toBeVisible();
@@ -104,7 +110,7 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
         expectedRedirectPath: '/',
       });
 
-      await page.goto('/');
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
 
       const schoolCard = page
         .getByTestId('landing-school-card')
@@ -134,7 +140,7 @@ test.describe('4.17 manager students page - course enrollment approval', () => {
     });
 
     await logUserIn({ page, user: interestedStudent, expectedRedirectPath: '/' });
-    await page.goto('/');
+    await waitForLandingReady(page);
 
     const schoolCard = page.getByTestId('landing-school-card').filter({ hasText: schoolName }).first();
     const targetCourseCard = schoolCard

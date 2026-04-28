@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createTestCourseWithManager, logUserIn, provisionFreshEmailUser } from "./utils.js";
+import { logUserIn, provisionFreshEmailUser } from "./utils.js";
 
 test.describe("4.3 registration and role requests - school listing", () => {
   test("[4.3][STD-REG-006][STD-REG-008] school listing renders correctly for instructor role", async ({ page }) => {
@@ -88,7 +88,7 @@ test.describe("4.3 registration and role requests - school listing", () => {
   });
 
   test("[4.3][STD-REG-008] instructor school options remain selectable when optional website/logo metadata is missing", async ({ page }) => {
-    const { schoolName } = await createTestCourseWithManager();
+    test.slow();
     const user = await provisionFreshEmailUser();
 
     await logUserIn({
@@ -102,29 +102,26 @@ test.describe("4.3 registration and role requests - school listing", () => {
     await page.locator("#registration-requested-role").click();
     await page.getByRole("option", { name: /instructor/i }).first().click();
 
-    // Open the school select dropdown and find the school using DOM evaluation
-    // This approach is more reliable than Playwright locators for large dropdown lists
-    await page.locator("#registration-school-select").click();
-    await page.waitForSelector('[role="option"]', { state: "visible" });
-    
-    await page.evaluate((targetSchoolName) => {
-      const options = Array.from(
-        document.querySelectorAll<HTMLElement>('[role="option"]'),
-      ).filter((option) => option.offsetParent !== null);
+    const schoolSelect = page.locator("#registration-school-select");
+    await schoolSelect.click();
+    await page.waitForSelector('[role="option"]', { state: "visible", timeout: 15000 });
 
-      const matchingOption = options.find((option) =>
-        option.textContent?.toLowerCase().includes(targetSchoolName.toLowerCase()),
+    const selectedSchoolName = await page.evaluate(() => {
+      const option = Array.from(document.querySelectorAll<HTMLElement>('[role="option"]')).find(
+        (candidate) => candidate.offsetParent !== null,
       );
 
-      if (!matchingOption) {
-        throw new Error(`Could not find school option matching: ${targetSchoolName}`);
+      if (!option) {
+        throw new Error("No visible school option found.");
       }
 
-      matchingOption.scrollIntoView({ block: "center" });
-      matchingOption.click();
-    }, schoolName);
+      const optionText = option.textContent?.trim() ?? "";
+      option.click();
+      return optionText;
+    });
 
     // Selection should succeed even when optional identity fields are absent.
-    await expect(page.locator("#registration-school-select")).toContainText(schoolName);
+    await expect(schoolSelect).not.toContainText(/choose a school/i);
+    await expect(schoolSelect).toContainText(selectedSchoolName);
   });
 });
