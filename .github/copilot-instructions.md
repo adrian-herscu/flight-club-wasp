@@ -2,6 +2,8 @@
 
 ## NEVER
 - Start the database unless specifically asked to do so.
+- Never touch the package.json, playwright.config.ts, global-setup.ts, or any other configuration files
+unless specifically asked to do so. 
 
 ## ALWAYS
 - Prefer the vscode built in tools and configured MCP servers instead of CLI tools.
