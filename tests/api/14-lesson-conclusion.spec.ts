@@ -52,6 +52,18 @@ let ctx2 = ctx.instructor;
 
 const pastDate = (offsetMinutes = 5) => new Date(Date.now() - offsetMinutes * 60_000);
 
+async function fundStudentAccount(accountId: string, amountMinor = 1_000_000): Promise<void> {
+  await prisma.transaction.create({
+    data: {
+      accountId,
+      type: 'DEPOSIT',
+      amountMinor,
+      currency: 'GBP',
+      description: 'Test funding before course start',
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Global beforeEach
 // ---------------------------------------------------------------------------
@@ -113,9 +125,11 @@ async function createStartedCourse(opts: { lesson2?: boolean; with2Students?: bo
   const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
   const s1 = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
   await enrollStudentInCourse({ courseId, studentId: s1.studentId }, ctx.schoolManager);
+  await fundStudentAccount(isolatedMembers.student1.accountId);
   if (opts.with2Students) {
     const s2 = students.find((s) => s.userId === isolatedMembers.student2.userId)!;
     await enrollStudentInCourse({ courseId, studentId: s2.studentId }, ctx.schoolManager);
+    await fundStudentAccount(isolatedMembers.student2.accountId);
   }
   await startCourse({ courseId }, ctx.schoolManager);
 
@@ -174,6 +188,7 @@ describe('submitStudentAssessment — INV-15 and auth guards', () => {
     const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
     const s = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
     await enrollStudentInCourse({ courseId, studentId: s.studentId }, ctx.schoolManager);
+    await fundStudentAccount(isolatedMembers.student1.accountId);
     await startCourse({ courseId }, ctx.schoolManager);
     const { courseLessonId } = await scheduleLesson(
       { courseId, syllabusLessonId: SEED_LESSON_01, date: new Date(Date.now() + 3_600_000), location: 'Hill' },
@@ -279,7 +294,7 @@ describe('submitStudentAssessment — PASS on non-final lesson', () => {
 
 describe('submitStudentAssessment — final lesson PASS → CERTIFIED + course COMPLETED', () => {
   it('[STD-EXEC-034] PASS on final lesson → student CERTIFIED and course COMPLETED', async () => {
-    const { courseId, courseLessonId, students } = await createStartedCourse({ lesson2: true });
+    const { courseId, courseLessonId, students, instructorId } = await createStartedCourse({ lesson2: true });
     const studentId = students[0]!.studentId;
 
     const result = await submitStudentAssessment(
@@ -334,12 +349,12 @@ describe('submitStudentAssessment — final lesson PASS → CERTIFIED + course C
 // ===========================================================================
 
 describe('submitStudentAssessment — §8 instructor pay transactions', () => {
-  it('[STD-EXEC-035] creates pay transaction for lead instructor when lesson concludes', async () => {
-    const { courseId, courseLessonId, students } = await createStartedCourse({ lesson2: true });
+  it('[STD-EXEC-035] creates pending payout for lead instructor when lesson concludes', async () => {
+    const { courseId, courseLessonId, students, instructorId } = await createStartedCourse({ lesson2: true });
     const studentId = students[0]!.studentId;
 
-    const txBefore = await prisma.transaction.count({
-      where: { accountId: isolatedMembers.instructor1.accountId },
+    const payoutsBefore = await prisma.instructorPayout.count({
+      where: { courseId, instructorId },
     });
 
     await submitStudentAssessment(
@@ -347,17 +362,22 @@ describe('submitStudentAssessment — §8 instructor pay transactions', () => {
       ctxLead,
     );
 
-    const txAfter = await prisma.transaction.count({
-      where: { accountId: isolatedMembers.instructor1.accountId },
+    const payoutsAfter = await prisma.instructorPayout.count({
+      where: { courseId, instructorId },
     });
-    expect(txAfter).toBeGreaterThan(txBefore);
+    expect(payoutsAfter).toBeGreaterThan(payoutsBefore);
 
     // instructor01 agreedWagePerHour=50, lesson 2 duration=90 min → 50 * 90/60 = 75 minor units
-    const depositTx = await prisma.transaction.findFirst({
-      where: { accountId: isolatedMembers.instructor1.accountId, type: 'DEPOSIT' },
-      orderBy: { createdAt: 'desc' },
+    const payout = await prisma.instructorPayout.findUnique({
+      where: {
+        courseLessonId_instructorId: {
+          courseLessonId,
+          instructorId,
+        },
+      },
     });
-    expect(depositTx?.amountMinor).toBe(75);
+    expect(payout?.amountMinor).toBe(75);
+    expect(payout?.status).toBe('PENDING');
   });
 
   it('[STD-EXEC-036] does not pay ABSENT non-lead instructor (INV-20)', async () => {

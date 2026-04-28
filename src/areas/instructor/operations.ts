@@ -1,4 +1,4 @@
-import { SchoolRole, CourseLifecycleStatus } from "@prisma/client";
+import { SchoolRole, CourseLifecycleStatus, InstructorPayoutStatus, PaymentMethod } from "@prisma/client";
 import { HttpError } from "wasp/server";
 import { prisma } from "wasp/server";
 
@@ -15,6 +15,23 @@ type InstructorCourseListItem = {
   schoolId: string;
   schoolName: string;
   lifecycleStatus: "OPEN" | "CLOSED";
+};
+
+export type InstructorFinancialDashboardSummary = {
+  pendingAmountMinor: number;
+  paidAmountMinor: number;
+  currency: string | null;
+  payouts: {
+    payoutId: string;
+    courseId: string;
+    courseTitle: string;
+    lessonDate: Date;
+    amountMinor: number;
+    currency: string;
+    status: InstructorPayoutStatus;
+    paymentMethod: PaymentMethod | null;
+    paidAt: Date | null;
+  }[];
 };
 
 async function ensureInstructor(context: { user?: { id: string } | null }) {
@@ -132,4 +149,94 @@ export const getInstructorAssignedCourses = async (
     schoolName: a.course.school.name,
     lifecycleStatus: statusMap.get(a.course.id) ?? "OPEN",
   }));
+};
+
+export const getInstructorFinancialDashboardSummary = async (
+  rawArgs: unknown,
+  context: { user?: { id: string } | null },
+): Promise<InstructorFinancialDashboardSummary> => {
+  const user = await ensureInstructor(context);
+
+  const schoolId =
+    rawArgs !== null &&
+    rawArgs !== undefined &&
+    typeof rawArgs === "object" &&
+    "schoolId" in rawArgs &&
+    typeof (rawArgs as { schoolId: unknown }).schoolId === "string"
+      ? ((rawArgs as { schoolId: string }).schoolId.trim() || undefined)
+      : undefined;
+
+  const instructor = await prisma.instructor.findUnique({
+    where: { userId: user.id },
+    select: { id: true },
+  });
+  if (!instructor) {
+    return {
+      pendingAmountMinor: 0,
+      paidAmountMinor: 0,
+      currency: null,
+      payouts: [],
+    };
+  }
+
+  const payouts = await prisma.instructorPayout.findMany({
+    where: {
+      instructorId: instructor.id,
+      ...(schoolId ? { schoolId } : {}),
+    },
+    select: {
+      id: true,
+      amountMinor: true,
+      currency: true,
+      status: true,
+      paymentMethod: true,
+      paidAt: true,
+      courseId: true,
+      courseLesson: {
+        select: { date: true },
+      },
+      course: {
+        select: {
+          syllabusVersion: {
+            select: {
+              version: true,
+              syllabus: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ courseLesson: { date: "desc" } }, { createdAt: "desc" }],
+    take: 12,
+  });
+
+  let pendingAmountMinor = 0;
+  let paidAmountMinor = 0;
+  for (const payout of payouts) {
+    if (payout.status === InstructorPayoutStatus.PENDING) {
+      pendingAmountMinor += payout.amountMinor;
+    }
+    if (payout.status === InstructorPayoutStatus.PAID) {
+      paidAmountMinor += payout.amountMinor;
+    }
+  }
+
+  return {
+    pendingAmountMinor,
+    paidAmountMinor,
+    currency: payouts[0]?.currency ?? null,
+    payouts: payouts.map((payout) => ({
+      payoutId: payout.id,
+      courseId: payout.courseId,
+      courseTitle: `${payout.course.syllabusVersion.syllabus.name} v${payout.course.syllabusVersion.version}`,
+      lessonDate: payout.courseLesson.date,
+      amountMinor: payout.amountMinor,
+      currency: payout.currency,
+      status: payout.status,
+      paymentMethod: payout.paymentMethod,
+      paidAt: payout.paidAt,
+    })),
+  };
 };

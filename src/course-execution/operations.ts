@@ -10,17 +10,25 @@ import {
   CourseLessonStatus,
   CourseLifecycleStatus,
   EnrolledStudentStatus,
+  InstructorPayoutStatus,
   InstructorLessonPresenceStatus,
   InstructorSuggestionStatus,
   InstructorSuggestionType,
   LessonEvaluationStatus,
   MeetingAttendanceStatus,
+  PaymentMethod,
   RefundRequestStatus,
   SchoolRole,
 } from '@prisma/client';
 import { HttpError, prisma } from 'wasp/server';
 import * as z from 'zod';
 
+import {
+  createLinkedTransactionPair,
+  getEffectiveAccountBalance,
+  getEnrollmentChargeAmount,
+} from '../server/finance.js';
+import { calculateCourseTotalPrice } from '../shared/coursePricing.js';
 import { ensureArgsSchemaOrThrowHttpError } from '../server/validation.js';
 
 // ---------------------------------------------------------------------------
@@ -115,11 +123,24 @@ export const startCourse = async (
     select: {
       id: true,
       hourlyRate: true,
+      schoolId: true,
+      school: { select: { currency: true, adminId: true } },
       minCapacity: true,
       assignedInstructors: {
         select: { instructorId: true, isLead: true, agreedWagePerHour: true },
       },
-      enrolledStudents: { select: { studentId: true } },
+      enrolledStudents: {
+        select: {
+          studentId: true,
+          listPriceMinor: true,
+          agreedPriceMinor: true,
+          student: {
+            select: {
+              userId: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -185,16 +206,27 @@ export const startCourse = async (
   // ---------------------------------------------------------------------------
   // Effects
   // ---------------------------------------------------------------------------
-  await prisma.courseLifecycleEvent.create({
-    data: {
-      courseId: course.id,
-      changedByUserId: user.id,
-      status: CourseLifecycleStatus.STARTED,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    for (const enrollment of course.enrolledStudents) {
+      await chargeStudentForCourse({
+        studentUserId: enrollment.student.userId,
+        schoolId: course.schoolId,
+        schoolAdminUserId: course.school.adminId,
+        currency: course.school.currency,
+        amountMinor: getEnrollmentChargeAmount(enrollment),
+        description: `Course start fee for course ${course.id}`,
+        tx,
+      });
+    }
 
-  // TODO Slice 5: chargeEnrolledStudents — debit each enrolled student's account
-  // for the full course fee (sum(syllabusLesson.durationMinutes) / 60 × hourlyRate).
+    await tx.courseLifecycleEvent.create({
+      data: {
+        courseId: course.id,
+        changedByUserId: user.id,
+        status: CourseLifecycleStatus.STARTED,
+      },
+    });
+  });
 
   return { courseId: course.id, status: CourseLifecycleStatus.STARTED };
 };
@@ -860,46 +892,6 @@ export const markInstructorAbsent = async (
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// Financial helper
-// ---------------------------------------------------------------------------
-
-/**
- * Creates a linked pair of WITHDRAWAL + DEPOSIT transactions, updating both
- * account balances atomically via a Prisma $transaction.
- */
-async function createLinkedTransactionPair(opts: {
-  withdrawalAccountId: string;
-  depositAccountId: string;
-  amountMinor: number;
-  currency: string;
-  description: string;
-}): Promise<void> {
-  const { withdrawalAccountId, depositAccountId, amountMinor, currency, description } = opts;
-
-  // Transaction and Account tables are append-only (immutability triggers prevent UPDATE).
-  // Create withdrawal first, then deposit referencing it for one-directional audit linkage.
-  const withdrawal = await prisma.transaction.create({
-    data: {
-      accountId: withdrawalAccountId,
-      type: 'WITHDRAWAL',
-      amountMinor,
-      currency,
-      description,
-    },
-  });
-  await prisma.transaction.create({
-    data: {
-      accountId: depositAccountId,
-      type: 'DEPOSIT',
-      amountMinor,
-      currency,
-      description,
-      linkedTransactionId: withdrawal.id,
-    },
-  });
-}
-
-// ---------------------------------------------------------------------------
 // submitStudentAssessment — §2 LESSON_UNDERWAY → (stays / LESSON_CONCLUDED)
 // ---------------------------------------------------------------------------
 
@@ -1041,7 +1033,7 @@ export const submitStudentAssessment = async (
     lessonConcluded = true;
 
     // -----------------------------------------------------------------------
-    // §8 Financial: pay instructors (lead always paid; non-lead paid unless ABSENT)
+    // §8 Financial: create pending instructor payout obligations
     // -----------------------------------------------------------------------
     const courseData = await prisma.course.findUnique({
       where: { id: courseLesson.courseId },
@@ -1071,42 +1063,42 @@ export const submitStudentAssessment = async (
       });
       const absentIds = new Set(absentPresences.map((p) => p.instructorId));
 
-      // School account
-      const schoolAdmin = await prisma.school.findUnique({
-        where: { id: courseData.schoolId },
-        select: { adminId: true },
-      });
+      for (const ai of courseData.assignedInstructors) {
+        if (!ai.isLead && absentIds.has(ai.instructorId)) continue;
 
-      if (schoolAdmin) {
-        const schoolAccount = await prisma.account.findFirst({
-          where: { userId: schoolAdmin.adminId, schoolId: courseData.schoolId },
-          select: { id: true },
+        const wagePH = ai.agreedWagePerHour ?? 0;
+        const amountMinor = Math.round((durationMinutes / 60) * wagePH);
+        if (amountMinor <= 0) continue;
+
+        await prisma.instructorPayout.upsert({
+          where: {
+            courseLessonId_instructorId: {
+              courseLessonId,
+              instructorId: ai.instructorId,
+            },
+          },
+          update: {
+            amountMinor,
+            currency,
+            status: InstructorPayoutStatus.PENDING,
+            paymentMethod: null,
+            externalReference: null,
+            notes: null,
+            paidAt: null,
+            paidByUserId: null,
+            withdrawalTransactionId: null,
+            depositTransactionId: null,
+          },
+          create: {
+            schoolId: courseData.schoolId,
+            courseId: courseData.id,
+            courseLessonId,
+            instructorId: ai.instructorId,
+            amountMinor,
+            currency,
+            status: InstructorPayoutStatus.PENDING,
+          },
         });
-
-        if (schoolAccount) {
-          for (const ai of courseData.assignedInstructors) {
-            // INV-20: skip ABSENT non-lead instructors
-            if (!ai.isLead && absentIds.has(ai.instructorId)) continue;
-
-            const wagePH = ai.agreedWagePerHour ?? 0;
-            const amountMinor = Math.round((durationMinutes / 60) * wagePH);
-            if (amountMinor <= 0) continue;
-
-            const instructorAccount = await prisma.account.findFirst({
-              where: { userId: ai.instructor.userId, schoolId: courseData.schoolId },
-              select: { id: true },
-            });
-            if (!instructorAccount) continue;
-
-            await createLinkedTransactionPair({
-              withdrawalAccountId: schoolAccount.id,
-              depositAccountId: instructorAccount.id,
-              amountMinor,
-              currency,
-              description: `Lesson wage: lesson ${courseLessonId}`,
-            });
-          }
-        }
       }
     }
 
@@ -1158,56 +1150,51 @@ async function chargeStudentForCourse(opts: {
   schoolId: string;
   schoolAdminUserId: string;
   currency: string;
-  hourlyRate: number;
-  syllabusVersionId: string;
+  amountMinor: number;
+  description: string;
+  tx?: Parameters<typeof getEffectiveAccountBalance>[0];
 }): Promise<void> {
-  const { studentUserId, schoolId, schoolAdminUserId, currency, hourlyRate, syllabusVersionId } = opts;
+  const db = opts.tx ?? prisma;
 
-  const lessons = await prisma.syllabusLesson.findMany({
-    where: { syllabusVersionId },
-    select: { durationMinutes: true },
-  });
-  const totalMinutes = lessons.reduce((sum, l) => sum + l.durationMinutes, 0);
-  const amountMinor = Math.round((totalMinutes / 60) * hourlyRate);
-  if (amountMinor <= 0) return;
+  if (opts.amountMinor <= 0) {
+    return;
+  }
 
-  const studentAccount = await prisma.account.findFirst({
-    where: { userId: studentUserId, schoolId },
+  const studentAccount = await db.account.findFirst({
+    where: { userId: opts.studentUserId, schoolId: opts.schoolId },
     select: { id: true, balanceMinor: true },
   });
   if (!studentAccount) {
     throw new HttpError(400, 'No account found for this student in this school. Ensure accounts are funded before enrollment.');
   }
 
-  // Account.balanceMinor is immutable (set at account creation). Effective balance
-  // is computed as: initial + sum(DEPOSIT transactions) - sum(WITHDRAWAL transactions).
-  const [{ _sum: depositSum }, { _sum: withdrawalSum }] = await Promise.all([
-    prisma.transaction.aggregate({ where: { accountId: studentAccount.id, type: 'DEPOSIT' }, _sum: { amountMinor: true } }),
-    prisma.transaction.aggregate({ where: { accountId: studentAccount.id, type: 'WITHDRAWAL' }, _sum: { amountMinor: true } }),
-  ]);
-  const effectiveBalance = studentAccount.balanceMinor + (depositSum.amountMinor ?? 0) - (withdrawalSum.amountMinor ?? 0);
+  const effectiveBalance = await getEffectiveAccountBalance(
+    db,
+    studentAccount.id,
+    studentAccount.balanceMinor,
+  );
 
-  if (effectiveBalance < amountMinor) {
+  if (effectiveBalance < opts.amountMinor) {
     throw new HttpError(
       400,
-      `Insufficient balance for enrollment. Required: ${amountMinor}, available: ${effectiveBalance}.`,
+      `Insufficient balance for enrollment. Required: ${opts.amountMinor}, available: ${effectiveBalance}.`,
     );
   }
 
-  const schoolAccount = await prisma.account.findFirst({
-    where: { userId: schoolAdminUserId, schoolId },
+  const schoolAccount = await db.account.findFirst({
+    where: { userId: opts.schoolAdminUserId, schoolId: opts.schoolId },
     select: { id: true },
   });
   if (!schoolAccount) {
     throw new HttpError(400, 'No school account found.');
   }
 
-  await createLinkedTransactionPair({
+  await createLinkedTransactionPair(db, {
     withdrawalAccountId: studentAccount.id,
     depositAccountId: schoolAccount.id,
-    amountMinor,
-    currency,
-    description: 'Course enrollment fee',
+    amountMinor: opts.amountMinor,
+    currency: opts.currency,
+    description: opts.description,
   });
 }
 
@@ -1218,6 +1205,8 @@ async function chargeStudentForCourse(opts: {
 const enrollInStartedCourseSchema = z.object({
   courseId: z.string().min(1),
   studentId: z.string().min(1),
+  agreedPriceMinor: z.number().int().positive().optional(),
+  concessionReason: z.string().trim().min(1).optional(),
 });
 
 export const enrollInStartedCourse = async (
@@ -1228,7 +1217,7 @@ export const enrollInStartedCourse = async (
   const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
   const school = await getManagedSchoolForUserId(user.id, schoolId);
 
-  const { courseId, studentId } = ensureArgsSchemaOrThrowHttpError(
+  const { courseId, studentId, agreedPriceMinor, concessionReason } = ensureArgsSchemaOrThrowHttpError(
     enrollInStartedCourseSchema,
     rawArgs,
   );
@@ -1282,40 +1271,63 @@ export const enrollInStartedCourse = async (
     throw new HttpError(400, 'Course hourly rate must be set before enrolling.');
   }
 
-  // §8 financial charge
-  await chargeStudentForCourse({
-    studentUserId: student.userId,
-    schoolId: course.schoolId,
-    schoolAdminUserId: course.school.adminId,
-    currency: course.school.currency,
-    hourlyRate: course.hourlyRate,
-    syllabusVersionId: course.syllabusVersionId,
+  const lessons = await prisma.syllabusLesson.findMany({
+    where: { syllabusVersionId: course.syllabusVersionId },
+    select: { durationMinutes: true },
   });
+  const listPriceMinor = calculateCourseTotalPrice(course.hourlyRate, lessons);
+  if (agreedPriceMinor != null && agreedPriceMinor > listPriceMinor) {
+    throw new HttpError(400, 'Agreed enrollment price cannot exceed the listed course price.');
+  }
+  if (agreedPriceMinor != null && !concessionReason?.trim()) {
+    throw new HttpError(400, 'A concession reason is required when approving a discounted enrollment price.');
+  }
 
-  // Create enrollment
-  await prisma.enrolledStudent.create({
-    data: { courseId, studentId, status: EnrolledStudentStatus.ACTIVE },
-  });
+  const enrollmentPriceMinor = agreedPriceMinor ?? listPriceMinor;
 
-  // If an active (non-LESSON_UNDERWAY) lesson exists, create an ACCEPTED attendance hint
-  const activeLessonForHint = await prisma.courseLesson.findFirst({
-    where: {
-      courseId,
-      status: {
-        in: [CourseLessonStatus.SCHEDULED, CourseLessonStatus.BELOW_CAPACITY, CourseLessonStatus.CONFIRMED],
-      },
-    },
-    select: { id: true },
-  });
-  if (activeLessonForHint) {
-    await prisma.meetingAttendance.create({
+  await prisma.$transaction(async (tx) => {
+    await chargeStudentForCourse({
+      studentUserId: student.userId,
+      schoolId: course.schoolId,
+      schoolAdminUserId: course.school.adminId,
+      currency: course.school.currency,
+      amountMinor: enrollmentPriceMinor,
+      description: `Late enrollment fee for course ${courseId}`,
+      tx,
+    });
+
+    await tx.enrolledStudent.create({
       data: {
-        courseLessonId: activeLessonForHint.id,
+        courseId,
         studentId,
-        status: MeetingAttendanceStatus.ACCEPTED,
+        status: EnrolledStudentStatus.ACTIVE,
+        listPriceMinor,
+        agreedPriceMinor: agreedPriceMinor ?? null,
+        concessionReason: agreedPriceMinor != null ? concessionReason?.trim() ?? null : null,
+        concessionApprovedByUserId: agreedPriceMinor != null ? user.id : null,
+        concessionApprovedAt: agreedPriceMinor != null ? new Date() : null,
       },
     });
-  }
+
+    const activeLessonForHint = await tx.courseLesson.findFirst({
+      where: {
+        courseId,
+        status: {
+          in: [CourseLessonStatus.SCHEDULED, CourseLessonStatus.BELOW_CAPACITY, CourseLessonStatus.CONFIRMED],
+        },
+      },
+      select: { id: true },
+    });
+    if (activeLessonForHint) {
+      await tx.meetingAttendance.create({
+        data: {
+          courseLessonId: activeLessonForHint.id,
+          studentId,
+          status: MeetingAttendanceStatus.ACCEPTED,
+        },
+      });
+    }
+  });
 
   return { courseId, studentId };
 };
@@ -1469,7 +1481,7 @@ export const approveRefund = async (
   });
 
   // §8 Financial: debit school, credit student
-  await createLinkedTransactionPair({
+  await createLinkedTransactionPair(prisma, {
     withdrawalAccountId: schoolAccount.id,
     depositAccountId: studentAccount.id,
     amountMinor,
@@ -1533,6 +1545,200 @@ export const declineRefund = async (
   });
 
   return { refundRequestId };
+};
+
+const managerInstructorPayoutsSchema = z.object({
+  status: z.nativeEnum(InstructorPayoutStatus).optional(),
+  courseId: z.string().min(1).optional(),
+});
+
+export type ManagerInstructorPayoutItem = {
+  payoutId: string;
+  courseId: string;
+  courseLessonId: string;
+  instructorId: string;
+  instructorName: string;
+  amountMinor: number;
+  currency: string;
+  status: InstructorPayoutStatus;
+  paidAt: Date | null;
+  paymentMethod: PaymentMethod | null;
+  externalReference: string | null;
+  notes: string | null;
+  lessonDate: Date;
+};
+
+export const getManagerInstructorPayouts = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<ManagerInstructorPayoutItem[]> => {
+  const user = await ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { status, courseId } = ensureArgsSchemaOrThrowHttpError(
+    managerInstructorPayoutsSchema,
+    rawArgs,
+  );
+
+  const payouts = await prisma.instructorPayout.findMany({
+    where: {
+      schoolId: school.id,
+      ...(status ? { status } : {}),
+      ...(courseId ? { courseId } : {}),
+    },
+    select: {
+      id: true,
+      courseId: true,
+      courseLessonId: true,
+      instructorId: true,
+      amountMinor: true,
+      currency: true,
+      status: true,
+      paidAt: true,
+      paymentMethod: true,
+      externalReference: true,
+      notes: true,
+      courseLesson: { select: { date: true } },
+      assignedInstructor: {
+        select: {
+          instructor: {
+            select: {
+              user: {
+                select: {
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ status: 'asc' }, { courseLesson: { date: 'desc' } }, { createdAt: 'desc' }],
+  });
+
+  return payouts.map((payout) => ({
+    payoutId: payout.id,
+    courseId: payout.courseId,
+    courseLessonId: payout.courseLessonId,
+    instructorId: payout.instructorId,
+    instructorName:
+      payout.assignedInstructor.instructor.user.fullName ??
+      payout.assignedInstructor.instructor.user.email ??
+      payout.instructorId,
+    amountMinor: payout.amountMinor,
+    currency: payout.currency,
+    status: payout.status,
+    paidAt: payout.paidAt,
+    paymentMethod: payout.paymentMethod,
+    externalReference: payout.externalReference,
+    notes: payout.notes,
+    lessonDate: payout.courseLesson.date,
+  }));
+};
+
+const markInstructorPayoutPaidSchema = z.object({
+  payoutId: z.string().min(1),
+  paymentMethod: z.nativeEnum(PaymentMethod),
+  externalReference: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
+  paidAt: z.string().datetime().optional(),
+});
+
+export const markInstructorPayoutPaid = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<{ payoutId: string; status: InstructorPayoutStatus }> => {
+  const user = await ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+  const { payoutId, paymentMethod, externalReference, notes, paidAt } =
+    ensureArgsSchemaOrThrowHttpError(markInstructorPayoutPaidSchema, rawArgs);
+
+  const payout = await prisma.instructorPayout.findUnique({
+    where: { id: payoutId },
+    select: {
+      id: true,
+      schoolId: true,
+      courseId: true,
+      courseLessonId: true,
+      instructorId: true,
+      amountMinor: true,
+      currency: true,
+      status: true,
+      assignedInstructor: {
+        select: {
+          instructor: {
+            select: {
+              userId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!payout) {
+    throw new HttpError(404, 'Instructor payout not found.');
+  }
+  if (payout.schoolId !== school.id) {
+    throw new HttpError(403, 'Instructor payout does not belong to your school.');
+  }
+  if (payout.status !== InstructorPayoutStatus.PENDING) {
+    throw new HttpError(409, 'Only PENDING instructor payouts can be marked as paid.');
+  }
+
+  const schoolAccount = await prisma.account.findFirst({
+    where: { userId: school.adminId, schoolId: school.id },
+    select: { id: true },
+  });
+  if (!schoolAccount) {
+    throw new HttpError(400, 'No school account found.');
+  }
+
+  const instructorAccount = await prisma.account.findFirst({
+    where: {
+      userId: payout.assignedInstructor.instructor.userId,
+      schoolId: school.id,
+    },
+    select: { id: true },
+  });
+  if (!instructorAccount) {
+    throw new HttpError(400, 'No instructor account found.');
+  }
+
+  const paidDate = paidAt ? new Date(paidAt) : new Date();
+
+  const result = await prisma.$transaction(async (tx) => {
+    const transactionPair = await createLinkedTransactionPair(tx, {
+      withdrawalAccountId: schoolAccount.id,
+      depositAccountId: instructorAccount.id,
+      amountMinor: payout.amountMinor,
+      currency: payout.currency,
+      description: `Instructor payout settlement for lesson ${payout.courseLessonId}`,
+      notes,
+      recordedByUserId: user.id,
+      paymentMethod,
+      externalReference,
+    });
+
+    await tx.instructorPayout.update({
+      where: { id: payout.id },
+      data: {
+        status: InstructorPayoutStatus.PAID,
+        paidAt: paidDate,
+        paidByUserId: user.id,
+        paymentMethod,
+        externalReference: externalReference?.trim() || null,
+        notes: notes?.trim() || null,
+        withdrawalTransactionId: transactionPair.withdrawalTransactionId,
+        depositTransactionId: transactionPair.depositTransactionId,
+      },
+    });
+
+    return { payoutId: payout.id, status: InstructorPayoutStatus.PAID };
+  });
+
+  return result;
 };
 
 // ---------------------------------------------------------------------------

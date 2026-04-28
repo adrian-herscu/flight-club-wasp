@@ -108,6 +108,15 @@ async function createStartedCourseWithStudent1(opts: { hourlyRate?: number } = {
   const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
   const s1 = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
   await enrollStudentInCourse({ courseId, studentId: s1.studentId }, ctx.schoolManager);
+  await prisma.transaction.create({
+    data: {
+      accountId: isolatedMembers.student1.accountId,
+      type: 'DEPOSIT',
+      amountMinor: 1_000_000_000,
+      currency: 'GBP',
+      description: 'Test funding before course start',
+    },
+  });
   await startCourse({ courseId }, ctx.schoolManager);
 
   const s2 = students.find((s) => s.userId === isolatedMembers.student2.userId)!;

@@ -101,6 +101,8 @@ const createStudentNavigationFixture = async (): Promise<User> => {
         data: {
           courseId: courseFixture.courseId,
           studentId: studentProfile.id,
+          status: "ACTIVE",
+          listPriceMinor: 175,
         },
       });
     }
@@ -272,7 +274,7 @@ const roleScenarios: RoleScenario[] = [
         linkName: "Dashboard",
         expectedUrl: /\/instructor\/?$/,
         additionalAssertions: async (page) => {
-          await expect(page.getByTestId("instructor-dashboard-placeholder")).toBeVisible();
+          await expect(page.getByTestId("instructor-dashboard-page")).toBeVisible();
         },
       },
       {
@@ -302,8 +304,9 @@ const roleScenarios: RoleScenario[] = [
         linkName: "Dashboard",
         expectedUrl: /\/student\/?$/,
         additionalAssertions: async (page) => {
-          await expect(page.getByTestId("student-dashboard-placeholder")).toBeVisible();
-          await expect(page.getByText(/under construction/i)).toBeVisible();
+          await expect(page.getByTestId("student-dashboard-page")).toBeVisible();
+          await expect(page.getByTestId("student-dashboard-finance-section")).toBeVisible();
+          await expect(page.getByTestId("student-dashboard-interests-section")).toBeVisible();
         },
       },
       {

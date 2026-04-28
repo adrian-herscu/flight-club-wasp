@@ -1,6 +1,7 @@
 import {
   CourseInterestStatus,
   CourseLifecycleStatus,
+  PaymentMethod,
   Prisma,
   RegistrationRequestDecisionType,
   RegistrationRequestRole,
@@ -10,6 +11,10 @@ import {
 } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
+import {
+  createAccountDepositTransaction,
+  getEffectiveAccountBalance,
+} from "../../server/finance";
 import { ensureArgsSchemaOrThrowHttpError } from "../../server/validation";
 import { calculateCourseTotalPrice } from "../../shared/coursePricing";
 
@@ -72,6 +77,8 @@ type ManagerCourseInstructorDetailsInput = z.infer<
 const enrollStudentInCourseSchema = z.object({
   courseId: z.string().min(1),
   studentId: z.string().min(1),
+  agreedPriceMinor: z.number().int().positive().optional(),
+  concessionReason: z.string().trim().min(1).optional(),
 });
 
 type EnrollStudentInCourseInput = z.infer<typeof enrollStudentInCourseSchema>;
@@ -123,6 +130,8 @@ type ManagerStudentCoursePairsInput = z.infer<typeof managerStudentCoursePairsSc
 
 const approveStudentEnrollmentFromInterestSchema = z.object({
   interestId: z.string().min(1),
+  agreedPriceMinor: z.number().int().positive().optional(),
+  concessionReason: z.string().trim().min(1).optional(),
 });
 
 type ApproveStudentEnrollmentFromInterestInput = z.infer<
@@ -132,6 +141,18 @@ type ApproveStudentEnrollmentFromInterestInput = z.infer<
 const cancelCourseInterestForManagerSchema = z.object({
   interestId: z.string().min(1),
 });
+
+const recordStudentAccountTopUpSchema = z.object({
+  studentId: z.string().min(1),
+  amountMinor: z.number().int().positive(),
+  paymentMethod: z.nativeEnum(PaymentMethod),
+  externalReference: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
+  courseId: z.string().min(1).optional(),
+  interestId: z.string().min(1).optional(),
+});
+
+type RecordStudentAccountTopUpInput = z.infer<typeof recordStudentAccountTopUpSchema>;
 
 type CancelCourseInterestForManagerInput = z.infer<
   typeof cancelCourseInterestForManagerSchema
@@ -166,11 +187,15 @@ export type ManagerStudentCoursePairItem = {
     fullName: string | null;
     email: string | null;
     phone: string | null;
+    effectiveBalanceMinor: number | null;
+    currency: string | null;
   };
   course: {
     id: string;
     title: string;
     startDate: Date | null;
+    totalPricePerStudent: number;
+    fundingGapMinor: number | null;
   };
 };
 
@@ -219,6 +244,8 @@ type ManagerStudentListItem = {
   displayName: string;
   email: string | null;
   phone: string | null;
+  effectiveBalanceMinor: number;
+  currency: string | null;
 };
 
 type ManagerInstructorListItem = {
@@ -241,6 +268,35 @@ type ManagerCourseInstructorDetails = {
   assignedInstructors: ManagerInstructorListItem[];
 } | null;
 
+export type ManagerFinancialDashboardSummary = {
+  school: {
+    id: string;
+    name: string;
+    currency: string;
+    effectiveBalanceMinor: number;
+  };
+  pendingPayout: {
+    count: number;
+    amountMinor: number;
+  };
+  recentTopUps: {
+    transactionId: string;
+    createdAt: Date;
+    amountMinor: number;
+    currency: string;
+    paymentMethod: PaymentMethod | null;
+    externalReference: string | null;
+    studentName: string;
+  }[];
+  fundingGaps: {
+    interestId: string;
+    studentName: string;
+    courseTitle: string;
+    fundingGapMinor: number;
+    currency: string | null;
+  }[];
+};
+
 function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
   if (!rawArgs || typeof rawArgs !== "object") {
     return undefined;
@@ -253,6 +309,41 @@ function getOptionalSchoolIdFromArgs(rawArgs: unknown): string | undefined {
 
   const trimmedSchoolId = rawSchoolId.trim();
   return trimmedSchoolId.length > 0 ? trimmedSchoolId : undefined;
+}
+
+function resolveEnrollmentPricing(input: {
+  listPriceMinor: number;
+  agreedPriceMinor?: number;
+  concessionReason?: string;
+  approvedByUserId: string;
+}) {
+  const { listPriceMinor, agreedPriceMinor, concessionReason, approvedByUserId } = input;
+
+  if (agreedPriceMinor == null) {
+    return {
+      listPriceMinor,
+      agreedPriceMinor: null,
+      concessionReason: null,
+      concessionApprovedByUserId: null,
+      concessionApprovedAt: null,
+    };
+  }
+
+  if (agreedPriceMinor > listPriceMinor) {
+    throw new HttpError(400, 'Agreed enrollment price cannot exceed the listed course price.');
+  }
+
+  if (!concessionReason?.trim()) {
+    throw new HttpError(400, 'A concession reason is required when approving a discounted enrollment price.');
+  }
+
+  return {
+    listPriceMinor,
+    agreedPriceMinor,
+    concessionReason: concessionReason.trim(),
+    concessionApprovedByUserId: approvedByUserId,
+    concessionApprovedAt: new Date(),
+  };
 }
 
 async function getManagedSchoolForUserId(userId: string, schoolId?: string) {
@@ -426,6 +517,113 @@ export const getMyManagedSchool = async (
     },
     orderBy: [{ name: "asc" }, { createdAt: "asc" }],
   });
+};
+
+export const getManagerFinancialDashboardSummary = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<ManagerFinancialDashboardSummary> => {
+  const user = await ensureSchoolManager(context);
+  const schoolId = getOptionalSchoolIdFromArgs(rawArgs);
+  const school = await getManagedSchoolForUserId(user.id, schoolId);
+
+  const managerAccount = await prisma.account.findUnique({
+    where: {
+      userId_schoolId: {
+        userId: user.id,
+        schoolId: school.id,
+      },
+    },
+    select: {
+      id: true,
+      balanceMinor: true,
+      currency: true,
+    },
+  });
+  if (!managerAccount) {
+    throw new HttpError(400, "No school manager account found in this school scope.");
+  }
+
+  const schoolEffectiveBalanceMinor = await getEffectiveAccountBalance(
+    prisma,
+    managerAccount.id,
+    managerAccount.balanceMinor,
+  );
+
+  const [pendingPayoutAggregate, recentTopUps, interestPairs] = await Promise.all([
+    prisma.instructorPayout.aggregate({
+      where: {
+        schoolId: school.id,
+        status: "PENDING",
+      },
+      _count: { id: true },
+      _sum: { amountMinor: true },
+    }),
+    prisma.transaction.findMany({
+      where: {
+        type: "DEPOSIT",
+        recordedByUserId: user.id,
+        account: { schoolId: school.id },
+        description: { startsWith: "Manual student top-up" },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        amountMinor: true,
+        currency: true,
+        paymentMethod: true,
+        externalReference: true,
+        account: {
+          select: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: "desc" }],
+      take: 8,
+    }),
+    getManagerStudentCoursePairs({ schoolId: school.id }, context),
+  ]);
+
+  const fundingGaps = interestPairs
+    .filter((pair) => pair.status === CourseInterestStatus.INTERESTED && (pair.course.fundingGapMinor ?? 0) > 0)
+    .sort((a, b) => (b.course.fundingGapMinor ?? 0) - (a.course.fundingGapMinor ?? 0))
+    .slice(0, 8)
+    .map((pair) => ({
+      interestId: pair.interestId,
+      studentName: pair.student.fullName ?? pair.student.email ?? pair.student.id,
+      courseTitle: pair.course.title,
+      fundingGapMinor: pair.course.fundingGapMinor ?? 0,
+      currency: pair.student.currency,
+    }));
+
+  return {
+    school: {
+      id: school.id,
+      name: school.name,
+      currency: managerAccount.currency,
+      effectiveBalanceMinor: schoolEffectiveBalanceMinor,
+    },
+    pendingPayout: {
+      count: pendingPayoutAggregate._count.id,
+      amountMinor: pendingPayoutAggregate._sum.amountMinor ?? 0,
+    },
+    recentTopUps: recentTopUps.map((tx) => ({
+      transactionId: tx.id,
+      createdAt: tx.createdAt,
+      amountMinor: tx.amountMinor,
+      currency: tx.currency,
+      paymentMethod: tx.paymentMethod,
+      externalReference: tx.externalReference,
+      studentName: tx.account.user.fullName ?? tx.account.user.email ?? "Unknown student",
+    })),
+    fundingGaps,
+  };
 };
 
 export const getManagerSyllabusCatalog = async (
@@ -1088,6 +1286,17 @@ export const getManagerStudentsForEnrollment = async (
           fullName: true,
           email: true,
           phone: true,
+          accounts: {
+            where: {
+              schoolId: school.id,
+            },
+            select: {
+              id: true,
+              balanceMinor: true,
+              currency: true,
+            },
+            take: 1,
+          },
         },
       },
     },
@@ -1096,13 +1305,24 @@ export const getManagerStudentsForEnrollment = async (
     },
   });
 
-  return students.map((student) => ({
-    studentId: student.id,
-    userId: student.user.id,
-    displayName: student.user.fullName ?? student.user.email ?? student.id,
-    email: student.user.email,
-    phone: student.user.phone,
-  }));
+  return Promise.all(
+    students.map(async (student) => {
+      const account = student.user.accounts[0] ?? null;
+      const effectiveBalanceMinor = account
+        ? await getEffectiveAccountBalance(prisma, account.id, account.balanceMinor)
+        : 0;
+
+      return {
+        studentId: student.id,
+        userId: student.user.id,
+        displayName: student.user.fullName ?? student.user.email ?? student.id,
+        email: student.user.email,
+        phone: student.user.phone,
+        effectiveBalanceMinor,
+        currency: account?.currency ?? null,
+      };
+    }),
+  );
 };
 
 export const getManagerInstructorsForAssignment = async (
@@ -1185,6 +1405,17 @@ export const getManagerCourseEnrollmentDetails = async (
                   fullName: true,
                   email: true,
                   phone: true,
+                  accounts: {
+                    where: {
+                      schoolId: school.id,
+                    },
+                    select: {
+                      id: true,
+                      balanceMinor: true,
+                      currency: true,
+                    },
+                    take: 1,
+                  },
                 },
               },
             },
@@ -1198,18 +1429,29 @@ export const getManagerCourseEnrollmentDetails = async (
     throw new HttpError(404, "Course not found in your school scope.");
   }
 
-  const enrolledStudents = course.enrolledStudents
-    .map((enrollment) => ({
-      studentId: enrollment.student.id,
-      userId: enrollment.student.user.id,
-      displayName:
-        enrollment.student.user.fullName ??
-        enrollment.student.user.email ??
-        enrollment.student.id,
-      email: enrollment.student.user.email,
-      phone: enrollment.student.user.phone,
-    }))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  const enrolledStudents = await Promise.all(
+    course.enrolledStudents.map(async (enrollment) => {
+      const account = enrollment.student.user.accounts[0] ?? null;
+      const effectiveBalanceMinor = account
+        ? await getEffectiveAccountBalance(prisma, account.id, account.balanceMinor)
+        : 0;
+
+      return {
+        studentId: enrollment.student.id,
+        userId: enrollment.student.user.id,
+        displayName:
+          enrollment.student.user.fullName ??
+          enrollment.student.user.email ??
+          enrollment.student.id,
+        email: enrollment.student.user.email,
+        phone: enrollment.student.user.phone,
+        effectiveBalanceMinor,
+        currency: account?.currency ?? null,
+      };
+    }),
+  );
+
+  enrolledStudents.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return {
     courseId: course.id,
@@ -1223,7 +1465,7 @@ export const enrollStudentInCourse = async (
   context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
 ): Promise<{ courseId: string; studentId: string }> => {
   const { user, school } = await getSchoolManagerContext(rawArgs, context);
-  const { courseId, studentId } = ensureArgsSchemaOrThrowHttpError(
+  const { courseId, studentId, agreedPriceMinor, concessionReason } = ensureArgsSchemaOrThrowHttpError(
     enrollStudentInCourseSchema,
     rawArgs,
   ) as EnrollStudentInCourseInput;
@@ -1235,6 +1477,16 @@ export const enrollStudentInCourse = async (
     },
     select: {
       id: true,
+      hourlyRate: true,
+      syllabusVersion: {
+        select: {
+          lessons: {
+            select: {
+              durationMinutes: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -1267,12 +1519,24 @@ export const enrollStudentInCourse = async (
     throw new HttpError(404, "Student not found in your school scope.");
   }
 
+  const listPriceMinor = calculateCourseTotalPrice(
+    course.hourlyRate,
+    course.syllabusVersion.lessons,
+  );
+  const enrollmentPricing = resolveEnrollmentPricing({
+    listPriceMinor,
+    agreedPriceMinor,
+    concessionReason,
+    approvedByUserId: user.id,
+  });
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.enrolledStudent.create({
         data: {
           courseId,
           studentId,
+          ...enrollmentPricing,
         },
       });
 
@@ -1776,18 +2040,44 @@ export const getManagerStudentCoursePairs = async (
           fullName: true,
           email: true,
           phone: true,
+          accounts: {
+            where: {
+              schoolId: school.id,
+            },
+            select: {
+              id: true,
+              balanceMinor: true,
+              currency: true,
+            },
+            take: 1,
+          },
         },
       },
       course: {
         select: {
           id: true,
           startDate: true,
+          hourlyRate: true,
           syllabusVersion: {
             select: {
               version: true,
               syllabus: {
                 select: { name: true },
               },
+              lessons: {
+                select: { durationMinutes: true },
+              },
+            },
+          },
+          enrolledStudents: {
+            select: {
+              student: {
+                select: {
+                  userId: true,
+                },
+              },
+              agreedPriceMinor: true,
+              listPriceMinor: true,
             },
           },
         },
@@ -1796,23 +2086,46 @@ export const getManagerStudentCoursePairs = async (
     orderBy: [{ createdAt: "asc" }],
   });
 
-  return interests.map((interest) => ({
-    interestId: interest.id,
-    status: interest.status,
-    createdAt: interest.createdAt,
-    updatedAt: interest.updatedAt,
-    student: {
-      id: interest.user.id,
-      fullName: interest.user.fullName,
-      email: interest.user.email,
-      phone: interest.user.phone,
-    },
-    course: {
-      id: interest.course.id,
-      title: `${interest.course.syllabusVersion.syllabus.name} v${interest.course.syllabusVersion.version}`,
-      startDate: interest.course.startDate,
-    },
-  }));
+  return Promise.all(
+    interests.map(async (interest) => {
+      const account = interest.user.accounts[0] ?? null;
+      const effectiveBalanceMinor = account
+        ? await getEffectiveAccountBalance(prisma, account.id, account.balanceMinor)
+        : null;
+      const totalPricePerStudent = calculateCourseTotalPrice(
+        interest.course.hourlyRate,
+        interest.course.syllabusVersion.lessons,
+      );
+      const enrollment =
+        interest.course.enrolledStudents.find(
+          (candidate) => candidate.student.userId === interest.user.id,
+        ) ?? null;
+      const targetPriceMinor = enrollment?.agreedPriceMinor ?? enrollment?.listPriceMinor ?? totalPricePerStudent;
+
+      return {
+        interestId: interest.id,
+        status: interest.status,
+        createdAt: interest.createdAt,
+        updatedAt: interest.updatedAt,
+        student: {
+          id: interest.user.id,
+          fullName: interest.user.fullName,
+          email: interest.user.email,
+          phone: interest.user.phone,
+          effectiveBalanceMinor,
+          currency: account?.currency ?? null,
+        },
+        course: {
+          id: interest.course.id,
+          title: `${interest.course.syllabusVersion.syllabus.name} v${interest.course.syllabusVersion.version}`,
+          startDate: interest.course.startDate,
+          totalPricePerStudent,
+          fundingGapMinor:
+            effectiveBalanceMinor == null ? null : Math.max(targetPriceMinor - effectiveBalanceMinor, 0),
+        },
+      };
+    }),
+  );
 };
 
 /**
@@ -1826,7 +2139,7 @@ export const approveStudentEnrollmentFromInterest = async (
 ): Promise<{ interestId: string; status: CourseInterestStatus }> => {
   const { user, school } = await getSchoolManagerContext(rawArgs, context);
 
-  const { interestId } = ensureArgsSchemaOrThrowHttpError(
+  const { interestId, agreedPriceMinor, concessionReason } = ensureArgsSchemaOrThrowHttpError(
     approveStudentEnrollmentFromInterestSchema,
     rawArgs,
   ) as ApproveStudentEnrollmentFromInterestInput;
@@ -1842,6 +2155,20 @@ export const approveStudentEnrollmentFromInterest = async (
         status: true,
         userId: true,
         courseId: true,
+        course: {
+          select: {
+            hourlyRate: true,
+            syllabusVersion: {
+              select: {
+                lessons: {
+                  select: {
+                    durationMinutes: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -1914,6 +2241,17 @@ export const approveStudentEnrollmentFromInterest = async (
       select: { id: true },
     });
 
+    const listPriceMinor = calculateCourseTotalPrice(
+      interest.course.hourlyRate,
+      interest.course.syllabusVersion.lessons,
+    );
+    const enrollmentPricing = resolveEnrollmentPricing({
+      listPriceMinor,
+      agreedPriceMinor,
+      concessionReason,
+      approvedByUserId: user.id,
+    });
+
     await tx.account.upsert({
       where: {
         userId_schoolId: {
@@ -1944,6 +2282,7 @@ export const approveStudentEnrollmentFromInterest = async (
         data: {
           courseId: interest.courseId,
           studentId: student.id,
+          ...enrollmentPricing,
         },
       });
     }
@@ -1959,6 +2298,105 @@ export const approveStudentEnrollmentFromInterest = async (
       status: updatedInterest.status,
     };
   });
+};
+
+export const recordStudentAccountTopUp = async (
+  rawArgs: unknown,
+  context: { user?: { id: string; isSystemAdmin?: boolean | null } | null },
+): Promise<{ studentId: string; transactionId: string }> => {
+  const { user, school } = await getSchoolManagerContext(rawArgs, context);
+  const {
+    studentId,
+    amountMinor,
+    paymentMethod,
+    externalReference,
+    notes,
+    courseId,
+    interestId,
+  } = ensureArgsSchemaOrThrowHttpError(
+    recordStudentAccountTopUpSchema,
+    rawArgs,
+  ) as RecordStudentAccountTopUpInput;
+
+  const student = await prisma.student.findFirst({
+    where: {
+      id: studentId,
+      user: {
+        accounts: {
+          some: {
+            schoolId: school.id,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+  if (!student) {
+    throw new HttpError(404, 'Student not found in your school scope.');
+  }
+
+  if (courseId) {
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, schoolId: school.id },
+      select: { id: true },
+    });
+    if (!course) {
+      throw new HttpError(404, 'Course not found in your school scope.');
+    }
+  }
+
+  if (interestId) {
+    const interest = await prisma.courseInterest.findFirst({
+      where: {
+        id: interestId,
+        course: { schoolId: school.id },
+      },
+      select: { id: true },
+    });
+    if (!interest) {
+      throw new HttpError(404, 'Course interest not found in your school scope.');
+    }
+  }
+
+  const account = await prisma.account.findUnique({
+    where: {
+      userId_schoolId: {
+        userId: student.userId,
+        schoolId: school.id,
+      },
+    },
+    select: {
+      id: true,
+      currency: true,
+    },
+  });
+  if (!account) {
+    throw new HttpError(400, 'No account found for this student in this school.');
+  }
+
+  const descriptionParts = ['Manual student top-up'];
+  if (courseId) {
+    descriptionParts.push(`course ${courseId}`);
+  }
+  if (interestId) {
+    descriptionParts.push(`interest ${interestId}`);
+  }
+
+  const { transactionId } = await createAccountDepositTransaction(prisma, {
+    accountId: account.id,
+    amountMinor,
+    currency: account.currency,
+    description: descriptionParts.join(' - '),
+    notes,
+    recordedByUserId: user.id,
+    paymentMethod,
+    externalReference,
+  });
+
+  return { studentId, transactionId };
 };
 
 /**

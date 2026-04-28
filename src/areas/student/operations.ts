@@ -1,6 +1,7 @@
 import { CourseInterestStatus } from "@prisma/client";
 import { HttpError, prisma } from "wasp/server";
 import * as z from "zod";
+import { getEffectiveAccountBalance } from "../../server/finance";
 import { ensureArgsSchemaOrThrowHttpError } from "../../server/validation";
 
 type StudentSchoolSummary = {
@@ -15,6 +16,23 @@ type StudentEnrolledCourseListItem = {
   startDate: Date | null;
   schoolId: string;
   schoolName: string;
+};
+
+export type StudentFinancialDashboardSummary = {
+  balances: {
+    schoolId: string;
+    schoolName: string;
+    currency: string;
+    effectiveBalanceMinor: number;
+  }[];
+  recentTransactions: {
+    transactionId: string;
+    createdAt: Date;
+    amountMinor: number;
+    currency: string;
+    type: "DEPOSIT" | "WITHDRAWAL";
+    description: string | null;
+  }[];
 };
 
 // ---------------------------------------------------------------------------
@@ -312,4 +330,81 @@ export const getStudentEnrolledCourses = async (
     schoolId: enrollment.course.schoolId,
     schoolName: enrollment.course.school.name,
   }));
+};
+
+export const getStudentFinancialDashboardSummary = async (
+  _args: unknown,
+  context: { user?: { id: string } | null },
+): Promise<StudentFinancialDashboardSummary> => {
+  const user = await ensureStudent(context);
+
+  const accounts = await prisma.account.findMany({
+    where: {
+      userId: user.id,
+      school: {
+        schoolRoles: {
+          some: {
+            userId: user.id,
+            role: "STUDENT",
+            revokedAt: null,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      schoolId: true,
+      currency: true,
+      balanceMinor: true,
+      school: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: [{ school: { name: "asc" } }],
+  });
+
+  const balances = await Promise.all(
+    accounts.map(async (account) => ({
+      schoolId: account.schoolId,
+      schoolName: account.school.name,
+      currency: account.currency,
+      effectiveBalanceMinor: await getEffectiveAccountBalance(
+        prisma,
+        account.id,
+        account.balanceMinor,
+      ),
+    })),
+  );
+
+  const recentTransactions = await prisma.transaction.findMany({
+    where: {
+      accountId: {
+        in: accounts.map((account) => account.id),
+      },
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      amountMinor: true,
+      currency: true,
+      type: true,
+      description: true,
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take: 12,
+  });
+
+  return {
+    balances,
+    recentTransactions: recentTransactions.map((tx) => ({
+      transactionId: tx.id,
+      createdAt: tx.createdAt,
+      amountMinor: tx.amountMinor,
+      currency: tx.currency,
+      type: tx.type,
+      description: tx.description,
+    })),
+  };
 };

@@ -147,6 +147,8 @@ The project should continue to evolve within the existing Wasp application struc
   - School managers must be able to assign instructors to courses; exactly one assigned instructor must be designated as the lead instructor.
   - Each assigned instructor must have an agreed wage per hour set at assignment time; the system must reject course start if any agreed wage is missing.
   - School managers must be able to enroll students in courses. Late enrollment (after course start, before the first lesson begins) must also be supported.
+  - Managers may approve a discounted per-student enrollment price (`agreedPrice`) that is less than or equal to the listed course price; every discount requires an explicit concession reason and audit metadata.
+  - Managers must be able to record manual student account top-ups (for off-platform collections) with payment method and external reference metadata.
   - Enrollment writes must keep course-interest lifecycle state synchronized (`ENROLLED`) so Courses and Students manager views remain consistent.
   - Student enrollment is locked once the first lesson reaches `LESSON_UNDERWAY`.
   - The system must block invalid or duplicate assignments and enrollments.
@@ -162,7 +164,8 @@ The project should continue to evolve within the existing Wasp application struc
   - When a non-lead instructor reports unavailability, the lead instructor must be able to either reschedule the lesson or mark the co-instructor absent and proceed; an absent co-instructor receives no pay for that lesson.
   - Once a lesson is underway, the lead instructor must be able to submit a pass/fail evaluation with optional notes for each active enrolled student; marking a student absent automatically results in a fail.
   - A student who fails a lesson is immediately removed from all future lesson requirements and the course counts toward completion once all students are either certified or failed.
-  - The system must charge each enrolled student the full course fee when the course is started (and immediately on late enrollment), and must pay each attending instructor their agreed wage when each lesson concludes.
+  - The system must charge each enrolled student their effective enrollment price when the course is started (and immediately on late enrollment): listed course price by default, or manager-approved discounted agreed price when present.
+  - When a lesson concludes, the system must create payout obligations for attending instructors at their agreed wage; managers then confirm settlement (payment method/reference) when the payout is actually paid off-platform.
   - Students must be able to submit refund requests for started, completed, or closed courses; managers must be able to approve (with a specified amount up to the amount paid) or decline requests.
   - All financial operations are append-only; corrections are made via compensating transactions only.
 
@@ -211,6 +214,10 @@ The project should continue to evolve within the existing Wasp application struc
 - **Deliver a lesson safely**: The lead instructor schedules each lesson, monitors attendance hints from students and co-instructors, and decides whether to proceed, reschedule, or escalate to the manager.
 
   - This gives the lead instructor full situational control while providing a clear escalation path to the manager when capacity or co-instructor issues arise.
+
+- **Track finances by role**: Managers, instructors, and students can each open their dashboard and see role-appropriate financial summaries sourced from append-only ledger data.
+
+  - This gives each role visibility into balances, payouts, and recent money movement without bypassing server-side scope checks.
 
 ### 5.3 Advanced features & edge cases
 
@@ -547,7 +554,7 @@ The project helps a prospective school community move from discovery to particip
 
   - Starting a course is blocked when any hard guard fails: no assigned instructor, no lead instructor, missing hourly rate, missing agreed wage for any instructor, prior STARTED event already exists, or any enrolled student's account has insufficient balance.
   - Minimum capacity is a soft condition the manager may override with explicit confirmation.
-  - Successful start appends a STARTED CourseLifecycleEvent and charges each enrolled student the full course fee.
+  - Successful start appends a STARTED CourseLifecycleEvent and charges each enrolled student their effective enrollment price (listed price unless an approved per-student agreed price exists).
 
 ### 10.19 Schedule and reschedule a lesson
 
@@ -590,7 +597,8 @@ The project helps a prospective school community move from discovery to particip
   - Lead instructor can submit a PASS or FAIL evaluation with optional notes for each ACTIVE student once the lesson is LESSON_UNDERWAY.
   - Marking a student absent (attended=false) automatically results in FAIL.
   - A failed student is immediately removed from all future lesson requirements.
-  - When all active students have evaluations, the lesson transitions to LESSON_CONCLUDED and instructors are paid.
+  - When all active students have evaluations, the lesson transitions to LESSON_CONCLUDED and pending instructor payout obligations are created.
+  - Managers can mark pending instructor payouts as paid, recording payment method/reference and appending settlement transactions.
 
 ### 10.23 Mark co-instructor absent
 
@@ -599,7 +607,7 @@ The project helps a prospective school community move from discovery to particip
 - **Acceptance criteria**:
 
   - Lead instructor can mark a DECLINED co-instructor as ABSENT before the lesson date or during LESSON_UNDERWAY before all assessments are submitted.
-  - An ABSENT co-instructor receives no pay transaction at LESSON_CONCLUDED.
+  - An ABSENT co-instructor receives no payout obligation at LESSON_CONCLUDED.
   - A co-instructor can still toggle their own availability hint independently of the lead instructor's ABSENT decision.
 
 ### 10.24 Submit and manage refund requests

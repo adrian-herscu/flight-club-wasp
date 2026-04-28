@@ -121,6 +121,29 @@ async function createStartedCourseWithStudent(opts: { minCapacity?: number } = {
   const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
   const s = students.find((s) => s.userId === isolatedMembers.student1.userId)!;
   await enrollStudentInCourse({ courseId, studentId: s.studentId }, ctx.schoolManager);
+
+  const account = await prisma.account.findUnique({
+    where: {
+      userId_schoolId: {
+        userId: s.userId,
+        schoolId: SEED.schools.cloudbase,
+      },
+    },
+    select: { id: true },
+  });
+  if (!account) {
+    throw new Error('no account found for enrolled student');
+  }
+  await prisma.transaction.create({
+    data: {
+      accountId: account.id,
+      type: 'DEPOSIT',
+      amountMinor: 1_000_000,
+      currency: 'GBP',
+      description: 'Test funding before course start',
+    },
+  });
+
   await startCourse({ courseId, overrideCapacity: true }, ctx.schoolManager);
   return { courseId, instructorId: lead.instructorId, studentId: s.studentId };
 }

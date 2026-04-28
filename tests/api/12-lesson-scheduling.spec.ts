@@ -114,9 +114,30 @@ async function createStartedCourse(opts: { withStudent?: boolean } = {}) {
   let studentId: string | undefined;
   if (opts.withStudent) {
     const students = await getManagerStudentsForEnrollment({}, ctx.schoolManager);
-    const s = students[0];
+    const s =
+      students.find((candidate) => candidate.userId === isolatedMembers.student1.userId) ??
+      students[0];
     if (!s) throw new Error('no students available for enrollment');
     await enrollStudentInCourse({ courseId, studentId: s.studentId }, ctx.schoolManager);
+    const account = await prisma.account.findUnique({
+      where: {
+        userId_schoolId: {
+          userId: s.userId,
+          schoolId: SEED.schools.cloudbase,
+        },
+      },
+      select: { id: true },
+    });
+    if (!account) throw new Error('no account found for enrolled student');
+    await prisma.transaction.create({
+      data: {
+        accountId: account.id,
+        type: 'DEPOSIT',
+        amountMinor: 1_000_000,
+        currency: 'GBP',
+        description: 'Test funding before course start',
+      },
+    });
     studentId = s.studentId;
   }
 

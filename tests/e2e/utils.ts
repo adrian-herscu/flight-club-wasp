@@ -780,6 +780,7 @@ export const createStartedCourseWithLesson = async (): Promise<{
   studentId: string;
   instructorId: string;
 }> => {
+  const DEFAULT_ENROLLMENT_LIST_PRICE_MINOR = 175;
   const baseFixture = await createTestCourseWithManager();
 
   const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
@@ -818,7 +819,12 @@ export const createStartedCourseWithLesson = async (): Promise<{
       data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
     });
     await prisma.enrolledStudent.create({
-      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+      data: {
+        courseId: baseFixture.courseId,
+        studentId: studentProfile.id,
+        status: "ACTIVE",
+        listPriceMinor: DEFAULT_ENROLLMENT_LIST_PRICE_MINOR,
+      },
     });
 
     // Create lead instructor (no UserSchoolRole needed — getCourseDetail checks assignedInstructor)
@@ -954,6 +960,7 @@ export const createOpenCourseNoLead = async (): Promise<{
   schoolId: string;
   instructorId: string;
 }> => {
+  const DEFAULT_ENROLLMENT_LIST_PRICE_MINOR = 175;
   const baseFixture = await createTestCourseWithManager();
 
   const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
@@ -1006,7 +1013,12 @@ export const createOpenCourseNoLead = async (): Promise<{
       data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
     });
     await prisma.enrolledStudent.create({
-      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+      data: {
+        courseId: baseFixture.courseId,
+        studentId: studentProfile.id,
+        status: "ACTIVE",
+        listPriceMinor: DEFAULT_ENROLLMENT_LIST_PRICE_MINOR,
+      },
     });
 
     return {
@@ -1032,6 +1044,7 @@ export const createOpenCourseNoWage = async (): Promise<{
   schoolId: string;
   instructorId: string;
 }> => {
+  const DEFAULT_ENROLLMENT_LIST_PRICE_MINOR = 175;
   const baseFixture = await createTestCourseWithManager();
 
   const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
@@ -1084,7 +1097,12 @@ export const createOpenCourseNoWage = async (): Promise<{
       data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
     });
     await prisma.enrolledStudent.create({
-      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+      data: {
+        courseId: baseFixture.courseId,
+        studentId: studentProfile.id,
+        status: "ACTIVE",
+        listPriceMinor: DEFAULT_ENROLLMENT_LIST_PRICE_MINOR,
+      },
     });
 
     return {
@@ -1277,6 +1295,7 @@ export const createReadyToStartCourse = async (): Promise<{
   courseId: string;
   schoolId: string;
 }> => {
+  const DEFAULT_ENROLLMENT_LIST_PRICE_MINOR = 175;
   const baseFixture = await createTestCourseWithManager();
 
   const [{ PrismaClient }, { config }, { resolve }] = await Promise.all([
@@ -1328,7 +1347,33 @@ export const createReadyToStartCourse = async (): Promise<{
       data: { userId: studentUser.id, schoolId: baseFixture.schoolId, currency: "USD" },
     });
     await prisma.enrolledStudent.create({
-      data: { courseId: baseFixture.courseId, studentId: studentProfile.id, status: "ACTIVE" },
+      data: {
+        courseId: baseFixture.courseId,
+        studentId: studentProfile.id,
+        status: "ACTIVE",
+        listPriceMinor: DEFAULT_ENROLLMENT_LIST_PRICE_MINOR,
+      },
+    });
+
+    // startCourse charges enrolled students at STARTED transition, so fund this fixture account.
+    await prisma.transaction.create({
+      data: {
+        accountId: (
+          await prisma.account.findUniqueOrThrow({
+            where: {
+              userId_schoolId: {
+                userId: studentUser.id,
+                schoolId: baseFixture.schoolId,
+              },
+            },
+            select: { id: true },
+          })
+        ).id,
+        type: "DEPOSIT",
+        amountMinor: 10_000,
+        currency: "USD",
+        description: "E2E fixture funding before course start",
+      },
     });
 
     return {

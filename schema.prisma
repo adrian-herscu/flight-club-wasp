@@ -99,6 +99,19 @@ enum RefundRequestStatus {
   DECLINED
 }
 
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD_TERMINAL
+  OTHER
+}
+
+enum InstructorPayoutStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
@@ -130,6 +143,7 @@ model School {
   schoolRoles               UserSchoolRole[] @relation("SchoolRoleMembership")
   approvedRegistrationDecisions RegistrationRequestDecision[] @relation("RegistrationDecisionApprovedSchool")
   courses                   Course[]
+  instructorPayouts         InstructorPayout[]
   
   @@unique([name, country])
 }
@@ -171,6 +185,9 @@ model User {
   proposedLessons                     CourseLesson[]             @relation("CourseLessonProposedBy")
   reviewedInstructorSuggestions       InstructorSuggestion[]     @relation("InstructorSuggestionReviewedBy")
   reviewedRefundRequests              RefundRequest[]            @relation("RefundRequestReviewedBy")
+  recordedTransactions                Transaction[]              @relation("TransactionRecordedBy")
+  approvedEnrollmentConcessions       EnrolledStudent[]          @relation("EnrollmentConcessionApprovedBy")
+  confirmedInstructorPayouts          InstructorPayout[]         @relation("InstructorPayoutPaidBy")
 }
 
 model RegistrationRequest {
@@ -365,9 +382,14 @@ model Transaction {
   account                   Account         @relation(fields: [accountId], references: [id])
   accountId                 String
 
+  recordedBy                User?           @relation("TransactionRecordedBy", fields: [recordedByUserId], references: [id])
+  recordedByUserId          String?
+
   type                      TransactionType
   amountMinor               Int             // Always positive; type determines debit/credit
   currency                  String          // Currency at time of transaction (for audit)
+  paymentMethod             PaymentMethod?
+  externalReference         String?
 
   // Link to counterpart transaction (e.g., student withdrawal ↔ school deposit)
   linkedTransaction         Transaction?    @relation("LinkedPair", fields: [linkedTransactionId], references: [id], onDelete: SetNull)
@@ -380,6 +402,7 @@ model Transaction {
   @@index([accountId])
   @@index([type])
   @@index([createdAt])
+  @@index([recordedByUserId])
 }
 
 model SyllabusVersion {
@@ -456,6 +479,7 @@ model Course {
   enrolledStudents          EnrolledStudent[]
   lifecycleEvents           CourseLifecycleEvent[]
   refundRequests            RefundRequest[]
+  instructorPayouts         InstructorPayout[]
 
   @@index([startDate])
   @@index([syllabusVersionId, startDate])
@@ -490,6 +514,7 @@ model CourseLesson {
   meetingAttendances        MeetingAttendance[]
   instructorSuggestions     InstructorSuggestion[]
   instructorPresences       InstructorLessonPresence[]
+  instructorPayouts         InstructorPayout[]
 
   @@index([date])
   @@index([courseId, date])
@@ -506,6 +531,7 @@ model AssignedInstructor {
 
   isLead                    Boolean         @default(false)
   agreedWagePerHour         Int?
+  payouts                   InstructorPayout[]
 
   @@id([courseId, instructorId])
 }
@@ -518,9 +544,49 @@ model EnrolledStudent {
   studentId                 String
 
   status                    EnrolledStudentStatus @default(ACTIVE)
+  listPriceMinor            Int
+  agreedPriceMinor          Int?
+  concessionReason          String?
+  concessionApprovedBy      User?                 @relation("EnrollmentConcessionApprovedBy", fields: [concessionApprovedByUserId], references: [id])
+  concessionApprovedByUserId String?
+  concessionApprovedAt      DateTime?
 
   @@id([courseId, studentId])
   @@index([courseId, status])
+}
+
+model InstructorPayout {
+  id                        String                 @id @default(uuid())
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+
+  school                    School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId                  String
+
+  course                    Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId                  String
+
+  courseLesson              CourseLesson           @relation(fields: [courseLessonId], references: [id], onDelete: Cascade)
+  courseLessonId            String
+
+  assignedInstructor        AssignedInstructor      @relation(fields: [courseId, instructorId], references: [courseId, instructorId], onDelete: Restrict)
+  instructorId              String
+
+  amountMinor               Int
+  currency                  String
+  status                    InstructorPayoutStatus @default(PENDING)
+  paymentMethod             PaymentMethod?
+  externalReference         String?
+  notes                     String?
+  paidAt                    DateTime?
+  paidBy                    User?                  @relation("InstructorPayoutPaidBy", fields: [paidByUserId], references: [id])
+  paidByUserId              String?
+  withdrawalTransactionId   String?
+  depositTransactionId      String?
+
+  @@unique([courseLessonId, instructorId])
+  @@index([schoolId, status, createdAt])
+  @@index([instructorId, status])
 }
 
 model StudentLessonEvaluation {

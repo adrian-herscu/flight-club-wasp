@@ -306,7 +306,7 @@ query getManagerCourseInstructorDetails {
 
 action enrollStudentInCourse {
   fn: import { enrollStudentInCourse } from "@src/areas/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, Course, Student, EnrolledStudent, Account, CourseLifecycleEvent]
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, Student, EnrolledStudent, Account, CourseLifecycleEvent]
 }
 
 action assignInstructorToCourse {
@@ -321,7 +321,7 @@ action closeCourse {
 
 action startCourse {
   fn: import { startCourse } from "@src/course-execution/operations",
-  entities: [User, School, Course, AssignedInstructor, EnrolledStudent, CourseLifecycleEvent]
+  entities: [User, School, Course, Student, AssignedInstructor, EnrolledStudent, Account, Transaction, CourseLifecycleEvent]
 }
 
 action scheduleLesson {
@@ -361,7 +361,7 @@ action markInstructorAbsent {
 
 action submitStudentAssessment {
   fn: import { submitStudentAssessment } from "@src/course-execution/operations",
-  entities: [User, Course, CourseLesson, SyllabusLesson, Instructor, AssignedInstructor, Student, EnrolledStudent, StudentLessonEvaluation, InstructorLessonPresence, Account, Transaction, CourseLifecycleEvent, School]
+  entities: [User, Course, CourseLesson, SyllabusLesson, Instructor, AssignedInstructor, InstructorPayout, Student, EnrolledStudent, StudentLessonEvaluation, InstructorLessonPresence, Account, Transaction, CourseLifecycleEvent, School]
 }
 
 action enrollInStartedCourse {
@@ -417,7 +417,12 @@ query getManagerCourseInterests {
 
 query getManagerStudentCoursePairs {
   fn: import { getManagerStudentCoursePairs } from "@src/areas/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest]
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, CourseInterest, Student, EnrolledStudent, Account]
+}
+
+query getManagerFinancialDashboardSummary {
+  fn: import { getManagerFinancialDashboardSummary } from "@src/areas/school-manager/operations",
+  entities: [User, School, Course, Syllabus, SyllabusVersion, SyllabusLesson, CourseInterest, Student, EnrolledStudent, Account, Transaction, InstructorPayout]
 }
 
 action cancelCourseInterestForManager {
@@ -427,7 +432,22 @@ action cancelCourseInterestForManager {
 
 action approveStudentEnrollmentFromInterest {
   fn: import { approveStudentEnrollmentFromInterest } from "@src/areas/school-manager/operations",
-  entities: [User, School, Syllabus, SyllabusVersion, Course, CourseInterest, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Student, Account, EnrolledStudent, CourseLifecycleEvent]
+  entities: [User, School, Syllabus, SyllabusVersion, SyllabusLesson, Course, CourseInterest, RegistrationRequest, RegistrationRequestDecision, UserSchoolRole, Student, Account, EnrolledStudent, CourseLifecycleEvent]
+}
+
+action recordStudentAccountTopUp {
+  fn: import { recordStudentAccountTopUp } from "@src/areas/school-manager/operations",
+  entities: [User, School, Course, CourseInterest, Student, Account, Transaction]
+}
+
+query getManagerInstructorPayouts {
+  fn: import { getManagerInstructorPayouts } from "@src/course-execution/operations",
+  entities: [User, School, Course, CourseLesson, Instructor, AssignedInstructor, InstructorPayout]
+}
+
+action markInstructorPayoutPaid {
+  fn: import { markInstructorPayoutPaid } from "@src/course-execution/operations",
+  entities: [User, School, Course, CourseLesson, Instructor, AssignedInstructor, InstructorPayout, Account, Transaction]
 }
 //#endregion
 
@@ -456,6 +476,11 @@ query getStudentEnrolledCourses {
   fn: import { getStudentEnrolledCourses } from "@src/areas/student/operations",
   entities: [User, School, UserSchoolRole, Student, Course, EnrolledStudent, SyllabusVersion, Syllabus]
 }
+
+query getStudentFinancialDashboardSummary {
+  fn: import { getStudentFinancialDashboardSummary } from "@src/areas/student/operations",
+  entities: [User, School, UserSchoolRole, Student, Account, Transaction]
+}
 //#endregion
 
 //#region Admin Dashboard
@@ -468,6 +493,11 @@ query getInstructorSchools {
 query getInstructorAssignedCourses {
   fn: import { getInstructorAssignedCourses } from "@src/areas/instructor/operations",
   entities: [User, School, UserSchoolRole, Instructor, Course, SyllabusVersion, Syllabus, AssignedInstructor, CourseLifecycleEvent]
+}
+
+query getInstructorFinancialDashboardSummary {
+  fn: import { getInstructorFinancialDashboardSummary } from "@src/areas/instructor/operations",
+  entities: [User, School, UserSchoolRole, Instructor, Course, CourseLesson, AssignedInstructor, InstructorPayout]
 }
 //#endregion
 
