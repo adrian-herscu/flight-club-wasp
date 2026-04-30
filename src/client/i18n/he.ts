@@ -80,6 +80,18 @@ export const he = {
 
   registration: {
     registration: "השלם הרשמה",
+    myRoles: "התפקידים שלי",
+    myRequests: "הבקשות שלי",
+    requestManager: "בקשת מנהל",
+    requestInstructor: "בקשת מדריך",
+    requestNewRole: "בקשת תפקיד חדש",
+    noCurrentRoles: "עדיין אין תפקידים מאושרים או ממתינים.",
+    filterAll: "הכל",
+    filterApproved: "מאושר",
+    filterPending: "ממתין",
+    filterRejected: "נדחה",
+    activeRoles: "פעיל",
+    rejectedRoles: "נדחה",
     selectRole: "בחר את התפקיד שלך",
     completeRegistration: "השלם הרשמה",
     registerAs: "הרשם בתור",
@@ -522,7 +534,7 @@ export const he = {
 
   user: {
     accountSettings: "הגדרות חשבון",
-    requestRoles: "בקשת תפקידים",
+    requestRoles: "התפקידים שלי",
     mySchool: "בית הספר שלי",
     syllabuses: "תכניות הלימודים",
     adminDashboard: "לוח בקרה ניהולי",

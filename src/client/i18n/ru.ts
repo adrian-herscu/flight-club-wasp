@@ -80,6 +80,18 @@ export const ru = {
 
   registration: {
     registration: "Завершите регистрацию",
+    myRoles: "Мои роли",
+    myRequests: "Мои заявки",
+    requestManager: "Заявка менеджера",
+    requestInstructor: "Заявка инструктора",
+    requestNewRole: "Запросить новую роль",
+    noCurrentRoles: "Пока нет одобренных или ожидающих ролей.",
+    filterAll: "Все",
+    filterApproved: "Одобрено",
+    filterPending: "В ожидании",
+    filterRejected: "Отклонено",
+    activeRoles: "Активные",
+    rejectedRoles: "Отклонённые",
     selectRole: "Выберите роль",
     completeRegistration: "Завершить регистрацию",
     registerAs: "Зарегистрироваться как",
@@ -556,7 +568,7 @@ export const ru = {
 
   user: {
     accountSettings: "Настройки аккаунта",
-    requestRoles: "Запросить роли",
+    requestRoles: "Мои роли",
     mySchool: "Моя школа",
     syllabuses: "Программы",
     adminDashboard: "Админ-панель",

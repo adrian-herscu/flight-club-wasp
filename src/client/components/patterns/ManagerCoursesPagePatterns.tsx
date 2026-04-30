@@ -1,6 +1,6 @@
-import React, { type FormEvent, type ReactNode, type RefObject } from "react";
+import { type FormEvent, type ReactNode, type RefObject } from "react";
 import { type TFunction } from "i18next";
-import { Button } from "../ui/button";
+import { SegmentedTabButton, SegmentedTabs } from "./SegmentedTabs";
 
 // ---------------------------------------------------------------------------
 // Tab types & StickyTabs
@@ -19,46 +19,28 @@ export const CoursesStickyTabs = ({
   goToSection: (section: ManagerCoursesSection) => void;
   t: TFunction;
 }) => {
-  const maskStyle = {
-    maskImage:
-      document.documentElement.dir === "rtl"
-        ? "linear-gradient(to left, black 0, black calc(100% - 20px), transparent 100%)"
-        : "linear-gradient(to right, black 0, black calc(100% - 20px), transparent 100%)",
-    WebkitMaskImage:
-      document.documentElement.dir === "rtl"
-        ? "linear-gradient(to left, black 0, black calc(100% - 20px), transparent 100%)"
-        : "linear-gradient(to right, black 0, black calc(100% - 20px), transparent 100%)",
-  } as React.CSSProperties;
-
   return (
-    <div className="sticky top-0 z-20 mb-2 backdrop-blur supports-backdrop-filter:bg-background/70">
-      <div className="relative flex overflow-x-auto" style={maskStyle}>
-        <Button
-          type="button"
-          className="shrink-0 rounded-none border-s"
-          variant={activeSection === "courses" ? "secondary" : "outline"}
-          onClick={() => goToSection("courses")}
-        >
+    <SegmentedTabs sticky withMask>
+      <SegmentedTabButton
+        active={activeSection === "courses"}
+        onClick={() => goToSection("courses")}
+      >
           {t("admin.courses")}
-        </Button>
-        <Button
-          type="button"
-          className="shrink-0 rounded-none border-s"
-          variant={activeSection === "enrollment" ? "secondary" : "outline"}
-          onClick={() => goToSection("enrollment")}
-        >
+      </SegmentedTabButton>
+      <SegmentedTabButton
+        active={activeSection === "enrollment"}
+        onClick={() => goToSection("enrollment")}
+      >
           {t("syllabus.enrollment")}
-        </Button>
-        <Button
-          type="button"
-          className="shrink-0 rounded-none border-s"
-          variant={activeSection === "instructors" ? "secondary" : "outline"}
-          onClick={() => goToSection("instructors")}
-        >
+      </SegmentedTabButton>
+      <SegmentedTabButton
+        active={activeSection === "instructors"}
+        onClick={() => goToSection("instructors")}
+        isLast
+      >
           {t("admin.instructors")}
-        </Button>
-      </div>
-    </div>
+      </SegmentedTabButton>
+    </SegmentedTabs>
   );
 };
 

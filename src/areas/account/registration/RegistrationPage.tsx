@@ -6,8 +6,8 @@ import InfoPanel from "../../../client/components/patterns/InfoPanel";
 import LabeledInputField from "../../../client/components/patterns/LabeledInputField";
 import LabeledSelectField from "../../../client/components/patterns/LabeledSelectField";
 import {
-  EmptyValue,
   EndAlignedActions,
+  EmptyValue,
   ExternalLinkText,
   Grid,
   InlineLabel,
@@ -25,6 +25,10 @@ import {
   WebsiteList,
   WebsiteListItem,
 } from "../../../client/components/patterns/RegistrationPagePrimitives";
+import {
+  SegmentedTabButton,
+  SegmentedTabs,
+} from "../../../client/components/patterns/SegmentedTabs";
 import { Button } from "../../../client/components/ui/button";
 import { SelectItem } from "../../../client/components/ui/select";
 import { toast } from "../../../shared/hooks/use-toast";
@@ -35,8 +39,6 @@ const {
   submitRegistrationRequest,
   useQuery,
 } = operations as any;
-
-type RegistrationRole = "SCHOOL_MANAGER" | "INSTRUCTOR";
 
 type SchoolOption = {
   id: string;
@@ -103,9 +105,25 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
     [schoolOptions],
   );
 
+  type RegistrationTab = "MY_REQUESTS" | "REQUEST_MANAGER" | "REQUEST_INSTRUCTOR";
+  const [activeTab, setActiveTab] = useState<RegistrationTab>("MY_REQUESTS");
+
+  type RequestStatusFilter = "ALL" | "APPROVED" | "PENDING" | "REJECTED";
+  const [statusFilter, setStatusFilter] = useState<RequestStatusFilter>("ALL");
+
+  const displayedRequests = useMemo(() => {
+    if (statusFilter === "ALL") {
+      return existingRequests;
+    }
+
+    return existingRequests.filter((request) => request.status === statusFilter);
+  }, [existingRequests, statusFilter]);
+
+  const isManagerRequest = activeTab === "REQUEST_MANAGER";
+  const requestedRole = isManagerRequest ? "SCHOOL_MANAGER" : "INSTRUCTOR";
+
   const [fullName, setFullName] = useState(initialFullName);
   const [phone, setPhone] = useState(initialPhone);
-  const [requestedRole, setRequestedRole] = useState<RegistrationRole>("SCHOOL_MANAGER");
   const [targetSchoolId, setTargetSchoolId] = useState("");
   const [requestedSchoolName, setRequestedSchoolName] = useState("");
   const [requestedWebsiteUrl, setRequestedWebsiteUrl] = useState("");
@@ -119,8 +137,6 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
   const [requestedCurrency, setRequestedCurrency] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasHydratedManagerFields, setHasHydratedManagerFields] = useState(false);
-
-  const isManagerRequest = requestedRole === "SCHOOL_MANAGER";
 
   useEffect(() => {
     if (!isManagerRequest || hasHydratedManagerFields) {
@@ -272,11 +288,38 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
 
   return (
     <PageContainer variant="main">
-      {existingRequests.length > 0 && (
-        <SurfaceCard variant="withBottomMargin">
-          <SurfaceCardHeader title={t("registration.registration")} />
+      <SegmentedTabs>
+        <SegmentedTabButton active={activeTab === "MY_REQUESTS"} onClick={() => setActiveTab("MY_REQUESTS")}>
+          {t("registration.myRequests")}
+        </SegmentedTabButton>
+        <SegmentedTabButton active={activeTab === "REQUEST_MANAGER"} onClick={() => setActiveTab("REQUEST_MANAGER")}>
+          {t("registration.requestManager")}
+        </SegmentedTabButton>
+        <SegmentedTabButton active={activeTab === "REQUEST_INSTRUCTOR"} onClick={() => setActiveTab("REQUEST_INSTRUCTOR")}>
+          {t("registration.requestInstructor")}
+        </SegmentedTabButton>
+      </SegmentedTabs>
+
+      {activeTab === "MY_REQUESTS" && (
+        <SurfaceCard>
           <SurfaceCardContent variant="requests">
-            {existingRequests.map((request) => {
+          <SegmentedTabs>
+            <SegmentedTabButton active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")}>
+              {t("registration.filterAll")}
+            </SegmentedTabButton>
+            <SegmentedTabButton active={statusFilter === "APPROVED"} onClick={() => setStatusFilter("APPROVED")}>
+              {t("registration.filterApproved")}
+            </SegmentedTabButton>
+            <SegmentedTabButton active={statusFilter === "PENDING"} onClick={() => setStatusFilter("PENDING")}>
+              {t("registration.filterPending")}
+            </SegmentedTabButton>
+            <SegmentedTabButton active={statusFilter === "REJECTED"} onClick={() => setStatusFilter("REJECTED")}>
+              {t("registration.filterRejected")}
+            </SegmentedTabButton>
+          </SegmentedTabs>
+
+          {displayedRequests.length > 0 ? (
+            displayedRequests.map((request) => {
               const resolvedSchool = request.targetSchoolId
                 ? schoolOptionsById.get(request.targetSchoolId)
                 : null;
@@ -310,15 +353,22 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
                   )}
                 </InfoPanel>
               );
-            })}
-            <Paragraph muted>{t("registration.refreshMessage")}</Paragraph>
-          </SurfaceCardContent>
+            })
+          ) : (
+            <Paragraph muted>{t("registration.noCurrentRoles")}</Paragraph>
+          )}
+
+          <Paragraph muted>{t("registration.refreshMessage")}</Paragraph>
+        </SurfaceCardContent>
         </SurfaceCard>
       )}
 
-      <SurfaceCard>
-        <SurfaceCardHeader title={t("registration.registration")} />
-        <SurfaceCardContent variant="form">
+      {activeTab !== "MY_REQUESTS" && (
+        <SurfaceCard>
+          <SurfaceCardHeader
+            title={t("registration.registration")}
+          />
+          <SurfaceCardContent variant="form">
           <Grid variant="twoColumns">
             <LabeledInputField
               id="fullName"
@@ -337,15 +387,7 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
             />
           </Grid>
 
-          <LabeledSelectField
-            id="registration-requested-role"
-            label={t("registration.selectRole")}
-            value={requestedRole}
-            onValueChange={(value) => setRequestedRole(value as RegistrationRole)}
-          >
-            <SelectItem value="SCHOOL_MANAGER">{t("registration.schoolManager")}</SelectItem>
-            <SelectItem value="INSTRUCTOR">{t("registration.instructor")}</SelectItem>
-          </LabeledSelectField>
+
 
           {isManagerRequest ? (
             <Stack variant="fieldGroup">
@@ -488,8 +530,9 @@ export default function RegistrationPage({ user }: { user: AuthUser }) {
               {isSubmitting ? t("registration.submitting") : t("registration.submit")}
             </Button>
           </EndAlignedActions>
-        </SurfaceCardContent>
-      </SurfaceCard>
+          </SurfaceCardContent>
+        </SurfaceCard>
+      )}
     </PageContainer>
   );
 }

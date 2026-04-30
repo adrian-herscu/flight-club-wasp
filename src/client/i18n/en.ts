@@ -80,6 +80,18 @@ export const en = {
 
   registration: {
     registration: "Complete your registration",
+    myRoles: "My Roles",
+    myRequests: "My Requests",
+    requestManager: "Request Manager",
+    requestInstructor: "Request Instructor",
+    requestNewRole: "Request New Role",
+    noCurrentRoles: "No approved or pending roles yet.",
+    filterAll: "All",
+    filterApproved: "Approved",
+    filterPending: "Pending",
+    filterRejected: "Rejected",
+    activeRoles: "Active",
+    rejectedRoles: "Rejected",
     selectRole: "Select your role",
     completeRegistration: "Complete Registration",
     registerAs: "Register as",
@@ -523,7 +535,7 @@ export const en = {
 
   user: {
     accountSettings: "Account Settings",
-    requestRoles: "Request Roles",
+    requestRoles: "My Roles",
     mySchool: "My School",
     syllabuses: "Syllabuses",
     adminDashboard: "Admin Dashboard",

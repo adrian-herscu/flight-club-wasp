@@ -11,6 +11,16 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
+async function openRequestNewRoleForm(
+  page: Parameters<typeof logUserIn>[0]["page"],
+  role: "SCHOOL_MANAGER" | "INSTRUCTOR",
+): Promise<void> {
+  const tabName = role === "SCHOOL_MANAGER" ? /request manager/i : /request instructor/i;
+  const roleTab = page.getByRole("button", { name: tabName }).first();
+  await expect(roleTab).toBeVisible();
+  await roleTab.click();
+}
+
 async function submitSchoolManagerRequest(
   page: Parameters<typeof logUserIn>[0]["page"],
   user: User,
@@ -19,10 +29,7 @@ async function submitSchoolManagerRequest(
   await logUserIn({ page, user, expectedRedirectPath: "/registration" });
   await page.goto("/registration");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-
-  await page.locator("#registration-requested-role").click();
-  await page.getByRole("option", { name: /school manager/i }).first().click();
+  await openRequestNewRoleForm(page, "SCHOOL_MANAGER");
 
   await page.locator("#fullName").fill("Reg History User");
   await page.locator("#phone").fill("+1 555 0190");
@@ -37,6 +44,9 @@ async function submitSchoolManagerRequest(
   const submitBtn = page.getByRole("button", { name: /submit|continue|next/i }).last();
   await submitBtn.waitFor({ state: "visible", timeout: 5000 });
   await submitBtn.click();
+  // Navigate to My Requests tab to see the newly submitted request
+  await page.getByRole("button", { name: /my requests/i }).first().click();
+  await page.getByRole("button", { name: /pending/i }).first().click();
   // Wait for history panel to appear with the new request
   await expect(page.getByText(/SCHOOL_MANAGER/)).toBeVisible({ timeout: 10000 });
 }
@@ -49,10 +59,7 @@ async function submitInstructorRequest(
   await logUserIn({ page, user, expectedRedirectPath: "/registration" });
   await page.goto("/registration");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-
-  await page.locator("#registration-requested-role").click();
-  await page.getByRole("option", { name: /instructor/i }).first().click();
+  await openRequestNewRoleForm(page, "INSTRUCTOR");
 
   await page.locator("#registration-school-select").click();
   await page.waitForSelector('[role="option"]', { state: "visible" });
@@ -74,6 +81,9 @@ async function submitInstructorRequest(
   const submitBtn = page.getByRole("button", { name: /submit|continue|next/i }).last();
   await submitBtn.waitFor({ state: "visible", timeout: 5000 });
   await submitBtn.click();
+  // Navigate to My Requests tab to see the newly submitted request
+  await page.getByRole("button", { name: /my requests/i }).first().click();
+  await page.getByRole("button", { name: /pending/i }).first().click();
   // Wait for history panel with the new request
   await expect(page.getByText(/INSTRUCTOR/)).toBeVisible({ timeout: 10000 });
 }
@@ -93,14 +103,14 @@ test.describe("4.19 rejection history visibility", () => {
     await page.goto("/");
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
-
+    // History panel is always visible; just check the content
     // History panel should show the pending request with role and status
     await expect(page.getByText(/SCHOOL_MANAGER/)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/PENDING/)).toBeVisible();
     await expect(page.getByText(schoolName)).toBeVisible();
   });
 
-  test("[STD-ADM-005][STD-INT-002] admin rejection is visible to requester with rejection reason after re-navigation", async ({ page }) => {
+  test("[STD-ADM-005][STD-INT-002] admin-rejected requests are visible in Rejected tab after re-navigation", async ({ page }) => {
     test.slow();
 
     const [requester, adminUser] = await Promise.all([
@@ -142,18 +152,19 @@ test.describe("4.19 rejection history visibility", () => {
       return cards;
     }, { timeout: 10000 }).toBe(0);
 
-    // Step 3: requester navigates to /registration and sees REJECTED status + reason
+    // Step 3: requester navigates to /registration and sees rejected request in Rejected tab
     await logUserIn({ page, user: requester, expectedRedirectPath: "/registration" });
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
 
-    // History panel should show REJECTED status
-    await expect(page.getByText("REJECTED")).toBeVisible({ timeout: 10000 });
-    // Rejection reason should be visible
+    // Filter to Rejected requests
+    await page.getByRole("button", { name: /rejected/i }).first().click();
+
+    await expect(page.getByText(/^REJECTED$/)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(rejectionReason)).toBeVisible();
   });
 
-  test("[STD-MGR-008] manager rejection of instructor request is visible to requester with status on re-navigation", async ({ page }) => {
+  test("[STD-MGR-008] manager-rejected instructor requests are visible in Rejected tab on re-navigation", async ({ page }) => {
     test.slow();
 
     const { manager, schoolName } = await createTestCourseWithManager();
@@ -191,12 +202,15 @@ test.describe("4.19 rejection history visibility", () => {
       return requestCard.count();
     }, { timeout: 10000 }).toBe(0);
 
-    // Step 3: instructor requester navigates to /registration and sees REJECTED status
+    // Step 3: instructor requester navigates to /registration and sees rejected request in Rejected tab
     await logUserIn({ page, user: instructorRequester, expectedRedirectPath: "/registration" });
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText("REJECTED")).toBeVisible({ timeout: 10000 });
+    // Filter to Rejected requests
+    await page.getByRole("button", { name: /rejected/i }).first().click();
+
+    await expect(page.getByText(/^REJECTED$/)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(rejectionReason)).toBeVisible();
   });
 });

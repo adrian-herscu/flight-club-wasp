@@ -5,15 +5,14 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function selectRequestedRole(page: Page, role: "SCHOOL_MANAGER" | "INSTRUCTOR" | "STUDENT") {
-  const roleNameByValue: Record<"SCHOOL_MANAGER" | "INSTRUCTOR" | "STUDENT", RegExp> = {
-    SCHOOL_MANAGER: /school manager/i,
-    INSTRUCTOR: /instructor/i,
-    STUDENT: /student/i,
-  };
-
-  await page.locator("#registration-requested-role").click();
-  await page.getByRole("option", { name: roleNameByValue[role] }).first().click();
+async function openRequestNewRoleForm(
+  page: Page,
+  role: "SCHOOL_MANAGER" | "INSTRUCTOR",
+) {
+  const tabName = role === "SCHOOL_MANAGER" ? /request manager/i : /request instructor/i;
+  const roleTab = page.getByRole("button", { name: tabName }).first();
+  await expect(roleTab).toBeVisible();
+  await roleTab.click();
 }
 
 async function selectTargetSchool(page: Page, schoolName: string) {
@@ -54,6 +53,10 @@ async function expectPendingRequestVisible(
   requestedRole: RegExp,
   requestedSchoolName?: string,
 ) {
+  // Navigate to My Requests tab to see history
+  await page.getByRole("button", { name: /my requests/i }).first().click();
+  await page.getByRole("button", { name: /pending/i }).first().click();
+
   await expect
     .poll(async () => {
       const pendingCount = await page.getByText("PENDING").count();
@@ -83,9 +86,7 @@ test.describe("4.3 registration and role requests", () => {
 
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
-    await selectRequestedRole(page, "SCHOOL_MANAGER");
-
-    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
+    await openRequestNewRoleForm(page, "SCHOOL_MANAGER");
 
     await page.locator("#fullName").fill("User One");
     await page.locator("#phone").fill("+1 555 1111");
@@ -100,6 +101,7 @@ test.describe("4.3 registration and role requests", () => {
     await submitRegistrationForm(page);
     await expectPendingRequestVisible(page, /SCHOOL_MANAGER/i, uniqueSchoolName);
 
+    await openRequestNewRoleForm(page, "SCHOOL_MANAGER");
     await submitRegistrationForm(page);
     await expectSubmissionErrorVisible(page);
   });
@@ -122,9 +124,8 @@ test.describe("4.3 registration and role requests", () => {
     });
 
     await page.goto("/registration");
-    await selectRequestedRole(page, "INSTRUCTOR");
+    await openRequestNewRoleForm(page, "INSTRUCTOR");
     await selectTargetSchool(page, schoolName);
-    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
     await page.locator("#fullName").fill("Test Requester");
     await page.locator("#phone").fill("+1 555 0199");
@@ -167,9 +168,8 @@ test.describe("4.3 registration and role requests", () => {
     });
 
     await page.goto("/registration");
-    await selectRequestedRole(page, "INSTRUCTOR");
+    await openRequestNewRoleForm(page, "INSTRUCTOR");
     await selectTargetSchool(page, schoolName);
-    await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
 
     await page.locator("#fullName").fill("Test Requester");
     await page.locator("#phone").fill("+1 555 0199");

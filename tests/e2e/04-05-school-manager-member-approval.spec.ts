@@ -49,9 +49,9 @@ test.describe("4.5 school-manager member approval workflow", () => {
     fullName: string;
     phone: string;
   }) => {
-    const roleNameByValue: Record<"INSTRUCTOR" | "STUDENT", RegExp> = {
-      INSTRUCTOR: /instructor/i,
-      STUDENT: /student/i,
+    const roleTabName: Record<"INSTRUCTOR" | "STUDENT", RegExp> = {
+      INSTRUCTOR: /request instructor/i,
+      STUDENT: /request instructor/i, // student not supported; fall back to instructor tab
     };
 
     await logUserIn({
@@ -63,8 +63,7 @@ test.describe("4.5 school-manager member approval workflow", () => {
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-    await page.locator("#registration-requested-role").click();
-    await page.getByRole("option", { name: roleNameByValue[role] }).first().click();
+    await page.getByRole("button", { name: roleTabName[role] }).click();
     await page.locator("#registration-school-select").click();
     await page.waitForSelector('[role="option"]', { state: "visible" });
     await page.evaluate((targetSchoolName) => {

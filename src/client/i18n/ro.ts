@@ -80,6 +80,18 @@ export const ro = {
 
   registration: {
     registration: "Finalizează-ți înregistrarea",
+    myRoles: "Rolurile mele",
+    myRequests: "Solicitările mele",
+    requestManager: "Solicitare manager",
+    requestInstructor: "Solicitare instructor",
+    requestNewRole: "Solicită un rol nou",
+    noCurrentRoles: "Nu ai încă roluri aprobate sau în așteptare.",
+    filterAll: "Toate",
+    filterApproved: "Aprobate",
+    filterPending: "În așteptare",
+    filterRejected: "Respinse",
+    activeRoles: "Activ",
+    rejectedRoles: "Respins",
     selectRole: "Selectează rolul tău",
     completeRegistration: "Finalizează înregistrarea",
     registerAs: "Înregistrează-te ca",
@@ -522,7 +534,7 @@ export const ro = {
 
   user: {
     accountSettings: "Setări cont",
-    requestRoles: "Solicită roluri",
+    requestRoles: "Rolurile mele",
     mySchool: "Școala mea",
     syllabuses: "Planuri de studiu",
     adminDashboard: "Panou de administrare",

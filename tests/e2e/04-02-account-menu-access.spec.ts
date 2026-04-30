@@ -261,10 +261,10 @@ test.describe("4.2 authentication and access control - account menu", () => {
     await expect(page).toHaveURL(/\/student\/?$/);
   });
 
-  test("[4.2][STD-AUTH-005] registered users can open Request Roles from user menu", async ({ page }) => {
+  test("[4.2][STD-AUTH-005] registered users can open My Roles from user menu", async ({ page }) => {
     await openAccountUserMenu({ page, user: manager });
 
-    const requestRolesLink = page.getByRole("menuitem").filter({ hasText: /request roles/i });
+    const requestRolesLink = page.getByRole("menuitem").filter({ hasText: /my roles/i });
     await expect(requestRolesLink).toBeVisible();
 
     await requestRolesLink.click();

@@ -18,8 +18,7 @@ test.describe("4.4 admin approval workflow", () => {
   ) => {
     await page.goto("/registration");
     await expect(page.getByRole("heading", { name: /registration/i }).first()).toBeVisible();
-    await page.locator("#registration-requested-role").click();
-    await page.getByRole("option", { name: /school manager/i }).first().click();
+    await page.getByRole("button", { name: /request manager/i }).click();
 
     await page.locator("#fullName").fill("Seed User 01");
     await page.locator("#phone").fill("+1 555 0160");

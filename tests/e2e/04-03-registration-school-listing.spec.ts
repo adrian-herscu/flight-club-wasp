@@ -12,8 +12,7 @@ test.describe("4.3 registration and role requests - school listing", () => {
 
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
-    await page.locator("#registration-requested-role").click();
-    await page.getByRole("option", { name: /instructor/i }).first().click();
+    await page.getByRole("button", { name: /request instructor/i }).click();
 
     // School selector should be visible for non-manager role
     const schoolSelectorLabel = page.getByText(/select school/i).first();
@@ -35,13 +34,11 @@ test.describe("4.3 registration and role requests - school listing", () => {
 
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
-    await page.locator("#registration-requested-role").click();
 
-    const roleOptions = page.getByRole("option");
-    await expect(roleOptions).toHaveCount(2);
-    await expect(page.getByRole("option", { name: /school manager/i })).toBeVisible();
-    await expect(page.getByRole("option", { name: /instructor/i })).toBeVisible();
-    await expect(page.getByRole("option", { name: /student/i })).toHaveCount(0);
+    // The tabs are the role selector - only manager and instructor tabs, no student
+    await expect(page.getByRole("button", { name: /request manager/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /request instructor/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /student/i })).toHaveCount(0);
   });
 
   test("[4.3][STD-REG-006] instructor registration requires selecting an existing school", async ({ page }) => {
@@ -54,8 +51,7 @@ test.describe("4.3 registration and role requests - school listing", () => {
 
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
-    await page.locator("#registration-requested-role").click();
-    await page.getByRole("option", { name: /instructor/i }).first().click();
+    await page.getByRole("button", { name: /request instructor/i }).click();
 
     await page.locator("#fullName").fill("Missing School Selection");
     await page.locator("#phone").fill("+1 555 0177");
@@ -99,8 +95,7 @@ test.describe("4.3 registration and role requests - school listing", () => {
 
     await page.goto("/registration");
     await page.waitForLoadState("networkidle");
-    await page.locator("#registration-requested-role").click();
-    await page.getByRole("option", { name: /instructor/i }).first().click();
+    await page.getByRole("button", { name: /request instructor/i }).click();
 
     const schoolSelect = page.locator("#registration-school-select");
     await schoolSelect.click();

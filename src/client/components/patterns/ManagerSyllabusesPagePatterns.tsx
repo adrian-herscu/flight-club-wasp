@@ -17,6 +17,7 @@ import {
 } from "../ui/dialog";
 import { SelectItem } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import { SegmentedTabButton, SegmentedTabs } from "./SegmentedTabs";
 
 export type ManagerSyllabusesSection = "catalog" | "create" | "details" | "editor";
 
@@ -122,54 +123,33 @@ const StickyTabs = ({
   t: TFunction;
 }) => {
   return (
-    <div className="sticky top-0 z-20 mb-2 backdrop-blur supports-backdrop-filter:bg-background/70">
-      <div
-        className="relative flex overflow-x-auto"
-        style={{
-          maskImage:
-            document.documentElement.dir === "rtl"
-              ? "linear-gradient(to left, black 0, black calc(100% - 20px), transparent 100%)"
-              : "linear-gradient(to right, black 0, black calc(100% - 20px), transparent 100%)",
-          WebkitMaskImage:
-            document.documentElement.dir === "rtl"
-              ? "linear-gradient(to left, black 0, black calc(100% - 20px), transparent 100%)"
-              : "linear-gradient(to right, black 0, black calc(100% - 20px), transparent 100%)",
-        }}
+    <SegmentedTabs sticky withMask>
+      <SegmentedTabButton
+        active={activeSection === "catalog"}
+        onClick={() => goToSection("catalog")}
       >
-        <Button
-          type="button"
-          className="shrink-0 rounded-none border-s"
-          variant={activeSection === "catalog" ? "secondary" : "outline"}
-          onClick={() => goToSection("catalog")}
-        >
           {t("syllabus.catalog")}
-        </Button>
-        <Button
-          type="button"
-          className="shrink-0 rounded-none border-s"
-          variant={activeSection === "create" ? "secondary" : "outline"}
-          onClick={() => goToSection("create")}
-        >
+      </SegmentedTabButton>
+      <SegmentedTabButton
+        active={activeSection === "create"}
+        onClick={() => goToSection("create")}
+      >
           {t("syllabus.create")}
-        </Button>
-        <Button
-          type="button"
-          className="shrink-0 rounded-none border-s"
-          variant={activeSection === "details" ? "secondary" : "outline"}
-          onClick={() => goToSection("details")}
-        >
+      </SegmentedTabButton>
+      <SegmentedTabButton
+        active={activeSection === "details"}
+        onClick={() => goToSection("details")}
+      >
           {t("syllabus.details")}
-        </Button>
-        <Button
-          type="button"
-          className="shrink-0 rounded-none"
-          variant={activeSection === "editor" ? "secondary" : "outline"}
-          onClick={() => goToSection("editor")}
-        >
+      </SegmentedTabButton>
+      <SegmentedTabButton
+        active={activeSection === "editor"}
+        onClick={() => goToSection("editor")}
+        isLast
+      >
           {t("syllabus.editor")}
-        </Button>
-      </div>
-    </div>
+      </SegmentedTabButton>
+    </SegmentedTabs>
   );
 };
 
